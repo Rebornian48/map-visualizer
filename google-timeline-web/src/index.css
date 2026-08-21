@@ -1,0 +1,67 @@
+/* ── Theme Variables ───────────────────────── */
+[data-theme="dark"] {
+  --bg: #0a0a0f;
+  --surface: rgba(18, 18, 26, 0.85);
+  --surface-solid: #12121a;
+  --surface-2: #1a1a28;
+  --border: #2a2a3a;
+  --text: #e8e8f0;
+  --text-dim: #8888a0;
+  --accent: #ff3366;
+  --accent-glow: rgba(255, 51, 102, 0.4);
+  --accent-2: #00ccaa;
+  --accent-3: #6644ff;
+  --map-bg: #0a0a0f;
+  --dropzone-hover: rgba(255, 51, 102, 0.05);
+  --glow-opacity: 0.15;
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+[data-theme="light"] {
+  --bg: #f0f1f5;
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-solid: #ffffff;
+  --surface-2: #e8e9f0;
+  --border: #d0d1da;
+  --text: #1a1a2e;
+  --text-dim: #6b6b80;
+  --accent: #e6204e;
+  --accent-glow: rgba(230, 32, 78, 0.25);
+  --accent-2: #00a88a;
+  --accent-3: #5533dd;
+  --map-bg: #e8e8e8;
+  --dropzone-hover: rgba(230, 32, 78, 0.06);
+  --glow-opacity: 0.08;
+  --shadow: 0 4px 24px rgba(0,0,0,0.1);
+}
+
+:root { --radius: 10px; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  transition: background 0.4s, color 0.4s;
+}
+
+/* Dark map tiles — only applied in dark mode */
+[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.1) saturate(0.3);
+}
+
+[data-theme="light"] .leaflet-tile-pane {
+  filter: none;
+}
+
+.leaflet-control-zoom a {
+  background: var(--surface-solid) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  transition: all 0.3s !important;
+}
+
+.leaflet-control-attribution { display: none !important; }
