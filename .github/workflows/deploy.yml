@@ -13,10 +13,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
 
-      - run: npm ci
+      - run: npm install
       - run: npm run build
 
       - name: Deploy to Hostinger
@@ -26,5 +25,5 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./dist/
-          server-dir: ./public_html/visualisasi-peta/
+          server-dir: visualisasi-peta/
           dangerous-clean-slate: false
