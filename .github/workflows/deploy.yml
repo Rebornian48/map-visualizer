@@ -25,5 +25,5 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./dist/
-          server-dir: /public_html/visualisasi-peta/
+          server-dir: /domains/rebornian48.my.id/public_html/visualisasi-peta/
           dangerous-clean-slate: false
