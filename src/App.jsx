@@ -29,7 +29,17 @@ export default function App() {
       setLoadingPct(20)
       await new Promise(r => setTimeout(r, 50))
 
-      const data = JSON.parse(text)
+       let data
+       try {
+         data = JSON.parse(text)
+       } catch {
+         let depth = 0, end = 0
+         for (let i = 0; i < text.length; i++) {
+           if (text[i] === '{') depth++
+           else if (text[i] === '}') { depth--; if (depth === 0) { end = i + 1; break } }
+         }
+         data = JSON.parse(text.slice(0, end))
+       }
       setLoadingText('Extracting timeline data…')
       setLoadingPct(40)
       await new Promise(r => setTimeout(r, 50))
