@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/visualisasi-peta/',
+  base: '/map-visualizer/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

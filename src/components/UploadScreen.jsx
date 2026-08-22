@@ -23,7 +23,7 @@ export default function UploadScreen({ onFile, theme, onToggleTheme }) {
             fontSize: '2.4rem', fontWeight: 700, letterSpacing: '-0.03em',
             background: 'linear-gradient(135deg, var(--text), var(--accent))',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>Timeline Visualizer</h1>
+          }}>Map Visualizer</h1>
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
 

@@ -1,4 +1,4 @@
-# Google Timeline Visualizer Web
+# Map Visualizer
 
 Interactive web visualizer for Google Location History `Timeline.json` files.  
 Built with **React + Vite + Leaflet** — auto-deploys to **Hostinger** via GitHub Actions.
@@ -15,8 +15,8 @@ Built with **React + Vite + Leaflet** — auto-deploys to **Hostinger** via GitH
 ## Quick Start (Local Dev)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/google-timeline-visualizer-web.git
-cd google-timeline-visualizer-web
+git clone https://github.com/YOUR_USERNAME/map-visualizer.git
+cd map-visualizer
 npm install
 npm run dev
 ```
@@ -28,11 +28,11 @@ Open `http://localhost:5173` and drop your `Timeline.json` file.
 ### Step 1 — Create GitHub Repo
 
 ```bash
-cd google-timeline-visualizer-web
+cd map-visualizer
 git init
 git add .
 git commit -m "initial commit"
-gh repo create google-timeline-visualizer-web --public --push
+gh repo create map-visualizer --public --push
 ```
 
 Or create the repo manually on github.com and push.
@@ -72,7 +72,7 @@ Every future `git push` to `main` triggers a new deploy.
 
 ### Step 5 — Verify
 
-Open your Hostinger domain in a browser. The Timeline Visualizer should be live.
+Open your Hostinger domain in a browser. Map Visualizer should be live.
 
 ## Manual Deploy (Alternative)
 

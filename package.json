@@ -1,5 +1,5 @@
 {
-  "name": "google-timeline-visualizer-web",
+  "name": "map-visualizer",
   "version": "1.0.0",
   "description": "Interactive web visualizer for Google Location History Timeline.json",
   "type": "module",

@@ -1,5 +1,5 @@
 RewriteEngine On
-RewriteBase /visualisasi-peta/
+RewriteBase /map-visualizer/
 
 # Serve existing files/dirs directly
 RewriteCond %{REQUEST_FILENAME} !-f
