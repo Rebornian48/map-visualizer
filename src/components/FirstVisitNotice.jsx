@@ -1,23 +1,8 @@
-import React, { useEffect, useState } from 'react'
-
-const STORAGE_KEY = 'mv-notice-video-export-v1'
+import React, { useState } from 'react'
 
 export default function FirstVisitNotice() {
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem(STORAGE_KEY)) setVisible(true)
-    } catch {
-      setVisible(true)
-    }
-  }, [])
-
-  const dismiss = () => {
-    try { localStorage.setItem(STORAGE_KEY, '1') } catch {}
-    setVisible(false)
-  }
-
+  const [visible, setVisible] = useState(true)
+  const dismiss = () => setVisible(false)
   if (!visible) return null
 
   return (
