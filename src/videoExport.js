@@ -1,0 +1,195 @@
+import { toPng } from 'html-to-image'
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+export function filterPointsByPeriod(yearData, startYear, startMonth, endYear, endMonth) {
+  const startTs = new Date(startYear, startMonth, 1).getTime()
+  const endTs = new Date(endYear, endMonth + 1, 1).getTime()
+  const out = []
+  for (const y of Object.keys(yearData).map(Number)) {
+    if (y < startYear || y > endYear) continue
+    for (const p of yearData[y].points) {
+      const t = p.time.getTime()
+      if (t >= startTs && t < endTs) out.push(p)
+    }
+  }
+  out.sort((a, b) => a.time - b.time)
+  return out
+}
+
+export function summarizePeriod(points) {
+  let dist = 0
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i]
+    dist += haversine(a.lat, a.lon, b.lat, b.lon)
+  }
+  return { count: points.length, distanceKm: dist / 1000 }
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000
+  const toRad = d => d * Math.PI / 180
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1)
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
+function pickMimeType() {
+  const candidates = [
+    'video/mp4;codecs=avc1.42E01F',
+    'video/mp4;codecs=h264',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+  ]
+  for (const t of candidates) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) return t
+  }
+  return ''
+}
+
+export async function exportVideo({
+  map, points, durationSeconds, fps = 30, onProgress, onStage,
+}) {
+  if (!points || points.length < 2) throw new Error('Not enough points in the selected period.')
+
+  onStage?.('Fitting map to period…')
+  const lats = points.map(p => p.lat)
+  const lons = points.map(p => p.lon)
+  map.fitBounds(
+    [[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]],
+    { padding: [40, 40], maxZoom: 14, animate: false }
+  )
+
+  await new Promise(r => setTimeout(r, 300))
+  await waitForTilesLoaded(map)
+
+  onStage?.('Snapshotting map background…')
+  const mapEl = map.getContainer()
+  const rect = mapEl.getBoundingClientRect()
+  const width = Math.round(rect.width)
+  const height = Math.round(rect.height)
+
+  const bgDataUrl = await toPng(mapEl, {
+    width, height, pixelRatio: 1, cacheBust: true,
+    filter: (node) => !(node.classList && (
+      node.classList.contains('leaflet-control-container') ||
+      node.classList.contains('leaflet-control')
+    )),
+  })
+  const bgImg = await loadImage(bgDataUrl)
+
+  const projected = points.map(p => {
+    const pt = map.latLngToContainerPoint([p.lat, p.lon])
+    return { x: pt.x, y: pt.y, t: p.time }
+  })
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+
+  const mimeType = pickMimeType()
+  if (!mimeType) throw new Error('Browser does not support MediaRecorder video output.')
+  const isMp4 = mimeType.startsWith('video/mp4')
+
+  const stream = canvas.captureStream(fps)
+  const chunks = []
+  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 6_000_000 })
+  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
+
+  const stopped = new Promise((resolve) => { recorder.onstop = resolve })
+  recorder.start()
+
+  const totalFrames = Math.max(2, Math.round(durationSeconds * fps))
+  const startPeriod = projected[0].t.getTime()
+  const endPeriod = projected[projected.length - 1].t.getTime()
+
+  onStage?.('Rendering frames…')
+  for (let f = 0; f < totalFrames; f++) {
+    const pct = f / (totalFrames - 1)
+    const cutoffTs = startPeriod + (endPeriod - startPeriod) * pct
+
+    ctx.drawImage(bgImg, 0, 0, width, height)
+
+    ctx.strokeStyle = '#ff3366'
+    ctx.lineWidth = 3
+    ctx.lineJoin = 'round'
+    ctx.lineCap = 'round'
+    ctx.globalAlpha = 0.85
+    ctx.beginPath()
+    let started = false
+    let headIdx = 0
+    for (let i = 0; i < projected.length; i++) {
+      const p = projected[i]
+      if (p.t.getTime() > cutoffTs) break
+      if (!started) { ctx.moveTo(p.x, p.y); started = true }
+      else ctx.lineTo(p.x, p.y)
+      headIdx = i
+    }
+    ctx.stroke()
+    ctx.globalAlpha = 1
+
+    const head = projected[headIdx]
+    ctx.fillStyle = '#ff3366'
+    ctx.strokeStyle = '#fff'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(head.x, head.y, 6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+
+    ctx.font = "500 14px 'DM Mono', monospace"
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    const label = head.t.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    const tw = ctx.measureText(label).width
+    ctx.fillRect(12, height - 34, tw + 16, 22)
+    ctx.fillStyle = '#fff'
+    ctx.fillText(label, 20, height - 18)
+
+    onProgress?.((f + 1) / totalFrames)
+    await new Promise(r => setTimeout(r, 1000 / fps))
+  }
+
+  recorder.stop()
+  await stopped
+
+  const blob = new Blob(chunks, { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  const ext = isMp4 ? 'mp4' : 'webm'
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+  a.href = url
+  a.download = `map-visualizer-${stamp}.${ext}`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+
+  return { mimeType, isMp4, sizeBytes: blob.size }
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+function waitForTilesLoaded(map) {
+  return new Promise((resolve) => {
+    let tilesPending = 0
+    map.eachLayer(l => {
+      if (l._loading) tilesPending++
+    })
+    if (tilesPending === 0) return setTimeout(resolve, 200)
+    const onLoad = () => { setTimeout(resolve, 200) }
+    map.once('load', onLoad)
+    setTimeout(resolve, 3000)
+  })
+}
+
+export { MONTHS }

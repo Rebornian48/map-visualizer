@@ -3,6 +3,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { ACTIVITY_COLORS } from '../parser'
 import ThemeToggle from './ThemeToggle'
+import ExportModal from './ExportModal'
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const SPEEDS = [1, 2, 5, 10]
@@ -57,6 +58,7 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
   const [timeLabel, setTimeLabel] = useState('—')
   const [legendItems, setLegendItems] = useState([])
   const [cursor, setCursor] = useState(null)
+  const [showExport, setShowExport] = useState(false)
 
   const years = yearData ? Object.keys(yearData).map(Number).sort() : []
   const currentPointsRef = useRef([])
@@ -269,15 +271,30 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           {hasData && (
-            <button onClick={() => setShowStats(s => !s)} style={{
-              background: 'none', border: 'none', padding: '7px 12px', color: 'var(--text)',
-              cursor: 'pointer', fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif",
-              borderRadius: 7,
-            }}>Stats</button>
+            <>
+              <button onClick={() => setShowExport(true)} style={{
+                padding: '7px 14px', background: 'var(--accent)', border: 'none',
+                borderRadius: 8, color: 'white', cursor: 'pointer',
+                fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif", fontWeight: 500,
+              }}>Export Video</button>
+              <button onClick={() => setShowStats(s => !s)} style={{
+                background: 'none', border: 'none', padding: '7px 12px', color: 'var(--text)',
+                cursor: 'pointer', fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif",
+                borderRadius: 7,
+              }}>Stats</button>
+            </>
           )}
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
       </header>
+
+      {showExport && hasData && (
+        <ExportModal
+          yearData={yearData}
+          map={mapInstance.current}
+          onClose={() => setShowExport(false)}
+        />
+      )}
 
       {/* Map Area */}
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
