@@ -43,6 +43,9 @@ export default function ExportModal({ yearData, map, onClose }) {
   const [endMonth, setEndMonth] = useState(11)
   const [durationChoice, setDurationChoice] = useState(30)
   const [customSeconds, setCustomSeconds] = useState(45)
+  const [title, setTitle] = useState('')
+
+  const effectiveTitle = title.trim() || `${startYear}–${endYear} Timeline`
 
   const [busy, setBusy] = useState(false)
   const [stage, setStage] = useState('')
@@ -65,6 +68,7 @@ export default function ExportModal({ yearData, map, onClose }) {
     try {
       const res = await exportVideo({
         map, points: filtered, durationSeconds: duration,
+        title: effectiveTitle,
         onProgress: setProgress, onStage: setStage,
       })
       setStage(`Done — ${res.isMp4 ? 'MP4' : 'WebM (MP4 not supported by this browser)'} · ${(res.sizeBytes / 1024 / 1024).toFixed(1)} MB`)
@@ -93,6 +97,25 @@ export default function ExportModal({ yearData, map, onClose }) {
             background: 'none', border: 'none', color: 'var(--text-dim)', cursor: busy ? 'not-allowed' : 'pointer',
             fontSize: '1.4rem', lineHeight: 1, padding: 4,
           }}>×</button>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={labelStyle}>Video title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={busy}
+            maxLength={80}
+            placeholder={`${startYear}–${endYear} Timeline`}
+            style={fieldStyle}
+          />
+          <div style={{
+            fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: 4,
+            fontFamily: "'DM Mono', monospace",
+          }}>
+            Shown in the header card at the top of every frame
+          </div>
         </div>
 
         <div style={{ marginBottom: 20 }}>
