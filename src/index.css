@@ -65,3 +65,17 @@ body {
 }
 
 .leaflet-control-attribution { display: none !important; }
+
+.leaflet-tooltip.boundary-tooltip {
+  background: var(--surface-solid);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.leaflet-tooltip.boundary-tooltip::before { display: none; }

@@ -21,6 +21,22 @@ const BOUNDARY_STYLE = {
   fillColor: '#ff3366',
 }
 
+const BOUNDARY_HOVER_STYLE = {
+  color: '#ff3366',
+  weight: 2.5,
+  opacity: 1,
+  fillOpacity: 0.2,
+  fillColor: '#ff3366',
+}
+
+const BOUNDARY_SELECTED_STYLE = {
+  color: '#ff3366',
+  weight: 3,
+  opacity: 1,
+  fillOpacity: 0.28,
+  fillColor: '#ff3366',
+}
+
 const BASEMAPS = {
   'Carto Light': {
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
@@ -42,6 +58,35 @@ const BASEMAPS = {
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     opts: { maxZoom: 17, attribution: '&copy; OpenTopoMap (CC-BY-SA)' },
   },
+}
+
+function pickProp(props, keys) {
+  if (!props) return ''
+  for (const k of keys) {
+    const v = props[k]
+    if (v != null && String(v).trim() !== '') return String(v).trim()
+  }
+  return ''
+}
+
+function boundaryLabel(kind, props) {
+  if (kind === 'provinsi') {
+    const name = pickProp(props, ['WADMPR', 'PROVINSI', 'Propinsi', 'NAME_1', 'nama_provinsi', 'province'])
+    return name ? `<strong>${escapeHtml(name)}</strong>` : ''
+  }
+  if (kind === 'kabkota') {
+    const kab = pickProp(props, ['KAB_KOTA', 'KABKOT', 'WADMKK', 'NAME_2', 'kabupaten'])
+    const prov = pickProp(props, ['PROVINSI', 'WADMPR', 'Propinsi', 'NAME_1', 'province'])
+    if (!kab && !prov) return ''
+    const line1 = kab ? `<strong>${escapeHtml(kab)}</strong>` : ''
+    const line2 = prov ? `<span style="opacity:0.7">${escapeHtml(prov)}</span>` : ''
+    return [line1, line2].filter(Boolean).join('<br/>')
+  }
+  return ''
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
 }
 
 const BASEMAP_NAMES = ['Carto Light', 'Carto Dark', 'OpenStreetMap', 'Satellite', 'Topographic']
@@ -223,6 +268,9 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
     const map = mapInstance.current
     if (!map) return
     if (boundaryLayerRef.current) {
+      if (boundaryLayerRef.current._mapClickHandler) {
+        map.off('click', boundaryLayerRef.current._mapClickHandler)
+      }
       map.removeLayer(boundaryLayerRef.current)
       boundaryLayerRef.current = null
     }
@@ -231,11 +279,44 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
     let cancelled = false
     const addLayer = (geojson) => {
       if (cancelled || !mapInstance.current) return
+      let selectedLyr = null
       const layer = L.geoJSON(geojson, {
         style: BOUNDARY_STYLE,
-        interactive: false,
+        interactive: true,
+        onEachFeature: (feature, lyr) => {
+          const label = boundaryLabel(boundary, feature?.properties)
+          if (label) {
+            lyr.bindTooltip(label, {
+              sticky: true, direction: 'top', opacity: 0.95,
+              className: 'boundary-tooltip',
+            })
+          }
+          lyr.on({
+            mouseover: (e) => {
+              if (e.target !== selectedLyr) e.target.setStyle(BOUNDARY_HOVER_STYLE)
+              e.target.bringToFront()
+            },
+            mouseout: (e) => {
+              if (e.target !== selectedLyr) layer.resetStyle(e.target)
+            },
+            click: (e) => {
+              if (selectedLyr && selectedLyr !== e.target) layer.resetStyle(selectedLyr)
+              selectedLyr = e.target
+              e.target.setStyle(BOUNDARY_SELECTED_STYLE)
+              e.target.bringToFront()
+              const b = e.target.getBounds?.()
+              if (b?.isValid()) mapInstance.current.fitBounds(b, { padding: [40, 40], maxZoom: 12 })
+              L.DomEvent.stopPropagation(e)
+            },
+          })
+        },
       })
       layer.addTo(mapInstance.current)
+      const mapClickHandler = () => {
+        if (selectedLyr) { layer.resetStyle(selectedLyr); selectedLyr = null }
+      }
+      mapInstance.current.on('click', mapClickHandler)
+      layer._mapClickHandler = mapClickHandler
       boundaryLayerRef.current = layer
     }
 
