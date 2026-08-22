@@ -120,28 +120,22 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
     }
     currentPointsRef.current = points
 
-    if (points.length > 1) {
-      const cs = 500
-      for (let i = 0; i < points.length; i += cs) {
-        const chunk = points.slice(i, Math.min(i + cs + 1, points.length))
-        L.polyline(chunk.map(p => [p.lat, p.lon]), {
-          color: '#ff3366', weight: 2, opacity: 0.5, smoothFactor: 1.5,
-        }).addTo(path)
-      }
+    const maxDots = 5000
+    const dotStep = Math.max(1, Math.ceil(points.length / maxDots))
+    for (let i = 0; i < points.length; i += dotStep) {
+      const p = points[i]
+      L.circleMarker([p.lat, p.lon], {
+        radius: 2, fillColor: '#ff3366', fillOpacity: 0.7,
+        color: '#ff3366', weight: 0, opacity: 0,
+      }).addTo(path)
     }
 
-    const actTypes = new Set()
-    for (const act of activities) {
-      actTypes.add(act.type)
-      L.polyline([[act.startLat, act.startLon], [act.endLat, act.endLon]], {
-        color: ACTIVITY_COLORS[act.type] || '#888', weight: 3, opacity: 0.6,
-      }).addTo(activity)
-    }
+    const actTypes = new Set(activities.map(a => a.type))
 
     for (const v of visits) {
       L.circleMarker([v.lat, v.lon], {
-        radius: 4, fillColor: '#00ccaa', fillOpacity: 0.7,
-        color: '#00ccaa', weight: 1, opacity: 0.4,
+        radius: 5, fillColor: '#00ccaa', fillOpacity: 0.85,
+        color: '#00ccaa', weight: 1, opacity: 0.5,
       }).addTo(visit)
     }
 
@@ -174,12 +168,13 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
       return
     }
     setIsPlaying(true)
-    const { path } = layersRef.current
-    path.clearLayers()
-    const animLine = L.polyline([], { color: '#ff3366', weight: 3, opacity: 0.8 }).addTo(path)
+    const { path, visit, activity } = layersRef.current
+    path.clearLayers(); visit.clearLayers(); activity.clearLayers()
+
     const head = L.circleMarker([pts[0].lat, pts[0].lon], {
-      radius: 6, fillColor: '#ff3366', fillOpacity: 1, color: '#fff', weight: 2,
+      radius: 7, fillColor: '#ff3366', fillOpacity: 1, color: '#fff', weight: 2,
     }).addTo(path)
+
     let frame = 0
     const total = pts.length
     const step = Math.max(1, Math.floor(total / 3000))
@@ -187,12 +182,22 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
       const idx = Math.min(frame, total - 1)
       const pt = pts[idx]
       head.setLatLng([pt.lat, pt.lon])
-      if (idx % 3 === 0) animLine.addLatLng([pt.lat, pt.lon])
       const pct = (idx / (total - 1)) * 100
       setPlayPct(pct)
       setTimeLabel(pt.time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
       frame += step * SPEEDS[speedIdx]
-      if (frame >= total) { setIsPlaying(false); return }
+      if (frame >= total) {
+        path.clearLayers()
+        L.polyline(pts.map(p => [p.lat, p.lon]), {
+          color: '#ff3366', weight: 2, opacity: 0.7, smoothFactor: 1.5,
+        }).addTo(path)
+        L.circleMarker([pts[pts.length - 1].lat, pts[pts.length - 1].lon], {
+          radius: 7, fillColor: '#ff3366', fillOpacity: 1, color: '#fff', weight: 2,
+        }).addTo(path)
+        setPlayPct(100)
+        setIsPlaying(false)
+        return
+      }
       animRef.current = requestAnimationFrame(tick)
     }
     animRef.current = requestAnimationFrame(tick)

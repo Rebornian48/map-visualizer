@@ -107,37 +107,47 @@ export async function exportVideo({
   const endPeriod = projected[projected.length - 1].t.getTime()
 
   onStage?.('Rendering frames…')
+  const revealFrames = Math.min(totalFrames - 1, fps)
+  const revealStart = totalFrames - revealFrames
+
   for (let f = 0; f < totalFrames; f++) {
     const pct = f / (totalFrames - 1)
     const cutoffTs = startPeriod + (endPeriod - startPeriod) * pct
 
     ctx.drawImage(bgImg, 0, 0, width, height)
 
-    ctx.strokeStyle = '#ff3366'
-    ctx.lineWidth = 3
-    ctx.lineJoin = 'round'
-    ctx.lineCap = 'round'
-    ctx.globalAlpha = 0.85
-    ctx.beginPath()
-    let started = false
     let headIdx = 0
     for (let i = 0; i < projected.length; i++) {
-      const p = projected[i]
-      if (p.t.getTime() > cutoffTs) break
-      if (!started) { ctx.moveTo(p.x, p.y); started = true }
-      else ctx.lineTo(p.x, p.y)
+      if (projected[i].t.getTime() > cutoffTs) break
       headIdx = i
     }
-    ctx.stroke()
-    ctx.globalAlpha = 1
-
     const head = projected[headIdx]
+
+    if (f >= revealStart) {
+      const revealPct = revealFrames > 0 ? (f - revealStart + 1) / revealFrames : 1
+      ctx.strokeStyle = '#ff3366'
+      ctx.lineWidth = 2.5
+      ctx.lineJoin = 'round'
+      ctx.lineCap = 'round'
+      ctx.globalAlpha = 0.75 * revealPct
+      ctx.beginPath()
+      ctx.moveTo(projected[0].x, projected[0].y)
+      for (let i = 1; i < projected.length; i++) {
+        ctx.lineTo(projected[i].x, projected[i].y)
+      }
+      ctx.stroke()
+      ctx.globalAlpha = 1
+    }
+
     ctx.fillStyle = '#ff3366'
     ctx.strokeStyle = '#fff'
     ctx.lineWidth = 2
+    ctx.shadowColor = 'rgba(255,51,102,0.6)'
+    ctx.shadowBlur = 12
     ctx.beginPath()
-    ctx.arc(head.x, head.y, 6, 0, Math.PI * 2)
+    ctx.arc(head.x, head.y, 8, 0, Math.PI * 2)
     ctx.fill()
+    ctx.shadowBlur = 0
     ctx.stroke()
 
     ctx.font = "500 14px 'DM Mono', monospace"
