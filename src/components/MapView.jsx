@@ -8,6 +8,19 @@ import ExportModal from './ExportModal'
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const SPEEDS = [1, 2, 5, 10]
 
+const BOUNDARY_SOURCES = {
+  provinsi: 'https://rebornian48.my.id/assets/json/provinsi.json',
+  kabkota: 'https://rebornian48.my.id/assets/json/kabkota.json',
+}
+
+const BOUNDARY_STYLE = {
+  color: '#ff3366',
+  weight: 1,
+  opacity: 0.7,
+  fillOpacity: 0.05,
+  fillColor: '#ff3366',
+}
+
 const BASEMAPS = {
   'Carto Light': {
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
@@ -59,6 +72,10 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
   const [legendItems, setLegendItems] = useState([])
   const [cursor, setCursor] = useState(null)
   const [showExport, setShowExport] = useState(false)
+  const [boundary, setBoundary] = useState('none')
+  const [boundaryLoading, setBoundaryLoading] = useState(false)
+  const boundaryLayerRef = useRef(null)
+  const boundaryCacheRef = useRef({})
 
   const years = yearData ? Object.keys(yearData).map(Number).sort() : []
   const currentPointsRef = useRef([])
@@ -96,6 +113,51 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
     setCurrentYear(latest)
     setCurrentMonth(null)
   }, [yearData])
+
+  useEffect(() => {
+    const map = mapInstance.current
+    if (!map) return
+    if (boundaryLayerRef.current) {
+      map.removeLayer(boundaryLayerRef.current)
+      boundaryLayerRef.current = null
+    }
+    if (boundary === 'none') return
+
+    let cancelled = false
+    const addLayer = (geojson) => {
+      if (cancelled || !mapInstance.current) return
+      const layer = L.geoJSON(geojson, {
+        style: BOUNDARY_STYLE,
+        interactive: false,
+      })
+      layer.addTo(mapInstance.current)
+      boundaryLayerRef.current = layer
+    }
+
+    const cached = boundaryCacheRef.current[boundary]
+    if (cached) {
+      addLayer(cached)
+      return () => { cancelled = true }
+    }
+
+    setBoundaryLoading(true)
+    fetch(BOUNDARY_SOURCES[boundary])
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(data => {
+        boundaryCacheRef.current[boundary] = data
+        addLayer(data)
+      })
+      .catch(err => {
+        console.error('Boundary load failed:', err)
+        if (!cancelled) alert(`Failed to load boundary layer: ${err.message}`)
+      })
+      .finally(() => { if (!cancelled) setBoundaryLoading(false) })
+
+    return () => { cancelled = true }
+  }, [boundary])
 
   useEffect(() => {
     if (!mapInstance.current || currentYear === null || !yearData) return
@@ -273,6 +335,28 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
             ))}
           </div>
         )}
+
+        <div style={{
+          display: 'flex', gap: 2, padding: 3,
+          background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8,
+        }}>
+          {[
+            { key: 'none', label: 'No boundary' },
+            { key: 'provinsi', label: 'Provinsi' },
+            { key: 'kabkota', label: 'Kab/Kota' },
+          ].map(opt => (
+            <button key={opt.key} onClick={() => setBoundary(opt.key)}
+              disabled={boundaryLoading && boundary !== opt.key}
+              style={{
+                padding: '5px 12px', borderRadius: 6, fontSize: '0.78rem',
+                fontFamily: "'Outfit', sans-serif", cursor: 'pointer', whiteSpace: 'nowrap',
+                border: 'none', background: boundary === opt.key ? 'var(--accent)' : 'transparent',
+                color: boundary === opt.key ? 'white' : 'var(--text-dim)',
+                fontWeight: boundary === opt.key ? 500 : 400,
+              }}
+            >{opt.key === boundary && boundaryLoading ? '…' : opt.label}</button>
+          ))}
+        </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           {hasData && (
