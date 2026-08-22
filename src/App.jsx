@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import LoadingScreen from './components/LoadingScreen'
 import MapView from './components/MapView'
+import FirstVisitNotice from './components/FirstVisitNotice'
 import { parseTimeline, organizeByYear } from './parser'
 import { getInitialTheme, applyTheme } from './theme'
 
@@ -64,6 +65,7 @@ export default function App() {
   return (
     <>
       <MapView yearData={yearData} theme={theme} onToggleTheme={toggleTheme} onFile={handleFile} />
+      <FirstVisitNotice />
       {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
     </>
   )
