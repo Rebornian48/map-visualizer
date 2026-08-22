@@ -49,6 +49,9 @@ function pickMimeType() {
   return ''
 }
 
+const HOLD_SECONDS = 10
+const REVEAL_SECONDS = 1
+
 export async function exportVideo({
   map, points, durationSeconds, fps = 30, onProgress, onStage,
 }) {
@@ -100,22 +103,17 @@ export async function exportVideo({
   recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
 
   const stopped = new Promise((resolve) => { recorder.onstop = resolve })
-  recorder.start()
 
-  const totalFrames = Math.max(2, Math.round(durationSeconds * fps))
   const startPeriod = projected[0].t.getTime()
   const endPeriod = projected[projected.length - 1].t.getTime()
 
-  onStage?.('Rendering frames…')
-  const revealFrames = Math.min(totalFrames - 1, fps)
-  const revealStart = totalFrames - revealFrames
+  const animMs = durationSeconds * 1000
+  const holdMs = HOLD_SECONDS * 1000
+  const revealMs = REVEAL_SECONDS * 1000
+  const totalMs = animMs + holdMs
 
-  for (let f = 0; f < totalFrames; f++) {
-    const pct = f / (totalFrames - 1)
-    const cutoffTs = startPeriod + (endPeriod - startPeriod) * pct
-
-    ctx.drawImage(bgImg, 0, 0, width, height)
-
+  const drawFrame = (animPct, revealPct) => {
+    const cutoffTs = startPeriod + (endPeriod - startPeriod) * animPct
     let headIdx = 0
     for (let i = 0; i < projected.length; i++) {
       if (projected[i].t.getTime() > cutoffTs) break
@@ -123,13 +121,14 @@ export async function exportVideo({
     }
     const head = projected[headIdx]
 
-    if (f >= revealStart) {
-      const revealPct = revealFrames > 0 ? (f - revealStart + 1) / revealFrames : 1
+    ctx.drawImage(bgImg, 0, 0, width, height)
+
+    if (revealPct > 0) {
       ctx.strokeStyle = '#ff3366'
       ctx.lineWidth = 2.5
       ctx.lineJoin = 'round'
       ctx.lineCap = 'round'
-      ctx.globalAlpha = 0.75 * revealPct
+      ctx.globalAlpha = 0.75 * Math.min(1, revealPct)
       ctx.beginPath()
       ctx.moveTo(projected[0].x, projected[0].y)
       for (let i = 1; i < projected.length; i++) {
@@ -157,10 +156,32 @@ export async function exportVideo({
     ctx.fillRect(12, height - 34, tw + 16, 22)
     ctx.fillStyle = '#fff'
     ctx.fillText(label, 20, height - 18)
-
-    onProgress?.((f + 1) / totalFrames)
-    await new Promise(r => setTimeout(r, 1000 / fps))
   }
+
+  onStage?.('Rendering frames…')
+  drawFrame(0, 0)
+  recorder.start()
+
+  const startWall = performance.now()
+  await new Promise((resolve) => {
+    function tick() {
+      const elapsed = performance.now() - startWall
+      if (elapsed >= totalMs) { resolve(); return }
+      if (elapsed <= animMs) {
+        drawFrame(elapsed / animMs, 0)
+      } else {
+        const holdElapsed = elapsed - animMs
+        const revealPct = Math.min(1, holdElapsed / revealMs)
+        drawFrame(1, revealPct)
+      }
+      onProgress?.(elapsed / totalMs)
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+
+  drawFrame(1, 1)
+  await new Promise(r => requestAnimationFrame(r))
 
   recorder.stop()
   await stopped

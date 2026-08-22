@@ -132,6 +132,12 @@ export default function ExportModal({ yearData, map, onClose }) {
               <>{summary.count.toLocaleString()} points · about {summary.distanceKm.toFixed(0)} km</>
             )}
           </div>
+          <div style={{
+            fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 4,
+            fontFamily: "'DM Mono', monospace",
+          }}>
+            Final video: {duration}s animation + 10s hold = {duration + 10}s total
+          </div>
         </div>
 
         <div style={{ marginBottom: 24 }}>
