@@ -206,18 +206,21 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
   const hasData = !!yearData
 
   return (
-    <div style={{ height: '100vh', position: 'relative' }}>
-      <div ref={mapRef} style={{ width: '100%', height: '100%', background: 'var(--map-bg)', transition: 'background 0.4s' }} />
-
-      {/* Top Bar */}
-      <div style={{
-        position: 'absolute', top: 16, left: 16, right: 16, zIndex: 1000,
-        display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'none', flexWrap: 'wrap',
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <header style={{
+        flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        padding: '10px 16px',
+        background: 'var(--surface-solid)',
+        borderBottom: '1px solid var(--border)',
+        boxShadow: 'var(--shadow)',
+        zIndex: 1100,
       }}>
         <div style={{
-          ...uiPanel, pointerEvents: 'auto', padding: '8px 16px',
           display: 'flex', alignItems: 'center', gap: 8,
-          fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap',
+          fontWeight: 600, fontSize: '0.95rem', whiteSpace: 'nowrap',
+          padding: '4px 4px 4px 0',
         }}>
           <span style={{
             width: 8, height: 8, background: 'var(--accent)', borderRadius: '50%',
@@ -227,10 +230,10 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
         </div>
 
         <button onClick={() => fileInputRef.current?.click()} style={{
-          ...uiPanel, pointerEvents: 'auto', padding: '8px 14px',
-          display: 'flex', alignItems: 'center', gap: 6,
-          color: 'var(--text)', cursor: 'pointer', fontSize: '0.85rem',
-          fontFamily: "'Outfit', sans-serif", fontWeight: 500,
+          padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 6,
+          background: 'var(--surface-2)', border: '1px solid var(--border)',
+          borderRadius: 8, color: 'var(--text)', cursor: 'pointer',
+          fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif", fontWeight: 500,
         }}>
           <span style={{ fontSize: '1rem', lineHeight: 1 }}>+</span>
           {hasData ? 'Replace JSON' : 'Add Timeline JSON'}
@@ -247,13 +250,14 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
 
         {hasData && (
           <div style={{
-            ...uiPanel, pointerEvents: 'auto', display: 'flex', gap: 4, padding: 4,
+            display: 'flex', gap: 4, padding: 3,
+            background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8,
             overflowX: 'auto', maxWidth: 580,
           }}>
             {years.map(y => (
               <button key={y} onClick={() => { setCurrentYear(y); setCurrentMonth(null) }}
                 style={{
-                  padding: '6px 14px', borderRadius: 7, fontSize: '0.8rem',
+                  padding: '5px 12px', borderRadius: 6, fontSize: '0.8rem',
                   fontFamily: "'DM Mono', monospace", cursor: 'pointer', whiteSpace: 'nowrap',
                   border: 'none', background: currentYear === y ? 'var(--accent)' : 'transparent',
                   color: currentYear === y ? 'white' : 'var(--text-dim)', transition: 'all 0.2s',
@@ -263,23 +267,25 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
           </div>
         )}
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           {hasData && (
             <button onClick={() => setShowStats(s => !s)} style={{
-              background: 'none', border: 'none', padding: '8px 14px', color: 'var(--text)',
+              background: 'none', border: 'none', padding: '7px 12px', color: 'var(--text)',
               cursor: 'pointer', fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif",
               borderRadius: 7,
             }}>Stats</button>
           )}
-          <div style={{ ...uiPanel, padding: '6px 10px', display: 'flex', alignItems: 'center' }}>
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-          </div>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
-      </div>
+      </header>
+
+      {/* Map Area */}
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        <div ref={mapRef} style={{ width: '100%', height: '100%', background: 'var(--map-bg)', transition: 'background 0.4s' }} />
 
       {/* Stats Panel */}
       {hasData && showStats && (
-        <div style={{ ...uiPanel, position: 'absolute', top: 70, right: 16, zIndex: 1000, padding: 20, width: 280 }}>
+        <div style={{ ...uiPanel, position: 'absolute', top: 16, right: 16, zIndex: 1000, padding: 20, width: 280 }}>
           <h3 style={{
             fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.12em',
             color: 'var(--text-dim)', marginBottom: 14, fontFamily: "'DM Mono', monospace",
@@ -398,6 +404,7 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
           }}>{SPEEDS[speedIdx]}×</button>
         </div>
       )}
+      </div>
     </div>
   )
 }
