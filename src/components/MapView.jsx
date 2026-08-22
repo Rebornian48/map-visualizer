@@ -7,6 +7,29 @@ import ThemeToggle from './ThemeToggle'
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const SPEEDS = [1, 2, 5, 10]
 
+const BASEMAPS = {
+  'Carto Light': {
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' },
+  },
+  'Carto Dark': {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' },
+  },
+  'OpenStreetMap': {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' },
+  },
+  'Satellite': {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    opts: { maxZoom: 19, attribution: 'Tiles &copy; Esri' },
+  },
+  'Topographic': {
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    opts: { maxZoom: 17, attribution: '&copy; OpenTopoMap (CC-BY-SA)' },
+  },
+}
+
 const uiPanel = {
   background: 'var(--surface)',
   border: '1px solid var(--border)',
@@ -17,11 +40,12 @@ const uiPanel = {
   transition: 'background 0.4s, border-color 0.4s, box-shadow 0.4s',
 }
 
-export default function MapView({ yearData, theme, onToggleTheme }) {
+export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
   const layersRef = useRef({})
   const animRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   const [currentYear, setCurrentYear] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(null)
@@ -32,32 +56,49 @@ export default function MapView({ yearData, theme, onToggleTheme }) {
   const [playPct, setPlayPct] = useState(0)
   const [timeLabel, setTimeLabel] = useState('—')
   const [legendItems, setLegendItems] = useState([])
+  const [cursor, setCursor] = useState(null)
 
-  const years = Object.keys(yearData).map(Number).sort()
+  const years = yearData ? Object.keys(yearData).map(Number).sort() : []
   const currentPointsRef = useRef([])
 
   useEffect(() => {
     if (mapInstance.current) return
     const map = L.map(mapRef.current, {
-      center: [-7.78, 110.41], zoom: 12,
-      zoomControl: true, attributionControl: false,
+      center: [-2.5, 118], zoom: 5,
+      zoomControl: true, attributionControl: true,
     })
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map)
+
+    const baseLayers = {}
+    Object.entries(BASEMAPS).forEach(([name, { url, opts }]) => {
+      baseLayers[name] = L.tileLayer(url, opts)
+    })
+    baseLayers['Carto Light'].addTo(map)
+    L.control.layers(baseLayers, null, { position: 'topright', collapsed: true }).addTo(map)
+
     layersRef.current = {
       path: L.layerGroup().addTo(map),
       visit: L.layerGroup().addTo(map),
       activity: L.layerGroup().addTo(map),
     }
+
+    map.on('mousemove', (e) => setCursor(e.latlng))
+    map.on('mouseout', () => setCursor(null))
+
     mapInstance.current = map
-    const latest = years[years.length - 1]
-    setCurrentYear(latest)
     return () => { map.remove(); mapInstance.current = null }
   }, [])
 
   useEffect(() => {
-    if (!mapInstance.current || currentYear === null) return
+    if (!yearData) return
+    const latest = Object.keys(yearData).map(Number).sort().pop()
+    setCurrentYear(latest)
+    setCurrentMonth(null)
+  }, [yearData])
+
+  useEffect(() => {
+    if (!mapInstance.current || currentYear === null || !yearData) return
     renderData(currentYear, currentMonth)
-  }, [currentYear, currentMonth])
+  }, [currentYear, currentMonth, yearData])
 
   const renderData = useCallback((year, month) => {
     const map = mapInstance.current
@@ -66,7 +107,7 @@ export default function MapView({ yearData, theme, onToggleTheme }) {
     if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null }
     setIsPlaying(false); setPlayPct(0); setTimeLabel('—')
 
-    const yd = yearData[year]
+    const yd = yearData?.[year]
     if (!yd) return
 
     let points = yd.points, visits = yd.visits, activities = yd.activities
@@ -155,12 +196,14 @@ export default function MapView({ yearData, theme, onToggleTheme }) {
     animRef.current = requestAnimationFrame(tick)
   }, [isPlaying, currentYear, currentMonth, speedIdx, renderData])
 
-  const availableMonths = currentYear && yearData[currentYear]
+  const availableMonths = currentYear && yearData?.[currentYear]
     ? [...new Set([
         ...yearData[currentYear].points.map(p => p.time.getMonth()),
         ...yearData[currentYear].visits.map(v => v.start.getMonth()),
       ])].sort((a, b) => a - b)
     : []
+
+  const hasData = !!yearData
 
   return (
     <div style={{ height: '100vh', position: 'relative' }}>
@@ -180,31 +223,54 @@ export default function MapView({ yearData, theme, onToggleTheme }) {
             width: 8, height: 8, background: 'var(--accent)', borderRadius: '50%',
             boxShadow: '0 0 8px var(--accent-glow)',
           }} />
-          Timeline
+          Map Visualizer
         </div>
 
-        <div style={{
-          ...uiPanel, pointerEvents: 'auto', display: 'flex', gap: 4, padding: 4,
-          overflowX: 'auto', maxWidth: 580,
+        <button onClick={() => fileInputRef.current?.click()} style={{
+          ...uiPanel, pointerEvents: 'auto', padding: '8px 14px',
+          display: 'flex', alignItems: 'center', gap: 6,
+          color: 'var(--text)', cursor: 'pointer', fontSize: '0.85rem',
+          fontFamily: "'Outfit', sans-serif", fontWeight: 500,
         }}>
-          {years.map(y => (
-            <button key={y} onClick={() => { setCurrentYear(y); setCurrentMonth(null) }}
-              style={{
-                padding: '6px 14px', borderRadius: 7, fontSize: '0.8rem',
-                fontFamily: "'DM Mono', monospace", cursor: 'pointer', whiteSpace: 'nowrap',
-                border: 'none', background: currentYear === y ? 'var(--accent)' : 'transparent',
-                color: currentYear === y ? 'white' : 'var(--text-dim)', transition: 'all 0.2s',
-              }}
-            >{y}</button>
-          ))}
-        </div>
+          <span style={{ fontSize: '1rem', lineHeight: 1 }}>+</span>
+          {hasData ? 'Replace JSON' : 'Add Timeline JSON'}
+        </button>
+
+        <input
+          ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }}
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) onFile(f)
+            e.target.value = ''
+          }}
+        />
+
+        {hasData && (
+          <div style={{
+            ...uiPanel, pointerEvents: 'auto', display: 'flex', gap: 4, padding: 4,
+            overflowX: 'auto', maxWidth: 580,
+          }}>
+            {years.map(y => (
+              <button key={y} onClick={() => { setCurrentYear(y); setCurrentMonth(null) }}
+                style={{
+                  padding: '6px 14px', borderRadius: 7, fontSize: '0.8rem',
+                  fontFamily: "'DM Mono', monospace", cursor: 'pointer', whiteSpace: 'nowrap',
+                  border: 'none', background: currentYear === y ? 'var(--accent)' : 'transparent',
+                  color: currentYear === y ? 'white' : 'var(--text-dim)', transition: 'all 0.2s',
+                }}
+              >{y}</button>
+            ))}
+          </div>
+        )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'auto' }}>
-          <button onClick={() => setShowStats(s => !s)} style={{
-            background: 'none', border: 'none', padding: '8px 14px', color: 'var(--text)',
-            cursor: 'pointer', fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif",
-            borderRadius: 7,
-          }}>📊 Stats</button>
+          {hasData && (
+            <button onClick={() => setShowStats(s => !s)} style={{
+              background: 'none', border: 'none', padding: '8px 14px', color: 'var(--text)',
+              cursor: 'pointer', fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif",
+              borderRadius: 7,
+            }}>Stats</button>
+          )}
           <div style={{ ...uiPanel, padding: '6px 10px', display: 'flex', alignItems: 'center' }}>
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>
@@ -212,7 +278,7 @@ export default function MapView({ yearData, theme, onToggleTheme }) {
       </div>
 
       {/* Stats Panel */}
-      {showStats && (
+      {hasData && showStats && (
         <div style={{ ...uiPanel, position: 'absolute', top: 70, right: 16, zIndex: 1000, padding: 20, width: 280 }}>
           <h3 style={{
             fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.12em',
@@ -241,7 +307,7 @@ export default function MapView({ yearData, theme, onToggleTheme }) {
       )}
 
       {/* Month Bar */}
-      {currentYear && (
+      {hasData && currentYear && (
         <div style={{
           ...uiPanel, position: 'absolute', bottom: 80, left: '50%',
           transform: 'translateX(-50%)', zIndex: 1000, display: 'flex', gap: 3, padding: 4,
@@ -265,7 +331,7 @@ export default function MapView({ yearData, theme, onToggleTheme }) {
       )}
 
       {/* Legend */}
-      {legendItems.length > 0 && (
+      {hasData && legendItems.length > 0 && (
         <div style={{
           ...uiPanel, position: 'absolute', bottom: 130, left: 16, zIndex: 1000, padding: '12px 16px',
         }}>
@@ -281,45 +347,57 @@ export default function MapView({ yearData, theme, onToggleTheme }) {
         </div>
       )}
 
-      {/* Playback Bar */}
+      {/* Coordinate Display (bottom-left) */}
       <div style={{
-        ...uiPanel, position: 'absolute', bottom: 20, left: '50%',
-        transform: 'translateX(-50%)', zIndex: 1000,
-        display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px',
+        ...uiPanel, position: 'absolute', bottom: 16, left: 16, zIndex: 1000,
+        padding: '6px 12px', fontFamily: "'DM Mono', monospace", fontSize: '0.75rem',
+        color: 'var(--text-dim)', display: 'flex', gap: 12, pointerEvents: 'none',
       }}>
-        <button onClick={togglePlay} style={{
-          width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)',
-          border: 'none', color: 'white', cursor: 'pointer', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0,
-        }}>{isPlaying ? '⏸' : '▶'}</button>
-
-        <div style={{
-          width: 300, height: 4, background: 'var(--surface-2)', borderRadius: 2,
-          cursor: 'pointer', position: 'relative',
-        }}>
-          <div style={{
-            height: '100%', background: 'var(--accent)', borderRadius: 2,
-            width: `${playPct}%`, transition: 'width 0.05s linear',
-          }} />
-          <div style={{
-            position: 'absolute', top: '50%', left: `${playPct}%`,
-            transform: 'translate(-50%, -50%)', width: 12, height: 12,
-            background: 'var(--accent)', borderRadius: '50%',
-            boxShadow: '0 0 8px var(--accent-glow)', pointerEvents: 'none',
-          }} />
-        </div>
-
-        <div style={{
-          fontFamily: "'DM Mono', monospace", fontSize: '0.75rem',
-          color: 'var(--text-dim)', minWidth: 70, textAlign: 'center',
-        }}>{timeLabel}</div>
-
-        <button onClick={() => setSpeedIdx(i => (i + 1) % SPEEDS.length)} style={{
-          background: 'var(--surface-2)', border: '1px solid var(--border)',
-          borderRadius: 6, padding: '4px 10px', color: 'var(--text)', cursor: 'pointer',
-          fontSize: '0.7rem', fontFamily: "'DM Mono', monospace",
-        }}>{SPEEDS[speedIdx]}×</button>
+        <span>Lat: <span style={{ color: 'var(--text)' }}>{cursor ? cursor.lat.toFixed(6) : '—'}</span></span>
+        <span>Lng: <span style={{ color: 'var(--text)' }}>{cursor ? cursor.lng.toFixed(6) : '—'}</span></span>
       </div>
+
+      {/* Playback Bar */}
+      {hasData && (
+        <div style={{
+          ...uiPanel, position: 'absolute', bottom: 20, left: '50%',
+          transform: 'translateX(-50%)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px',
+        }}>
+          <button onClick={togglePlay} style={{
+            width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)',
+            border: 'none', color: 'white', cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0,
+          }}>{isPlaying ? '⏸' : '▶'}</button>
+
+          <div style={{
+            width: 300, height: 4, background: 'var(--surface-2)', borderRadius: 2,
+            cursor: 'pointer', position: 'relative',
+          }}>
+            <div style={{
+              height: '100%', background: 'var(--accent)', borderRadius: 2,
+              width: `${playPct}%`, transition: 'width 0.05s linear',
+            }} />
+            <div style={{
+              position: 'absolute', top: '50%', left: `${playPct}%`,
+              transform: 'translate(-50%, -50%)', width: 12, height: 12,
+              background: 'var(--accent)', borderRadius: '50%',
+              boxShadow: '0 0 8px var(--accent-glow)', pointerEvents: 'none',
+            }} />
+          </div>
+
+          <div style={{
+            fontFamily: "'DM Mono', monospace", fontSize: '0.75rem',
+            color: 'var(--text-dim)', minWidth: 70, textAlign: 'center',
+          }}>{timeLabel}</div>
+
+          <button onClick={() => setSpeedIdx(i => (i + 1) % SPEEDS.length)} style={{
+            background: 'var(--surface-2)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '4px 10px', color: 'var(--text)', cursor: 'pointer',
+            fontSize: '0.7rem', fontFamily: "'DM Mono', monospace",
+          }}>{SPEEDS[speedIdx]}×</button>
+        </div>
+      )}
     </div>
   )
 }

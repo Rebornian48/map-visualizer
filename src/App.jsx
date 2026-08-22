@@ -1,12 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react'
-import UploadScreen from './components/UploadScreen'
 import LoadingScreen from './components/LoadingScreen'
 import MapView from './components/MapView'
 import { parseTimeline, organizeByYear } from './parser'
 import { getInitialTheme, applyTheme } from './theme'
 
 export default function App() {
-  const [screen, setScreen] = useState('upload')
+  const [loading, setLoading] = useState(false)
   const [loadingText, setLoadingText] = useState('')
   const [loadingPct, setLoadingPct] = useState(0)
   const [yearData, setYearData] = useState(null)
@@ -19,7 +18,7 @@ export default function App() {
   }, [])
 
   const handleFile = useCallback(async (file) => {
-    setScreen('loading')
+    setLoading(true)
     setLoadingText('Reading file…')
     setLoadingPct(5)
 
@@ -29,17 +28,17 @@ export default function App() {
       setLoadingPct(20)
       await new Promise(r => setTimeout(r, 50))
 
-       let data
-       try {
-         data = JSON.parse(text)
-       } catch {
-         let depth = 0, end = 0
-         for (let i = 0; i < text.length; i++) {
-           if (text[i] === '{') depth++
-           else if (text[i] === '}') { depth--; if (depth === 0) { end = i + 1; break } }
-         }
-         data = JSON.parse(text.slice(0, end))
-       }
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        let depth = 0, end = 0
+        for (let i = 0; i < text.length; i++) {
+          if (text[i] === '{') depth++
+          else if (text[i] === '}') { depth--; if (depth === 0) { end = i + 1; break } }
+        }
+        data = JSON.parse(text.slice(0, end))
+      }
       setLoadingText('Extracting timeline data…')
       setLoadingPct(40)
       await new Promise(r => setTimeout(r, 50))
@@ -55,14 +54,17 @@ export default function App() {
       await new Promise(r => setTimeout(r, 100))
 
       setYearData(organized)
-      setScreen('map')
+      setLoading(false)
     } catch (err) {
       alert('Error parsing file: ' + err.message)
-      setScreen('upload')
+      setLoading(false)
     }
   }, [])
 
-  if (screen === 'upload') return <UploadScreen onFile={handleFile} theme={theme} onToggleTheme={toggleTheme} />
-  if (screen === 'loading') return <LoadingScreen text={loadingText} pct={loadingPct} />
-  return <MapView yearData={yearData} theme={theme} onToggleTheme={toggleTheme} />
+  return (
+    <>
+      <MapView yearData={yearData} theme={theme} onToggleTheme={toggleTheme} onFile={handleFile} />
+      {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
+    </>
+  )
 }
