@@ -44,6 +44,96 @@ const BASEMAPS = {
   },
 }
 
+const BASEMAP_NAMES = ['Carto Light', 'Carto Dark', 'OpenStreetMap', 'Satellite', 'Topographic']
+const BOUNDARY_OPTIONS = [
+  { key: 'none', label: 'No boundary' },
+  { key: 'provinsi', label: 'Provinsi' },
+  { key: 'kabkota', label: 'Kab/Kota' },
+]
+
+function LayersControl({ basemap, onBasemap, boundary, onBoundary, boundaryLoading }) {
+  const [open, setOpen] = useState(false)
+  const rowStyle = {
+    display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0',
+    fontSize: '0.82rem', color: 'var(--text)', cursor: 'pointer',
+    fontFamily: "'Outfit', sans-serif",
+  }
+  const groupLabel = {
+    fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em',
+    color: 'var(--text-dim)', fontFamily: "'DM Mono', monospace",
+    marginBottom: 4,
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        onMouseEnter={() => setOpen(true)}
+        title="Layers"
+        style={{
+          position: 'absolute', top: 12, right: 12, zIndex: 1000,
+          width: 36, height: 36, borderRadius: 8,
+          background: 'var(--surface-solid)', border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0,
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+             style={{ color: 'var(--text)' }}>
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </svg>
+      </button>
+    )
+  }
+
+  return (
+    <div
+      onMouseLeave={() => setOpen(false)}
+      style={{
+        position: 'absolute', top: 12, right: 12, zIndex: 1000,
+        background: 'var(--surface-solid)', border: '1px solid var(--border)',
+        borderRadius: 8, boxShadow: 'var(--shadow)',
+        padding: '12px 16px', minWidth: 180,
+      }}
+    >
+      <div style={groupLabel}>Basemap</div>
+      {BASEMAP_NAMES.map(name => (
+        <label key={name} style={rowStyle}>
+          <input
+            type="radio" name="basemap"
+            checked={basemap === name}
+            onChange={() => onBasemap(name)}
+            style={{ accentColor: 'var(--accent)' }}
+          />
+          <span>{name}</span>
+        </label>
+      ))}
+      <div style={{ height: 1, background: 'var(--border)', margin: '10px 0' }} />
+      <div style={groupLabel}>Boundary</div>
+      {BOUNDARY_OPTIONS.map(opt => (
+        <label key={opt.key} style={{
+          ...rowStyle,
+          opacity: boundaryLoading && boundary !== opt.key ? 0.5 : 1,
+          cursor: boundaryLoading && boundary !== opt.key ? 'wait' : 'pointer',
+        }}>
+          <input
+            type="radio" name="boundary"
+            checked={boundary === opt.key}
+            disabled={boundaryLoading && boundary !== opt.key}
+            onChange={() => onBoundary(opt.key)}
+            style={{ accentColor: 'var(--accent)' }}
+          />
+          <span>{opt.key === boundary && boundaryLoading ? `${opt.label}…` : opt.label}</span>
+        </label>
+      ))}
+    </div>
+  )
+}
+
 const uiPanel = {
   background: 'var(--surface)',
   border: '1px solid var(--border)',
@@ -74,8 +164,10 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
   const [showExport, setShowExport] = useState(false)
   const [boundary, setBoundary] = useState('none')
   const [boundaryLoading, setBoundaryLoading] = useState(false)
+  const [basemap, setBasemap] = useState('Carto Light')
   const boundaryLayerRef = useRef(null)
   const boundaryCacheRef = useRef({})
+  const baseLayersRef = useRef({})
 
   const years = yearData ? Object.keys(yearData).map(Number).sort() : []
   const currentPointsRef = useRef([])
@@ -92,7 +184,7 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
       baseLayers[name] = L.tileLayer(url, opts)
     })
     baseLayers['Carto Light'].addTo(map)
-    L.control.layers(baseLayers, null, { position: 'topright', collapsed: true }).addTo(map)
+    baseLayersRef.current = baseLayers
 
     layersRef.current = {
       path: L.layerGroup().addTo(map),
@@ -113,6 +205,19 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
     setCurrentYear(latest)
     setCurrentMonth(null)
   }, [yearData])
+
+  useEffect(() => {
+    const map = mapInstance.current
+    if (!map) return
+    const layers = baseLayersRef.current
+    Object.entries(layers).forEach(([name, layer]) => {
+      if (name === basemap) {
+        if (!map.hasLayer(layer)) layer.addTo(map)
+      } else {
+        if (map.hasLayer(layer)) map.removeLayer(layer)
+      }
+    })
+  }, [basemap])
 
   useEffect(() => {
     const map = mapInstance.current
@@ -336,28 +441,6 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
           </div>
         )}
 
-        <div style={{
-          display: 'flex', gap: 2, padding: 3,
-          background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8,
-        }}>
-          {[
-            { key: 'none', label: 'No boundary' },
-            { key: 'provinsi', label: 'Provinsi' },
-            { key: 'kabkota', label: 'Kab/Kota' },
-          ].map(opt => (
-            <button key={opt.key} onClick={() => setBoundary(opt.key)}
-              disabled={boundaryLoading && boundary !== opt.key}
-              style={{
-                padding: '5px 12px', borderRadius: 6, fontSize: '0.78rem',
-                fontFamily: "'Outfit', sans-serif", cursor: 'pointer', whiteSpace: 'nowrap',
-                border: 'none', background: boundary === opt.key ? 'var(--accent)' : 'transparent',
-                color: boundary === opt.key ? 'white' : 'var(--text-dim)',
-                fontWeight: boundary === opt.key ? 500 : 400,
-              }}
-            >{opt.key === boundary && boundaryLoading ? '…' : opt.label}</button>
-          ))}
-        </div>
-
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           {hasData && (
             <>
@@ -388,6 +471,13 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
       {/* Map Area */}
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
         <div ref={mapRef} style={{ width: '100%', height: '100%', background: 'var(--map-bg)', transition: 'background 0.4s' }} />
+
+        {/* Unified Layers Control (basemap + boundary) */}
+        <LayersControl
+          basemap={basemap} onBasemap={setBasemap}
+          boundary={boundary} onBoundary={setBoundary}
+          boundaryLoading={boundaryLoading}
+        />
 
       {/* Stats Panel */}
       {hasData && showStats && (
