@@ -118,10 +118,26 @@ Overlay bus & rel diambil dari **Opentransum**
   `file_gtfs.zip` (Transjakarta GTFS), `krl_lines.geojson`,
   `lrt_mrt_lines.geojson`, `rails.kml`.
 
-Karena aplikasi mengambil data dari origin lain, CDN harus mengirim
-header `Access-Control-Allow-Origin: *` (atau setidaknya mengizinkan
-origin `https://rebornian48.my.id`). Selama dev lokal, `vite.config.js`
-memproxikan `/otsum-cdn/*` ke CDN untuk melewatkan CORS.
+CDN Opentransum hanya mengirim `Access-Control-Allow-Origin:
+https://opentransum.randspace0.com`, jadi fetch langsung dari
+`rebornian48.my.id` diblok CORS. Karena kami tidak mengelola CDN
+tersebut, build produksi mem-proxi via satu file PHP di Hostinger.
+
+**Setup proxy (sekali saja):**
+
+1. Upload [deploy/otsum/proxy.php](deploy/otsum/proxy.php) ke
+   `public_html/otsum/proxy.php` di Hostinger (File Manager atau FTP).
+2. Verifikasi:
+   ```bash
+   curl -sI "https://rebornian48.my.id/otsum/proxy.php?f=transsemarang.json" | grep -i access-control
+   ```
+   Harus muncul `access-control-allow-origin: *`.
+
+Proxy meng-whitelist 10 nama file yang dipakai app, forward ke CDN
+Opentransum, dan menempelkan header CORS. Cache HTTP 1 jam di browser.
+
+Dev lokal tidak melewati proxy — `vite.config.js` memproxikan
+`/otsum-cdn/*` langsung ke CDN dari sisi Node server.
 
 ## Manual deploy (alternative)
 

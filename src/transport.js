@@ -1,21 +1,22 @@
 import L from 'leaflet'
 import JSZip from 'jszip'
 
-const CDN = import.meta.env.DEV
-  ? '/otsum-cdn/transport-data'
-  : 'https://cdn.opentransum.randspace0.com/transport-data'
+function srcUrl(filename) {
+  if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`
+  return `https://rebornian48.my.id/otsum/proxy.php?f=${encodeURIComponent(filename)}`
+}
 
 export const TRANSPORT_SOURCES = [
-  { key: 'transsemarang',    label: 'Trans Semarang',            group: 'Bus (JSON)', kind: 'bus',           url: `${CDN}/transsemarang.json` },
-  { key: 'metrojabartrans',  label: 'Metro Trans Jabar',         group: 'Bus (JSON)', kind: 'bus',           url: `${CDN}/metrojabartrans.json` },
-  { key: 'buslistrikmedan',  label: 'Bus Listrik Medan',         group: 'Bus (JSON)', kind: 'bus',           url: `${CDN}/buslistrikmedan.json` },
-  { key: 'transkotaradja',   label: 'Trans Koetaradja',          group: 'Bus (JSON)', kind: 'bus',           url: `${CDN}/transkotaradja.json` },
-  { key: 'transpakuan',      label: 'Transpakuan (Bogor)',       group: 'Bus (JSON)', kind: 'bus',           url: `${CDN}/transpakuan.json` },
-  { key: 'mitradarat',       label: 'Mitra Darat (multi-kota)',  group: 'Bus (JSON)', kind: 'bus',           url: `${CDN}/mitradarat.json` },
-  { key: 'transjakarta',     label: 'Transjakarta (GTFS)',       group: 'Bus (GTFS)', kind: 'gtfs',          url: `${CDN}/file_gtfs.zip` },
-  { key: 'krl_lines',        label: 'KRL — garis rel',           group: 'Rel',        kind: 'railLines',     url: `${CDN}/krl_lines.geojson` },
-  { key: 'lrt_mrt_lines',    label: 'LRT & MRT — garis rel',     group: 'Rel',        kind: 'railLines',     url: `${CDN}/lrt_mrt_lines.geojson` },
-  { key: 'rails_stations',   label: 'Stasiun KRL/LRT/MRT',       group: 'Rel',        kind: 'railStations',  url: `${CDN}/rails.kml` },
+  { key: 'transsemarang',    label: 'Trans Semarang',            group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('transsemarang.json') },
+  { key: 'metrojabartrans',  label: 'Metro Trans Jabar',         group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('metrojabartrans.json') },
+  { key: 'buslistrikmedan',  label: 'Bus Listrik Medan',         group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('buslistrikmedan.json') },
+  { key: 'transkotaradja',   label: 'Trans Koetaradja',          group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('transkotaradja.json') },
+  { key: 'transpakuan',      label: 'Transpakuan (Bogor)',       group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('transpakuan.json') },
+  { key: 'mitradarat',       label: 'Mitra Darat (multi-kota)',  group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('mitradarat.json') },
+  { key: 'transjakarta',     label: 'Transjakarta (GTFS)',       group: 'Bus (GTFS)', kind: 'gtfs',          url: srcUrl('file_gtfs.zip') },
+  { key: 'krl_lines',        label: 'KRL — garis rel',           group: 'Rel',        kind: 'railLines',     url: srcUrl('krl_lines.geojson') },
+  { key: 'lrt_mrt_lines',    label: 'LRT & MRT — garis rel',     group: 'Rel',        kind: 'railLines',     url: srcUrl('lrt_mrt_lines.geojson') },
+  { key: 'rails_stations',   label: 'Stasiun KRL/LRT/MRT',       group: 'Rel',        kind: 'railStations',  url: srcUrl('rails.kml') },
 ]
 
 const RAW_CACHE = new Map()
