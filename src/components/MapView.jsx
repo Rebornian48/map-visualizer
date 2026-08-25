@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { ACTIVITY_COLORS } from '../parser'
+import { TRANSPORT_SOURCES, buildTransportLayer } from '../transport'
 import ThemeToggle from './ThemeToggle'
 import ExportModal from './ExportModal'
 
@@ -96,7 +97,19 @@ const BOUNDARY_OPTIONS = [
   { key: 'kabkota', label: 'Kab/Kota' },
 ]
 
-function LayersControl({ basemap, onBasemap, boundary, onBoundary, boundaryLoading }) {
+const TRANSPORT_GROUPS = (() => {
+  const g = new Map()
+  for (const s of TRANSPORT_SOURCES) {
+    if (!g.has(s.group)) g.set(s.group, [])
+    g.get(s.group).push(s)
+  }
+  return [...g.entries()]
+})()
+
+function LayersControl({
+  basemap, onBasemap, boundary, onBoundary, boundaryLoading,
+  transportActive, transportLoading, transportError, onToggleTransport,
+}) {
   const [open, setOpen] = useState(false)
   const rowStyle = {
     display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0',
@@ -142,7 +155,7 @@ function LayersControl({ basemap, onBasemap, boundary, onBoundary, boundaryLoadi
         position: 'absolute', top: 12, right: 12, zIndex: 1000,
         background: 'var(--surface-solid)', border: '1px solid var(--border)',
         borderRadius: 8, boxShadow: 'var(--shadow)',
-        padding: '12px 16px', minWidth: 180,
+        padding: '12px 16px', minWidth: 220, maxHeight: '80vh', overflowY: 'auto',
       }}
     >
       <div style={groupLabel}>Basemap</div>
@@ -174,6 +187,31 @@ function LayersControl({ basemap, onBasemap, boundary, onBoundary, boundaryLoadi
           />
           <span>{opt.key === boundary && boundaryLoading ? `${opt.label}…` : opt.label}</span>
         </label>
+      ))}
+      {TRANSPORT_GROUPS.map(([groupName, items]) => (
+        <React.Fragment key={groupName}>
+          <div style={{ height: 1, background: 'var(--border)', margin: '10px 0' }} />
+          <div style={groupLabel}>{groupName}</div>
+          {items.map(src => {
+            const on = transportActive.has(src.key)
+            const loading = transportLoading.has(src.key)
+            const err = transportError[src.key]
+            return (
+              <label key={src.key} style={{ ...rowStyle, opacity: loading ? 0.7 : 1 }}
+                     title={err || ''}>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  disabled={loading}
+                  onChange={() => onToggleTransport(src.key)}
+                  style={{ accentColor: 'var(--accent)' }}
+                />
+                <span>{loading ? `${src.label}…` : src.label}</span>
+                {err && <span style={{ color: '#ff5a5a', marginLeft: 'auto', fontSize: '0.7rem' }}>!</span>}
+              </label>
+            )
+          })}
+        </React.Fragment>
       ))}
     </div>
   )
@@ -210,9 +248,13 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
   const [boundary, setBoundary] = useState('none')
   const [boundaryLoading, setBoundaryLoading] = useState(false)
   const [basemap, setBasemap] = useState('Carto Light')
+  const [transportActive, setTransportActive] = useState(() => new Set())
+  const [transportLoading, setTransportLoading] = useState(() => new Set())
+  const [transportError, setTransportError] = useState({})
   const boundaryLayerRef = useRef(null)
   const boundaryCacheRef = useRef({})
   const baseLayersRef = useRef({})
+  const transportLayersRef = useRef({})
 
   const years = yearData ? Object.keys(yearData).map(Number).sort() : []
   const currentPointsRef = useRef([])
@@ -250,6 +292,41 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
     setCurrentYear(latest)
     setCurrentMonth(null)
   }, [yearData])
+
+  const onToggleTransport = useCallback((key) => {
+    const map = mapInstance.current
+    if (!map) return
+    const src = TRANSPORT_SOURCES.find(s => s.key === key)
+    if (!src) return
+
+    const existing = transportLayersRef.current[key]
+    if (existing) {
+      if (map.hasLayer(existing)) map.removeLayer(existing)
+      delete transportLayersRef.current[key]
+      setTransportActive(prev => {
+        const n = new Set(prev); n.delete(key); return n
+      })
+      return
+    }
+
+    setTransportLoading(prev => new Set(prev).add(key))
+    setTransportError(prev => { const n = { ...prev }; delete n[key]; return n })
+
+    buildTransportLayer(src)
+      .then(layer => {
+        if (!mapInstance.current) return
+        layer.addTo(mapInstance.current)
+        transportLayersRef.current[key] = layer
+        setTransportActive(prev => new Set(prev).add(key))
+      })
+      .catch(err => {
+        console.error(`Transport load failed [${key}]:`, err)
+        setTransportError(prev => ({ ...prev, [key]: err.message || String(err) }))
+      })
+      .finally(() => {
+        setTransportLoading(prev => { const n = new Set(prev); n.delete(key); return n })
+      })
+  }, [])
 
   useEffect(() => {
     const map = mapInstance.current
@@ -558,6 +635,10 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
           basemap={basemap} onBasemap={setBasemap}
           boundary={boundary} onBoundary={setBoundary}
           boundaryLoading={boundaryLoading}
+          transportActive={transportActive}
+          transportLoading={transportLoading}
+          transportError={transportError}
+          onToggleTransport={onToggleTransport}
         />
 
       {/* Stats Panel */}

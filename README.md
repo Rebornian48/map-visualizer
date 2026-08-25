@@ -14,6 +14,13 @@ Live: https://rebornian48.my.id/map-visualizer/
   top-right of the map.
 - **Indonesia boundary overlays** — toggle between Provinsi and Kab/Kota
   outlines (GeoJSON), mutually exclusive.
+- **Transportasi umum (Opentransum)** — overlay opsional yang bisa
+  di-toggle satu per satu dari layer control: enam jaringan bus JSON
+  (Trans Semarang, Metro Trans Jabar, Bus Listrik Medan, Trans
+  Koetaradja, Transpakuan, Mitra Darat), GTFS Transjakarta, garis rel
+  KRL & LRT/MRT (GeoJSON), dan stasiun KRL/LRT/MRT (KML). Data
+  diambil dari `cdn.opentransum.randspace0.com` dan di-cache per
+  sesi. Lihat bagian _Data attribution_ di bawah untuk lisensi.
 - **Year & Month filters** — dot-only render: path points as small red
   dots, visits as green dots; no polylines cluttering the view.
 - **Playback animation** — a single moving dot traces the timeline; once
@@ -84,6 +91,38 @@ For Apache/Hostinger, add this to `.htaccess` where the JSON lives:
 </FilesMatch>
 ```
 
+## Data attribution
+
+### Boundary GeoJSON
+Provinsi & Kab/Kota outlines hosted at `rebornian48.my.id/assets/json/`.
+
+### Opentransum (transportasi umum)
+
+Overlay bus & rel diambil dari **Opentransum**
+(<https://opentransum.randspace0.com/open-data>).
+
+- **Sumber:** trayek, halte, stasiun, dan garis rel dikumpulkan
+  Opentransum dari sumber publik masing-masing operator (Transjakarta,
+  Trans Semarang, Trans Koetaradja, Transpakuan, Bus Listrik Medan,
+  Metro Trans Jabar, KAI Commuter, MRT/LRT, dan operator Mitra Darat).
+- **Lisensi:** Kompilasi dan penyajian data oleh Opentransum
+  dilisensikan di bawah **Attribution-NonCommercial 4.0 (CC BY-NC
+  4.0)**. Hak atas data aslinya tetap pada masing-masing operator.
+- **Penyangkalan:** Data disajikan _as-is_, tanpa jaminan atas
+  keakuratan, kelengkapan, kemutakhiran, maupun ketersediaannya. Isi
+  dapat berubah kapan saja dan mungkin tidak sesuai kondisi lapangan.
+  Rujuk ke operator terkait untuk informasi resmi.
+- **Endpoints (CDN):** `https://cdn.opentransum.randspace0.com/transport-data/`
+  — `transsemarang.json`, `metrojabartrans.json`, `buslistrikmedan.json`,
+  `transkotaradja.json`, `transpakuan.json`, `mitradarat.json`,
+  `file_gtfs.zip` (Transjakarta GTFS), `krl_lines.geojson`,
+  `lrt_mrt_lines.geojson`, `rails.kml`.
+
+Karena aplikasi mengambil data dari origin lain, CDN harus mengirim
+header `Access-Control-Allow-Origin: *` (atau setidaknya mengizinkan
+origin `https://rebornian48.my.id`). Selama dev lokal, `vite.config.js`
+memproxikan `/otsum-cdn/*` ke CDN untuk melewatkan CORS.
+
 ## Manual deploy (alternative)
 
 ```bash
@@ -102,6 +141,7 @@ Upload the contents of `dist/` to Hostinger's target folder via:
 - **Leaflet** — interactive maps
 - **html-to-image** — DOM → PNG snapshot for the video background
 - **MediaRecorder + canvas.captureStream** — MP4/WebM encoding
+- **JSZip** — client-side GTFS zip extraction (Transjakarta overlay)
 - **GitHub Actions** — CI/CD
 - **Hostinger** — hosting
 

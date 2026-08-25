@@ -7,6 +7,21 @@ at the top.
 ## Unreleased
 
 ### Added
+- **Opentransum transport overlays.** Layer control gains a
+  toggleable list of public-transport overlays sourced from
+  [opentransum.randspace0.com](https://opentransum.randspace0.com/open-data):
+  six bus networks (Trans Semarang, Metro Trans Jabar, Bus Listrik
+  Medan, Trans Koetaradja, Transpakuan, Mitra Darat), Transjakarta
+  GTFS, KRL & LRT/MRT rail lines (GeoJSON), and KRL/LRT/MRT stations
+  (KML). Each source is fetched and cached on first toggle. Bus
+  routes coloured from `route.color`, rail lines from
+  `properties.colour_hex`, GTFS routes from `routes.txt.route_color`.
+  Compilation is CC BY-NC 4.0 (Opentransum) — see README for full
+  attribution and disclaimer.
+- **JSZip dependency** for client-side extraction of the Transjakarta
+  GTFS bundle.
+- **Dev-only Vite proxy** at `/otsum-cdn` → CDN so local dev works
+  before CDN CORS is opened to third-party origins.
 - **Boundary overlays.** Segmented control in the header switches
   between _No boundary_, _Provinsi_, and _Kab/Kota_ — mutually
   exclusive. GeoJSON is fetched from

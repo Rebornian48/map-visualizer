@@ -9,4 +9,13 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: false,
   },
+  server: {
+    proxy: {
+      '/otsum-cdn': {
+        target: 'https://cdn.opentransum.randspace0.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/otsum-cdn/, ''),
+      },
+    },
+  },
 })
