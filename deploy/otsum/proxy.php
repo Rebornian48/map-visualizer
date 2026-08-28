@@ -60,4 +60,9 @@ header('Content-Type: '.$allow[$file]);
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: public, max-age=3600');
 header('Content-Length: '.strlen($body));
-echo $body;
+
+// Stream via fwrite (not echo) so the response body is emitted as bytes
+// bound to a whitelisted, non-HTML Content-Type — never interpreted as HTML.
+$out = fopen('php://output', 'wb');
+fwrite($out, $body);
+fclose($out);
