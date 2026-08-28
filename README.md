@@ -1,9 +1,11 @@
 # Map Visualizer
 
+[![CodeFactor](https://www.codefactor.io/repository/github/rebornian48/map-visualizer/badge)](https://www.codefactor.io/repository/github/rebornian48/map-visualizer) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/6a8bf2aeed6340b3a53bce1babf30296)](https://app.codacy.com/gh/Rebornian48/map-visualizer/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+
 Interactive web visualizer for Google Location History `Timeline.json` files.
 Built with **React + Vite + Leaflet** — auto-deploys to **Hostinger** via GitHub Actions.
 
-Live: https://rebornian48.my.id/map-visualizer/
+Live: <https://rebornian48.my.id/map-visualizer/>
 
 ## Features
 

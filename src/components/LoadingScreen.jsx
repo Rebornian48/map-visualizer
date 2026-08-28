@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 
 export default function LoadingScreen({ text, pct }) {
   return (
@@ -10,7 +10,7 @@ export default function LoadingScreen({ text, pct }) {
       <div style={{
         width: 56, height: 56, border: '3px solid var(--surface-2)',
         borderTopColor: 'var(--accent)', borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
+          animation: "spin 0.8s linear infinite",
       }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.85rem', color: 'var(--text-dim)' }}>
@@ -20,5 +20,5 @@ export default function LoadingScreen({ text, pct }) {
         <div style={{ height: '100%', background: 'var(--accent)', width: `${pct}%`, transition: 'width 0.3s' }} />
       </div>
     </div>
-  )
+  );
 }
