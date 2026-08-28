@@ -64,7 +64,7 @@ function dimText(txt) {
   return el
 }
 
-function serialize(nodes) {
+function serializeHtml(nodes) {
   const wrap = document.createElement('div')
   for (const n of nodes) wrap.appendChild(n)
   return wrap.innerHTML
@@ -73,7 +73,7 @@ function serialize(nodes) {
 export function boundaryLabelHtml(kind, props) {
   if (kind === 'provinsi') {
     const name = pickProp(props, PROVINCE_KEYS)
-    return name ? serialize([strongText(name)]) : ''
+    return name ? serializeHtml([strongText(name)]) : ''
   }
   if (kind === 'kabkota') {
     const kab  = pickProp(props, KABKOTA_KEYS)
@@ -83,7 +83,7 @@ export function boundaryLabelHtml(kind, props) {
     if (kab)  nodes.push(strongText(kab))
     if (kab && prov) nodes.push(document.createElement('br'))
     if (prov) nodes.push(dimText(prov))
-    return serialize(nodes)
+    return serializeHtml(nodes)
   }
   return ''
 }

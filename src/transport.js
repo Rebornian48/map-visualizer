@@ -66,56 +66,91 @@ function routePolyline(latlngs, color, tooltip) {
   return pl;
 }
 
+function pickRouteName(route) {
+  if (route.shortName) return route.shortName
+  if (route.fullName) return route.fullName
+  return route.id
+}
+
+function busRouteTip(route) {
+  const head = `<strong>${escapeHtml(pickRouteName(route))}</strong>`
+  if (!route.fullName) return head
+  return head + `<br/><span style="opacity:.75">${escapeHtml(route.fullName)}</span>`
+}
+
+function addBusRoute(route, routesSub) {
+  const shape = route.shape || []
+  if (shape.length < 2) return
+  const latlngs = shape.map(([lng, lat]) => [lat, lng])
+  const color = normalizeColor(route.color) || '#ff3366'
+  routePolyline(latlngs, color, busRouteTip(route)).addTo(routesSub)
+}
+
+function addBusStop(s, stopsSub) {
+  if (typeof s.lat !== 'number') return
+  if (typeof s.lng !== 'number') return
+  stopCircle(s.lat, s.lng, s.name, '#00ccaa').addTo(stopsSub)
+}
+
 async function buildBus(key, url) {
-  const text = await fetchRaw(key, url);
-  const data = JSON.parse(text);
-  const group = L.layerGroup();
-  const stopsSub = L.layerGroup();
-  const routesSub = L.layerGroup();
+  const text = await fetchRaw(key, url)
+  const data = JSON.parse(text)
+  const group = L.layerGroup()
+  const routesSub = L.layerGroup()
+  const stopsSub = L.layerGroup()
 
-  for (const route of data.routes || []) {
-    const color = normalizeColor(route.color) || "#ff3366";
-    const shape = route.shape || [];
-    if (shape.length >= 2) {
-      const latlngs = shape.map(([lng, lat]) => [lat, lng]);
-      const tip = `<strong>${escapeHtml(route.shortName || route.fullName || route.id)}</strong>` +
-        (route.fullName ? `<br/><span style="opacity:.75">${escapeHtml(route.fullName)}</span>` : '')
-      routePolyline(latlngs, color, tip).addTo(routesSub)
-    }
-  }
-
-  const stops = data.stops || {}
-  for (const s of Object.values(stops)) {
-    if (typeof s.lat !== 'number' || typeof s.lng !== 'number') continue
-    stopCircle(s.lat, s.lng, s.name, '#00ccaa').addTo(stopsSub)
-  }
+  for (const route of data.routes || []) addBusRoute(route, routesSub)
+  for (const s of Object.values(data.stops || {})) addBusStop(s, stopsSub)
 
   routesSub.addTo(group)
   stopsSub.addTo(group)
   return group
 }
 
+const RAIL_PALETTE = ['#3388ff', '#e93d46', '#00a651', '#8b5a2b', '#ff69b4', '#9c27b0', '#ff9800', '#43a2c5']
+
+function pickRailName(props) {
+  if (props.name) return props.name
+  if (props.ref) return props.ref
+  if (props.slug) return props.slug
+  return 'rel'
+}
+
+function railTip(props) {
+  const head = `<strong>${escapeHtml(pickRailName(props))}</strong>`
+  if (!props.network) return head
+  return head + `<br/><span style="opacity:.75">${escapeHtml(props.network)}</span>`
+}
+
+function railCoordSets(geom) {
+  if (!geom) return []
+  if (geom.type === 'MultiLineString') return geom.coordinates
+  if (geom.type === 'LineString') return [geom.coordinates]
+  return []
+}
+
+function railColor(props, idx) {
+  const explicit = normalizeColor(props.colour_hex || props.colour)
+  if (explicit) return explicit
+  return RAIL_PALETTE.at(idx % RAIL_PALETTE.length)
+}
+
+function addRailFeature(feat, idx, group) {
+  const props = feat.properties || {}
+  const color = railColor(props, idx)
+  const tip = railTip(props)
+  for (const line of railCoordSets(feat.geometry)) {
+    if (line.length < 2) continue
+    routePolyline(line.map(([lng, lat]) => [lat, lng]), color, tip).addTo(group)
+  }
+}
+
 async function buildRailLines(key, url) {
   const text = await fetchRaw(key, url)
   const geo = JSON.parse(text)
   const group = L.layerGroup()
-  const palette = ['#3388ff', '#e93d46', '#00a651', '#8b5a2b', '#ff69b4', '#9c27b0', '#ff9800', '#43a2c5']
   let idx = 0
-  for (const feat of geo.features || []) {
-    const props = feat.properties || {}
-    const color = normalizeColor(props.colour_hex || props.colour) || palette[idx++ % palette.length]
-    const name = props.name || props.ref || props.slug || 'rel'
-    const tip = `<strong>${escapeHtml(name)}</strong>` +
-      (props.network ? `<br/><span style="opacity:.75">${escapeHtml(props.network)}</span>` : '')
-    const geom = feat.geometry
-    if (!geom) continue
-    const coordSets = geom.type === 'MultiLineString' ? geom.coordinates
-                    : geom.type === 'LineString' ? [geom.coordinates] : []
-    for (const line of coordSets) {
-      if (line.length < 2) continue
-      routePolyline(line.map(([lng, lat]) => [lat, lng]), color, tip).addTo(group)
-    }
-  }
+  for (const feat of geo.features || []) addRailFeature(feat, idx++, group)
   return group
 }
 
@@ -193,38 +228,38 @@ function csvToObjects(text) {
   return { idx, rows }
 }
 
-async function buildGtfs(key, url) {
-  const buf = await fetchRaw(key, url, true)
-  const zip = await JSZip.loadAsync(buf)
-  const readTxt = async (n) => {
-    const f = zip.file(n)
-    return f ? await f.async('string') : ''
-  }
-  const [routesTxt, tripsTxt, shapesTxt, stopsTxt] = await Promise.all([
-    readTxt('routes.txt'), readTxt('trips.txt'), readTxt('shapes.txt'), readTxt('stops.txt'),
-  ])
+async function readZipEntry(zip, name) {
+  const f = zip.file(name)
+  if (!f) return ''
+  return f.async('string')
+}
 
-  const group = L.layerGroup()
-  const routesSub = L.layerGroup()
-  const stopsSub = L.layerGroup()
-
+function buildRouteIndex(routesTxt) {
   const routes = csvToObjects(routesTxt)
   const routeById = new Map()
   for (const r of routes.rows) {
     routeById.set(r.at(routes.idx.route_id), {
       short: r.at(routes.idx.route_short_name) || '',
-      long: r.at(routes.idx.route_long_name) || '',
+      long:  r.at(routes.idx.route_long_name)  || '',
       color: normalizeColor(r.at(routes.idx.route_color)) || '#3388ff',
     })
   }
+  return routeById
+}
 
+function buildShapeToRoute(tripsTxt) {
   const trips = csvToObjects(tripsTxt)
   const shapeToRoute = new Map()
   for (const t of trips.rows) {
     const sid = t.at(trips.idx.shape_id)
-    if (sid && !shapeToRoute.has(sid)) shapeToRoute.set(sid, t.at(trips.idx.route_id))
+    if (!sid) continue
+    if (shapeToRoute.has(sid)) continue
+    shapeToRoute.set(sid, t.at(trips.idx.route_id))
   }
+  return shapeToRoute
+}
 
+function buildShapesById(shapesTxt) {
   const shapes = csvToObjects(shapesTxt)
   const sIdx = shapes.idx
   const shapesById = new Map()
@@ -237,19 +272,34 @@ async function buildGtfs(key, url) {
     if (!shapesById.has(sid)) shapesById.set(sid, [])
     shapesById.get(sid).push({ seq, lat, lon })
   }
+  return shapesById
+}
 
+function gtfsRouteLabel(info, routeId, sid) {
+  if (info.short) return info.short
+  if (routeId) return routeId
+  return sid
+}
+
+function gtfsTip(info, label) {
+  const head = `<strong>${escapeHtml(label)}</strong>`
+  if (!info.long) return head
+  return head + `<br/><span style="opacity:.75">${escapeHtml(info.long)}</span>`
+}
+
+function addGtfsShapes(shapesById, shapeToRoute, routeById, routesSub) {
   for (const [sid, pts] of shapesById) {
     pts.sort((a, b) => a.seq - b.seq)
     if (pts.length < 2) continue
     const routeId = shapeToRoute.get(sid)
     const info = routeById.get(routeId) || {}
     const color = info.color || '#3388ff'
-    const label = info.short || routeId || sid
-    const tip = `<strong>${escapeHtml(label)}</strong>` +
-      (info.long ? `<br/><span style="opacity:.75">${escapeHtml(info.long)}</span>` : '')
-    routePolyline(pts.map(p => [p.lat, p.lon]), color, tip).addTo(routesSub)
+    const label = gtfsRouteLabel(info, routeId, sid)
+    routePolyline(pts.map(p => [p.lat, p.lon]), color, gtfsTip(info, label)).addTo(routesSub)
   }
+}
 
+function addGtfsStops(stopsTxt, stopsSub) {
   const stops = csvToObjects(stopsTxt)
   const stIdx = stops.idx
   for (const r of stops.rows) {
@@ -258,7 +308,27 @@ async function buildGtfs(key, url) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue
     stopCircle(lat, lon, r.at(stIdx.stop_name), '#00ccaa').addTo(stopsSub)
   }
+}
 
+async function buildGtfs(key, url) {
+  const buf = await fetchRaw(key, url, true)
+  const zip = await JSZip.loadAsync(buf)
+  const [routesTxt, tripsTxt, shapesTxt, stopsTxt] = await Promise.all([
+    readZipEntry(zip, 'routes.txt'),
+    readZipEntry(zip, 'trips.txt'),
+    readZipEntry(zip, 'shapes.txt'),
+    readZipEntry(zip, 'stops.txt'),
+  ])
+
+  const routeById = buildRouteIndex(routesTxt)
+  const shapeToRoute = buildShapeToRoute(tripsTxt)
+  const shapesById = buildShapesById(shapesTxt)
+
+  const group = L.layerGroup()
+  const routesSub = L.layerGroup()
+  const stopsSub = L.layerGroup()
+  addGtfsShapes(shapesById, shapeToRoute, routeById, routesSub)
+  addGtfsStops(stopsTxt, stopsSub)
   routesSub.addTo(group)
   stopsSub.addTo(group)
   return group

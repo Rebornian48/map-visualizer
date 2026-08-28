@@ -8,6 +8,8 @@ import { SPEEDS } from './mapView.helpers';
 import { ACTIVITY_COLOR_MAP } from './mapView.helpers';
 import { boundaryLabelHtml } from './mapView.helpers';
 
+const NOOP_CLEANUP = () => { /* no cleanup required for this branch */ };
+
 const BOUNDARY_STYLE = {
   color: '#ff3366', weight: 1, opacity: 0.7, fillOpacity: 0.05, fillColor: '#ff3366',
 }
@@ -178,7 +180,7 @@ function fetchBoundary(url, onData, onError, onDone) {
 function useBoundaryEffect(boundary, mapInstance, boundaryLayerRef, boundaryCacheRef, setBoundaryLoading) {
   useEffect(() => {
     const map = mapInstance.current
-    if (!map) return () => {}
+    if (!map) return NOOP_CLEANUP
     if (boundaryLayerRef.current) {
       if (boundaryLayerRef.current._mapClickHandler) {
         map.off('click', boundaryLayerRef.current._mapClickHandler)
@@ -186,7 +188,7 @@ function useBoundaryEffect(boundary, mapInstance, boundaryLayerRef, boundaryCach
       map.removeLayer(boundaryLayerRef.current)
       boundaryLayerRef.current = null
     }
-    if (boundary === 'none') return () => {}
+    if (boundary === 'none') return NOOP_CLEANUP
 
     let cancelled = false
     const addLayer = (geojson) => {
