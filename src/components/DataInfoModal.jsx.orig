@@ -1,11 +1,11 @@
-import React from "react";
+import React from 'react'
 
 const panel = {
-  background: "var(--surface-solid)",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius)",
-  boxShadow: "var(--shadow)",
-};
+  background: 'var(--surface-solid)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  boxShadow: 'var(--shadow)',
+}
 
 const sectionLabel = {
   fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.12em',
@@ -15,56 +15,56 @@ const sectionLabel = {
 
 const DATASETS = [
   {
-    name: "Transjakarta (BRT, Mikrotrans, dll)",
-    format: "GTFS (.zip)",
-    url: "https://cdn.opentransum.randspace0.com/transport-data/file_gtfs.zip",
+    name: 'Transjakarta (BRT, Mikrotrans, dll)',
+    format: 'GTFS (.zip)',
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/file_gtfs.zip',
   },
   {
-    name: "Trans Semarang",
-    format: "JSON",
-    url: "https://cdn.opentransum.randspace0.com/transport-data/transsemarang.json",
-  },
-  {
-    name: "Metro Trans Jabar",
+    name: 'Trans Semarang',
     format: 'JSON',
-    url: "https://cdn.opentransum.randspace0.com/transport-data/metrojabartrans.json",
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/transsemarang.json',
   },
   {
-    name: "Bus Listrik Medan",
+    name: 'Metro Trans Jabar',
     format: 'JSON',
-    url: "https://cdn.opentransum.randspace0.com/transport-data/buslistrikmedan.json",
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/metrojabartrans.json',
   },
   {
-    name: "Trans Koetaradja",
+    name: 'Bus Listrik Medan',
     format: 'JSON',
-    url: "https://cdn.opentransum.randspace0.com/transport-data/transkotaradja.json",
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/buslistrikmedan.json',
   },
   {
-    name: "Transpakuan (Bis Kita Bogor)",
+    name: 'Trans Koetaradja',
     format: 'JSON',
-    url: "https://cdn.opentransum.randspace0.com/transport-data/transpakuan.json",
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/transkotaradja.json',
+  },
+  {
+    name: 'Transpakuan (Bis Kita Bogor)',
+    format: 'JSON',
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/transpakuan.json',
   },
   {
     name: 'Mitra Darat (Trans Jogja, Trans Jateng, Trans Batam, Trans Jatim, Suroboyo Bus, dan kota-kota lain — lihat halaman Moda Transportasi untuk daftar lengkap)',
     format: 'JSON',
-    url: "https://cdn.opentransum.randspace0.com/transport-data/mitradarat.json",
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/mitradarat.json',
   },
   {
-    name: "Stasiun KRL, LRT, dan MRT",
-    format: "KML",
-    url: "https://cdn.opentransum.randspace0.com/transport-data/rails.kml",
+    name: 'Stasiun KRL, LRT, dan MRT',
+    format: 'KML',
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/rails.kml',
   },
   {
-    name: "Garis rel KRL",
-    format: "GeoJSON",
-    url: "https://cdn.opentransum.randspace0.com/transport-data/krl_lines.geojson",
-  },
-  {
-    name: "Garis rel LRT & MRT",
+    name: 'Garis rel KRL',
     format: 'GeoJSON',
-    url: "https://cdn.opentransum.randspace0.com/transport-data/lrt_mrt_lines.geojson",
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/krl_lines.geojson',
   },
-];
+  {
+    name: 'Garis rel LRT & MRT',
+    format: 'GeoJSON',
+    url: 'https://cdn.opentransum.randspace0.com/transport-data/lrt_mrt_lines.geojson',
+  },
+]
 
 export default function DataInfoModal({ onClose }) {
   return (
@@ -87,7 +87,7 @@ export default function DataInfoModal({ onClose }) {
       >
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: 18,
+          marginBottom: 18,
         }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0, color: 'var(--text)' }}>
             Data Terbuka Opentransum

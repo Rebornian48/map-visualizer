@@ -1,28 +1,28 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from 'react'
 import { filterPointsByPeriod, summarizePeriod, exportVideo, MONTHS } from '../videoExport'
 
 const DURATION_PRESETS = [
-  { label: "30 seconds", value: 30 },
-  { label: "60 seconds", value: 60 },
-];
+  { label: '30 seconds', value: 30 },
+  { label: '60 seconds', value: 60 },
+]
 
 const panel = {
-  background: "var(--surface-solid)",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius)",
-  boxShadow: "var(--shadow)",
-};
+  background: 'var(--surface-solid)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  boxShadow: 'var(--shadow)',
+}
 
 const fieldStyle = {
-  background: "var(--surface-2)",
+  background: 'var(--surface-2)',
   border: '1px solid var(--border)',
   borderRadius: 8,
-  color: "var(--text)",
-  padding: "8px 10px",
-  fontSize: "0.85rem",
+  color: 'var(--text)',
+  padding: '8px 10px',
+  fontSize: '0.85rem',
   fontFamily: "'Outfit', sans-serif",
-  width: "100%",
-  boxSizing: "border-box",
+  width: '100%',
+  boxSizing: 'border-box',
 }
 
 const labelStyle = {
@@ -35,47 +35,47 @@ export default function ExportModal({ yearData, map, onClose }) {
   const years = useMemo(
     () => Object.keys(yearData).map(Number).sort(),
     [yearData]
-  );
+  )
 
-  const [startYear, setStartYear] = useState(years[0]);
-  const [endYear, setEndYear] = useState(years[years.length - 1]);
-  const [startMonth, setStartMonth] = useState(0);
-  const [endMonth, setEndMonth] = useState(11);
-  const [durationChoice, setDurationChoice] = useState(30);
-  const [customSeconds, setCustomSeconds] = useState(45);
-  const [title, setTitle] = useState("");
+  const [startYear, setStartYear] = useState(years[0])
+  const [endYear, setEndYear] = useState(years[years.length - 1])
+  const [startMonth, setStartMonth] = useState(0)
+  const [endMonth, setEndMonth] = useState(11)
+  const [durationChoice, setDurationChoice] = useState(30)
+  const [customSeconds, setCustomSeconds] = useState(45)
+  const [title, setTitle] = useState('')
 
   const effectiveTitle = title.trim() || `${startYear}–${endYear} Timeline`
 
-  const [busy, setBusy] = useState(false);
-  const [stage, setStage] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false)
+  const [stage, setStage] = useState('')
+  const [progress, setProgress] = useState(0)
+  const [error, setError] = useState('')
 
   const filtered = useMemo(
     () => filterPointsByPeriod(yearData, startYear, startMonth, endYear, endMonth),
     [yearData, startYear, startMonth, endYear, endMonth]
   )
-  const summary = useMemo(() => summarizePeriod(filtered), [filtered]);
+  const summary = useMemo(() => summarizePeriod(filtered), [filtered])
 
   const duration = durationChoice === 'custom' ? Math.max(5, Math.min(600, Number(customSeconds) || 30)) : durationChoice
 
   const handleGenerate = async () => {
-    setBusy(true);
-    setError("");
+    setBusy(true)
+    setError('')
     setStage('Preparing…')
-    setProgress(0);
+    setProgress(0)
     try {
       const res = await exportVideo({
         map, points: filtered, durationSeconds: duration,
         title: effectiveTitle,
         onProgress: setProgress, onStage: setStage,
-      });
+      })
       setStage(`Done — ${res.isMp4 ? 'MP4' : 'WebM (MP4 not supported by this browser)'} · ${(res.sizeBytes / 1024 / 1024).toFixed(1)} MB`)
       setTimeout(() => { setBusy(false); onClose() }, 1200)
     } catch (e) {
-      setError(e.message || String(e));
-      setBusy(false);
+      setError(e.message || String(e))
+      setBusy(false)
     }
   }
 

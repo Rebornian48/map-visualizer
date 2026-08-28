@@ -1,0 +1,964 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -9,1 +9,1 @@
+-### Added
++### Added
+
+@@ -10,1 +10,1 @@
+-- **Opentransum transport overlays.** Layer control gains a
++
+- **Opentransum transport overlays.** Layer control gains a
+@@ -33,1 +33,1 @@
+-### Changed
++### Changed
+
+@@ -34,1 +34,1 @@
+-- **Video export duration is now honored.** The rendering loop is
++
+- **Video export duration is now honored.** The rendering loop is
+@@ -48,1 +48,1 @@
+-### Added â earlier in this window
++### Added â earlier in this window
+
+@@ -49,1 +49,1 @@
+-- **Video export (MP4).** New _Export Video_ button opens a modal
++
+- **Video export (MP4).** New _Export Video_ button opens a modal
+@@ -67,1 +67,1 @@
+-### Removed
++### Removed
+
+@@ -68,1 +68,1 @@
+-- `UploadScreen` component â replaced by the header button.
++
+- `UploadScreen` component â replaced by the header button.
+@@ -73,1 +73,1 @@
+-- Project renamed from `visualisasi-peta` / 
++
+- Project renamed from `visualisasi-peta` / 
+diff --git a/src/theme.js b/src/theme.js
+--- a/src/theme.js
++++ b/src/theme.js
+@@ -2,1 +2,1 @@
+-  if (typeof window === 'undefined') return 'dark'
++  if (typeof window === "undefined") return "dark";
+@@ -3,1 +3,1 @@
+-  return localStorage.getItem('tl-theme') || 'dark'
++  return localStorage.getItem("tl-theme") || "dark";
+@@ -7,1 +7,1 @@
+-  document.documentElement.setAttribute('data-theme', theme)
++  document.documentElement.setAttribute("data-theme", theme);
+@@ -8,1 +8,1 @@
+-  localStorage.setItem('tl-theme', theme)
++  localStorage.setItem("tl-theme", theme);
+diff --git a/vite.config.js b/vite.config.js
+--- a/vite.config.js
++++ b/vite.config.js
+@@ -1,1 +1,1 @@
+-import { defineConfig } from 'vite'
++import { defineConfig } from "vite";
+@@ -2,1 +2,1 @@
+-import react from '@vitejs/plugin-react'
++import react from "@vitejs/plugin-react";
+@@ -6,1 +6,1 @@
+-  base: '/map-visualizer/',
++  base: "/map-visualizer/",
+@@ -8,1 +8,1 @@
+-    outDir: 'dist',
++    outDir: "dist",
+@@ -9,1 +9,1 @@
+-    assetsDir: 'assets',
++    assetsDir: "assets",
+@@ -14,1 +14,1 @@
+-      '/otsum-cdn': {
++      "/otsum-cdn": {
+@@ -15,1 +15,1 @@
+-        target: 'https://cdn.opentransum.randspace0.com',
++        target: "https://cdn.opentransum.randspace0.com",
+@@ -17,1 +17,1 @@
+-        rewrite: (p) => p.replace(/^\/otsum-cdn/, ''),
++        rewrite: (p) => p.replace(/^\/otsum-cdn/, ""),
+@@ -21,1 +21,1 @@
+-})
++});
+diff --git a/src/components/ThemeToggle.jsx b/src/components/ThemeToggle.jsx
+--- a/src/components/ThemeToggle.jsx
++++ b/src/components/ThemeToggle.jsx
+@@ -1,1 +1,1 @@
+-import React from 'react'
++import React from "react";
+@@ -4,1 +4,1 @@
+-  position: 'relative',
++  position: "relative",
+@@ -8,1 +8,1 @@
+-  background: 'var(--surface-2)',
++  background: "var(--surface-2)",
+@@ -9,1 +9,1 @@
+-  border: '1px solid var(--border)',
++  border: "1px solid var(--border)",
+@@ -10,1 +10,1 @@
+-  cursor: 'pointer',
++  cursor: "pointer",
+@@ -11,1 +11,1 @@
+-  transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
++  transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+@@ -12,1 +12,1 @@
+-  display: 'flex',
++  display: "flex",
+@@ -13,1 +13,1 @@
+-  alignItems: 'center',
++  alignItems: "center",
+@@ -14,1 +14,1 @@
+-  padding: '0 3px',
++  padding: "0 3px",
+@@ -16,1 +16,1 @@
+-}
++};
+@@ -21,1 +21,1 @@
+-  borderRadius: '50%',
++  borderRadius: "50%",
+@@ -22,1 +22,1 @@
+-  background: 'var(--accent)',
++  background: "var(--accent)",
+@@ -23,1 +23,1 @@
+-  transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
++  transition: "transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+@@ -26,1 +26,1 @@
+-  justifyContent: 'center',
++  justifyContent: "center",
+@@ -28,1 +28,1 @@
+-  boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
++  boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+@@ -32,1 +32,1 @@
+-  const isDark = theme === 'dark'
++  const isDark = theme === "dark";
+@@ -41,1 +41,1 @@
+-        ...thumbBase,
++          ...thumbBase,
+@@ -42,1 +42,1 @@
+-        transform: isDark ? 'translateX(0)' : 'translateX(23px)',
++          transform: isDark ? "translateX(0)" : "translateX(23px)",
+@@ -44,1 +44,1 @@
+-        {isDark ? 'ð' : 'âï¸'}
++        {isDark ? "ð" : "âï¸"}
+@@ -47,1 +47,1 @@
+-  )
++  );
+diff --git a/src/transport.js b/src/transport.js
+--- a/src/transport.js
++++ b/src/transport.js
+@@ -1,1 +1,1 @@
+-import L from 'leaflet'
++import L from "leaflet";
+@@ -2,1 +2,1 @@
+-import JSZip from 'jszip'
++import JSZip from "jszip";
+@@ -5,1 +5,1 @@
+-  if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`
++  if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`;
+@@ -20,1 +20,1 @@
+-]
++];
+@@ -22,1 +22,1 @@
+-const RAW_CACHE = new Map()
++const RAW_CACHE = new Map();
+@@ -25,1 +25,1 @@
+-  if (RAW_CACHE.has(key)) return RAW_CACHE.get(key)
++  if (RAW_CACHE.has(key)) return RAW_CACHE.get(key);
+@@ -26,1 +26,1 @@
+-  const r = await fetch(url)
++  const r = await fetch(url);
+@@ -27,1 +27,1 @@
+-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`)
++  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+@@ -28,1 +28,1 @@
+-  const data = asBuffer ? await r.arrayBuffer() : await r.text()
++  const data = asBuffer ? await r.arrayBuffer() : await r.text();
+@@ -29,1 +29,1 @@
+-  RAW_CACHE.set(key, data)
++  RAW_CACHE.set(key, data);
+@@ -30,1 +30,1 @@
+-  return data
++  return data;
+@@ -34,1 +34,1 @@
+-  if (!c) return null
++  if (!c) return null;
+@@ -35,1 +35,1 @@
+-  const s = String(c).trim()
++  const s = String(c).trim();
+@@ -36,1 +36,1 @@
+-  if (!s) return null
++  if (!s) return null;
+@@ -37,1 +37,1 @@
+-  return s.startsWith('#') ? s : `#${s}`
++  return s.startsWith("#") ? s : `#${s}`;
+@@ -47,1 +47,1 @@
+-    fillColor: color || '#00ccaa',
++    fillColor: color || "#00ccaa",
+@@ -49,1 +49,1 @@
+-    color: '#0b0b0b',
++    color: "#0b0b0b",
+@@ -52,1 +52,1 @@
+-    pane: 'markerPane',
++    pane: "markerPane",
+@@ -53,1 +53,1 @@
+-  }).bindTooltip(escapeHtml(name || ''), { direction: 'top', opacity: 0.9 })
++  }).bindTooltip(escapeHtml(name || ""), { direction: "top", opacity: 0.9 });
+@@ -58,1 +58,1 @@
+-    color: color || '#3388ff',
++    color: color || "#3388ff",
+@@ -62,1 +62,1 @@
+-  })
++  });
+@@ -64,1 +64,1 @@
+-  return pl
++  return pl;
+@@ -68,1 +68,1 @@
+-  const text = await fetchRaw(key, url)
++  const text = await fetchRaw(key, url);
+@@ -69,1 +69,1 @@
+-  const data = JSON.parse(text)
++  const data = JSON.parse(text);
+@@ -70,1 +70,1 @@
+-  const group = L.layerGroup()
++  const group = L.layerGroup();
+@@ -71,1 +71,1 @@
+-  const stopsSub = L.layerGroup()
++  const stopsSub = L.layerGroup();
+@@ -72,1 +72,1 @@
+-  const routesSub = L.layerGroup()
++  const routesSub = L.layerGroup();
+@@ -75,1 +75,1 @@
+-    const color = normalizeColor(route.color) || '#ff3366'
++    const color = normalizeColor(route.color) || "#ff3366";
+@@ -76,1 +76,1 @@
+-    const shape = route.shape || []
++    const shape = route.shape || [];
+@@ -78,1 +78,1 @@
+-      const latlngs = shape.map(([lng, lat]) => [lat, lng])
++      const latlngs = shape.map(([lng, lat]) => [lat, lng]);
+diff --git a/src/parser.js b/src/parser.js
+--- a/src/parser.js
++++ b/src/parser.js
+@@ -2,1 +2,1 @@
+-  WALKING: '#00ccaa',
++  WALKING: "#00ccaa",
+@@ -3,1 +3,1 @@
+-  CYCLING: '#44aaff',
++  CYCLING: "#44aaff",
+@@ -4,1 +4,1 @@
+-  IN_PASSENGER_VEHICLE: '#ff3366',
++  IN_PASSENGER_VEHICLE: "#ff3366",
+@@ -5,1 +5,1 @@
+-  IN_BUS: '#ff8833',
++  IN_BUS: "#ff8833",
+@@ -6,1 +6,1 @@
+-  IN_TRAIN: '#aa44ff',
++  IN_TRAIN: "#aa44ff",
+@@ -7,1 +7,1 @@
+-  IN_SUBWAY: '#8844cc',
++  IN_SUBWAY: "#8844cc",
+@@ -8,1 +8,1 @@
+-  IN_TRAM: '#cc44aa',
++  IN_TRAM: "#cc44aa",
+@@ -9,1 +9,1 @@
+-  IN_TAXI: '#ffcc00',
++  IN_TAXI: "#ffcc00",
+@@ -10,1 +10,1 @@
+-  FLYING: '#ff4488',
++  FLYING: "#ff4488",
+@@ -11,1 +11,1 @@
+-  MOTORCYCLING: '#ff6644',
++  MOTORCYCLING: "#ff6644",
+@@ -12,1 +12,1 @@
+-  IN_FERRY: '#00aacc',
++  IN_FERRY: "#00aacc",
+@@ -13,1 +13,1 @@
+-  UNKNOWN_ACTIVITY_TYPE: '#888888',
++  UNKNOWN_ACTIVITY_TYPE: "#888888",
+@@ -14,1 +14,1 @@
+-}
++};
+@@ -16,1 +16,1 @@
+-export { ACTIVITY_COLORS }
++export { ACTIVITY_COLORS };
+@@ -19,1 +19,1 @@
+-  if (!val) return null
++  if (!val) return null;
+@@ -20,1 +20,1 @@
+-  let str = typeof val === 'string' ? val : (val.latLng || val.point || '')
++  let str = typeof val === "string" ? val : val.latLng || val.point || "";
+@@ -21,1 +21,1 @@
+-  if (!str) return null
++  if (!str) return null;
+@@ -22,1 +22,1 @@
+-  str = str.replace(/Â°/g, '').replace(/\s/g, '')
++  str = str.replace(/Â°/g, "").replace(/\s/g, "");
+@@ -23,1 +23,1 @@
+-  const parts = str.split(',')
++  const parts = str.split(",");
+@@ -24,1 +24,1 @@
+-  if (parts.length < 2) return null
++  if (parts.length < 2) return null;
+@@ -25,1 +25,1 @@
+-  const lat = parseFloat(parts[0])
++  const lat = parseFloat(parts[0]);
+@@ -26,1 +26,1 @@
+-  const lon = parseFloat(parts[1])
++  const lon = parseFloat(parts[1]);
+@@ -27,1 +27,1 @@
+-  if (isNaN(lat) || isNaN(lon)) return null
++  if (isNaN(lat) || isNaN(lon)) return null;
+@@ -28,1 +28,1 @@
+-  if (Math.abs(lat) > 85 || Math.abs(lon) > 180) return null
++  if (Math.abs(lat) > 85 || Math.abs(lon) > 180) return null;
+@@ -29,1 +29,1 @@
+-  return [lat, lon]
++  return [lat, lon];
+@@ -33,1 +33,1 @@
+-  if (!t) return null
++  if (!t) return null;
+@@ -38,1 +38,1 @@
+-  const segments = data.semanticSegments || (Array.isArray(data) ? data : [])
++  const segments = data.semanticSegments || (Array.isArray(data) ? data : []);
+@@ -39,1 +39,1 @@
+-  const result = { visits: [], activities: [], paths: [] }
++  const result = { visits: [], activities: [], paths: [] };
+@@ -40,1 +40,1 @@
+-  const total = segments.length
++  const total = segments.length;
+@@ -43,1 +43,1 @@
+-    const seg = segments[i]
++    const seg = segments[i];
+@@ -44,1 +44,1 @@
+-    if (!seg || typeof seg !== 'object') continue
++    if (!seg || typeof seg !== "object") continue;
+@@ -47,1 +47,1 @@
+-      const cand = seg.visit.topCandidate
++      const cand = seg.visit.topCandidate;
+@@ -49,1 +49,1 @@
+-        const loc = parseCoord(cand.placeLocation)
++        const loc = parseCoord(cand.placeLocation);
+@@ -50,1 +50,1 @@
+-        const t = parseTime(seg.startTime)
++        const t = parseTime(seg.startTime);
+@@ -56,1 +56,1 @@
+-            placeId: cand.placeId || '',
++            placeId: cand.placeId || "",
+@@ -57,1 +57,1 @@
+-            type: cand.semanticType || 'UNKNOWN',
++            type: cand.semanticType || "UNKNOWN",
+@@ -58,1 +58,1 @@
+-          })
++          });
+@@ -64,1 +64,1 @@
+-      const act = seg.activity
++      const act = seg.activity;
+@@ -65,1 +65,1 @@
+-      const startCoord = parseCoord(act.start)
++      const startCoord = parseCoord(act.start);
+@@ -66,1 +66,1 @@
+-      const endCoord = parseCoord(act.end)
++      const endCoord = parseCoord(act.end);
+diff --git a/src/main.jsx b/src/main.jsx
+--- a/src/main.jsx
++++ b/src/main.jsx
+@@ -1,1 +1,1 @@
+-import React from 'react'
++import React from "react";
+@@ -2,1 +2,1 @@
+-import ReactDOM from 'react-dom/client'
++import ReactDOM from "react-dom/client";
+@@ -3,1 +3,1 @@
+-import App from './App.jsx'
++import App from "./App.jsx";
+@@ -4,1 +4,1 @@
+-import './index.css'
++import "./index.css";
+@@ -6,1 +6,1 @@
+-ReactDOM.createRoot(document.getElementById('root')).render(
++ReactDOM.createRoot(document.getElementById("root")).render(
+@@ -10,1 +10,1 @@
+-)
++);
+diff --git a/src/components/FirstVisitNotice.jsx b/src/components/FirstVisitNotice.jsx
+--- a/src/components/FirstVisitNotice.jsx
++++ b/src/components/FirstVisitNotice.jsx
+@@ -1,1 +1,1 @@
+-import React, { useState } from 'react'
++import React, { useState } from "react";
+@@ -4,1 +4,1 @@
+-  const [visible, setVisible] = useState(true)
++  const [visible, setVisible] = useState(true);
+@@ -5,1 +5,1 @@
+-  const dismiss = () => setVisible(false)
++  const dismiss = () => setVisible(false);
+@@ -6,1 +6,1 @@
+-  if (!visible) return null
++  if (!visible) return null;
+@@ -12,1 +12,1 @@
+-      background: 'var(--surface-solid)',
++        background: "var(--surface-solid)",
+@@ -13,1 +13,1 @@
+-      border: '1px solid var(--border)',
++        border: "1px solid var(--border)",
+@@ -14,1 +14,1 @@
+-      borderLeft: '3px solid var(--accent)',
++        borderLeft: "3px solid var(--accent)",
+@@ -15,1 +15,1 @@
+-      borderRadius: 'var(--radius)',
++        borderRadius: "var(--radius)",
+@@ -16,1 +16,1 @@
+-      boxShadow: 'var(--shadow)',
++        boxShadow: "var(--shadow)",
+@@ -17,1 +17,1 @@
+-      padding: '14px 16px',
++        padding: "14px 16px",
+@@ -19,1 +19,1 @@
+-      animation: 'notice-in 0.3s ease-out',
++        animation: "notice-in 0.3s ease-out",
+@@ -33,1 +33,1 @@
+-        marginTop: -2,
++          marginTop: -2,
+@@ -36,1 +36,1 @@
+-  )
++  );
+diff --git a/src/components/MapView.jsx b/src/components/MapView.jsx
+--- a/src/components/MapView.jsx
++++ b/src/components/MapView.jsx
+@@ -1,1 +1,1 @@
+-import React, { useEffect, useRef, useState, useCallback } from 'react'
++import React, { useEffect, useRef, useState, useCallback } from "react";
+@@ -2,1 +2,1 @@
+-import L from 'leaflet'
++import L from "leaflet";
+@@ -3,1 +3,1 @@
+-import 'leaflet/dist/leaflet.css'
++import "leaflet/dist/leaflet.css";
+@@ -4,1 +4,1 @@
+-import { ACTIVITY_COLORS } from '../parser'
++import { ACTIVITY_COLORS } from "../parser";
+@@ -5,1 +5,1 @@
+-import { TRANSPORT_SOURCES, buildTransportLayer } from '../transport'
++import { TRANSPORT_SOURCES, buildTransportLayer } from "../transport";
+@@ -6,1 +6,1 @@
+-import ThemeToggle from './ThemeToggle'
++import ThemeToggle from "./ThemeToggle";
+@@ -7,1 +7,1 @@
+-import ExportModal from './ExportModal'
++import ExportModal from "./ExportModal";
+@@ -8,1 +8,1 @@
+-import DataInfoModal from './DataInfoModal'
++import DataInfoModal from "./DataInfoModal";
+@@ -11,1 +11,1 @@
+-const SPEEDS = [1, 2, 5, 10]
++const SPEEDS = [1, 2, 5, 10];
+@@ -14,1 +14,1 @@
+-  provinsi: 'https://rebornian48.my.id/assets/json/provinsi.json',
++  provinsi: "https://rebornian48.my.id/assets/json/provinsi.json",
+@@ -15,1 +15,1 @@
+-  kabkota: 'https://rebornian48.my.id/assets/json/kabkota.json',
++  kabkota: "https://rebornian48.my.id/assets/json/kabkota.json",
+@@ -16,1 +16,1 @@
+-}
++};
+@@ -19,1 +19,1 @@
+-  color: '#ff3366',
++  color: "#ff3366",
+@@ -23,1 +23,1 @@
+-  fillColor: '#ff3366',
++  fillColor: "#ff3366",
+@@ -43,1 +43,1 @@
+-  'Carto Light': {
++  "Carto Light": {
+@@ -44,1 +44,1 @@
+-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
++    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+@@ -45,1 +45,1 @@
+-    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' },
++    opts: { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" },
+@@ -47,1 +47,1 @@
+-  'Carto Dark': {
++  "Carto Dark": {
+@@ -48,1 +48,1 @@
+-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
++    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+@@ -51,1 +51,1 @@
+-  'OpenStreetMap': {
++  OpenStreetMap: {
+@@ -52,1 +52,1 @@
+-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
++    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+@@ -53,1 +53,1 @@
+-    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' },
++    opts: { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" },
+@@ -55,1 +55,1 @@
+-  'Satellite': {
++  Satellite: {
+@@ -56,1 +56,1 @@
+-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
++    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+@@ -57,1 +57,1 @@
+-    opts: { maxZoom: 19, attribution: 'Tiles &copy; Esri' },
++    opts: { maxZoom: 19, attribution: "Tiles &copy; Esri" },
+@@ -59,1 +59,1 @@
+-  'Topographic': {
++  Topographic: {
+@@ -60,1 +60,1 @@
+-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
++    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+@@ -61,1 +61,1 @@
+-    opts: { maxZoom: 17, attribution: '&copy; OpenTopoMap (CC-BY-SA)' },
++    opts: { maxZoom: 17, attribution: "&copy; OpenTopoMap (CC-BY-SA)" },
+@@ -66,1 +66,1 @@
+-  if (!props) return ''
++  if (!props) return "";
+@@ -68,1 +68,1 @@
+-    const v = props[k]
++    const v = props[k];
+@@ -69,1 +69,1 @@
+-    if (v != null && String(v).trim() !== '') return String(v).trim()
++    if (v != null && String(v).trim() !== "") return String(v).trim();
+@@ -71,1 +71,1 @@
+-  return ''
++  return "";
+@@ -75,1 +75,1 @@
+-  if (kind === 'provinsi') {
++  if (kind === "provinsi") {
+@@ -77,1 +77,1 @@
+-    return name ? `<strong>${escapeHtml(name)}</strong>` : ''
++    return name ? `<strong>${escapeHtml(name)}</strong>` : "";
+diff --git a/src/components/DataInfoModal.jsx b/src/components/DataInfoModal.jsx
+--- a/src/components/DataInfoModal.jsx
++++ b/src/components/DataInfoModal.jsx
+@@ -1,1 +1,1 @@
+-import React from 'react'
++import React from "react";
+@@ -4,1 +4,1 @@
+-  background: 'var(--surface-solid)',
++  background: "var(--surface-solid)",
+@@ -5,1 +5,1 @@
+-  border: '1px solid var(--border)',
++  border: "1px solid var(--border)",
+@@ -6,1 +6,1 @@
+-  borderRadius: 'var(--radius)',
++  borderRadius: "var(--radius)",
+@@ -7,1 +7,1 @@
+-  boxShadow: 'var(--shadow)',
++  boxShadow: "var(--shadow)",
+@@ -8,1 +8,1 @@
+-}
++};
+@@ -18,1 +18,1 @@
+-    name: 'Transjakarta (BRT, Mikrotrans, dll)',
++    name: "Transjakarta (BRT, Mikrotrans, dll)",
+@@ -19,1 +19,1 @@
+-    format: 'GTFS (.zip)',
++    format: "GTFS (.zip)",
+@@ -20,1 +20,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/file_gtfs.zip',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/file_gtfs.zip",
+@@ -23,1 +23,1 @@
+-    name: 'Trans Semarang',
++    name: "Trans Semarang",
+@@ -24,1 +24,1 @@
+-    format: 'JSON',
++    format: "JSON",
+@@ -25,1 +25,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/transsemarang.json',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/transsemarang.json",
+@@ -28,1 +28,1 @@
+-    name: 'Metro Trans Jabar',
++    name: "Metro Trans Jabar",
+@@ -30,1 +30,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/metrojabartrans.json',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/metrojabartrans.json",
+@@ -33,1 +33,1 @@
+-    name: 'Bus Listrik Medan',
++    name: "Bus Listrik Medan",
+@@ -35,1 +35,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/buslistrikmedan.json',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/buslistrikmedan.json",
+@@ -38,1 +38,1 @@
+-    name: 'Trans Koetaradja',
++    name: "Trans Koetaradja",
+@@ -40,1 +40,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/transkotaradja.json',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/transkotaradja.json",
+@@ -43,1 +43,1 @@
+-    name: 'Transpakuan (Bis Kita Bogor)',
++    name: "Transpakuan (Bis Kita Bogor)",
+@@ -45,1 +45,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/transpakuan.json',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/transpakuan.json",
+@@ -48,1 +48,1 @@
+-    name: 'Mitra Darat (Trans Jogja, Trans Jateng, Trans Batam, Trans Jatim, Suroboyo Bus, dan kota-kota lain â lihat halaman Moda Transportasi untuk daftar lengkap)',
++    name: "Mitra Darat (Trans Jogja, Trans Jateng, Trans Batam, Trans Jatim, Suroboyo Bus, dan kota-kota lain â lihat halaman Moda Transportasi untuk daftar lengkap)",
+@@ -50,1 +50,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/mitradarat.json',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/mitradarat.json",
+@@ -53,1 +53,1 @@
+-    name: 'Stasiun KRL, LRT, dan MRT',
++    name: "Stasiun KRL, LRT, dan MRT",
+@@ -54,1 +54,1 @@
+-    format: 'KML',
++    format: "KML",
+@@ -55,1 +55,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/rails.kml',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/rails.kml",
+@@ -58,1 +58,1 @@
+-    name: 'Garis rel KRL',
++    name: "Garis rel KRL",
+@@ -59,1 +59,1 @@
+-    format: 'GeoJSON',
++    format: "GeoJSON",
+@@ -60,1 +60,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/krl_lines.geojson',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/krl_lines.geojson",
+@@ -63,1 +63,1 @@
+-    name: 'Garis rel LRT & MRT',
++    name: "Garis rel LRT & MRT",
+@@ -65,1 +65,1 @@
+-    url: 'https://cdn.opentransum.randspace0.com/transport-data/lrt_mrt_lines.geojson',
++    url: "https://cdn.opentransum.randspace0.com/transport-data/lrt_mrt_lines.geojson",
+@@ -67,1 +67,1 @@
+-]
++];
+@@ -90,1 +90,1 @@
+-          marginBottom: 18,
++            marginBottom: 18,
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -6,1 +6,1 @@
+-Live: https://rebornian48.my.id/map-visualizer/
++Live: <https://rebornian48.my.id/map-visualizer/>
+@@ -96,1 +96,1 @@
+-### Boundary GeoJSON
++### Boundary GeoJSON
+
+diff --git a/src/components/LoadingScreen.jsx b/src/components/LoadingScreen.jsx
+--- a/src/components/LoadingScreen.jsx
++++ b/src/components/LoadingScreen.jsx
+@@ -1,1 +1,1 @@
+-import React from 'react'
++import React from "react";
+@@ -13,1 +13,1 @@
+-        animation: 'spin 0.8s linear infinite',
++          animation: "spin 0.8s linear infinite",
+@@ -23,1 +23,1 @@
+-  )
++  );
+diff --git a/src/components/ExportModal.jsx b/src/components/ExportModal.jsx
+--- a/src/components/ExportModal.jsx
++++ b/src/components/ExportModal.jsx
+@@ -1,1 +1,1 @@
+-import React, { useMemo, useState } from 'react'
++import React, { useMemo, useState } from "react";
+@@ -5,1 +5,1 @@
+-  { label: '30 seconds', value: 30 },
++  { label: "30 seconds", value: 30 },
+@@ -6,1 +6,1 @@
+-  { label: '60 seconds', value: 60 },
++  { label: "60 seconds", value: 60 },
+@@ -7,1 +7,1 @@
+-]
++];
+@@ -10,1 +10,1 @@
+-  background: 'var(--surface-solid)',
++  background: "var(--surface-solid)",
+@@ -11,1 +11,1 @@
+-  border: '1px solid var(--border)',
++  border: "1px solid var(--border)",
+@@ -12,1 +12,1 @@
+-  borderRadius: 'var(--radius)',
++  borderRadius: "var(--radius)",
+@@ -13,1 +13,1 @@
+-  boxShadow: 'var(--shadow)',
++  boxShadow: "var(--shadow)",
+@@ -14,1 +14,1 @@
+-}
++};
+@@ -17,1 +17,1 @@
+-  background: 'var(--surface-2)',
++  background: "var(--surface-2)",
+@@ -20,1 +20,1 @@
+-  color: 'var(--text)',
++  color: "var(--text)",
+@@ -21,1 +21,1 @@
+-  padding: '8px 10px',
++  padding: "8px 10px",
+@@ -22,1 +22,1 @@
+-  fontSize: '0.85rem',
++  fontSize: "0.85rem",
+@@ -24,1 +24,1 @@
+-  width: '100%',
++  width: "100%",
+@@ -25,1 +25,1 @@
+-  boxSizing: 'border-box',
++  boxSizing: "border-box",
+@@ -38,1 +38,1 @@
+-  )
++  );
+@@ -40,1 +40,1 @@
+-  const [startYear, setStartYear] = useState(years[0])
++  const [startYear, setStartYear] = useState(years[0]);
+@@ -41,1 +41,1 @@
+-  const [endYear, setEndYear] = useState(years[years.length - 1])
++  const [endYear, setEndYear] = useState(years[years.length - 1]);
+@@ -42,1 +42,1 @@
+-  const [startMonth, setStartMonth] = useState(0)
++  const [startMonth, setStartMonth] = useState(0);
+@@ -43,1 +43,1 @@
+-  const [endMonth, setEndMonth] = useState(11)
++  const [endMonth, setEndMonth] = useState(11);
+@@ -44,1 +44,1 @@
+-  const [durationChoice, setDurationChoice] = useState(30)
++  const [durationChoice, setDurationChoice] = useState(30);
+@@ -45,1 +45,1 @@
+-  const [customSeconds, setCustomSeconds] = useState(45)
++  const [customSeconds, setCustomSeconds] = useState(45);
+@@ -46,1 +46,1 @@
+-  const [title, setTitle] = useState('')
++  const [title, setTitle] = useState("");
+@@ -48,1 +48,1 @@
+-  const effectiveTitle = title.trim() || `${startYear}â${endYear} Timeline`
++  const effectiveTitle = title.trim() || `${startYear}â${endYear} Timeline`;
+@@ -50,1 +50,1 @@
+-  const [busy, setBusy] = useState(false)
++  const [busy, setBusy] = useState(false);
+@@ -51,1 +51,1 @@
+-  const [stage, setStage] = useState('')
++  const [stage, setStage] = useState("");
+@@ -52,1 +52,1 @@
+-  const [progress, setProgress] = useState(0)
++  const [progress, setProgress] = useState(0);
+@@ -53,1 +53,1 @@
+-  const [error, setError] = useState('')
++  const [error, setError] = useState("");
+@@ -59,1 +59,1 @@
+-  const summary = useMemo(() => summarizePeriod(filtered), [filtered])
++  const summary = useMemo(() => summarizePeriod(filtered), [filtered]);
+@@ -64,1 +64,1 @@
+-    setBusy(true)
++    setBusy(true);
+@@ -65,1 +65,1 @@
+-    setError('')
++    setError("");
+@@ -66,1 +66,1 @@
+-    setStage('Preparingâ¦')
++    setStage("Preparingâ¦");
+@@ -67,1 +67,1 @@
+-    setProgress(0)
++    setProgress(0);
+@@ -73,1 +73,1 @@
+-      })
++      });
+@@ -77,1 +77,1 @@
+-      setError(e.message || String(e))
++      setError(e.message || String(e));
+@@ -78,1 +78,1 @@
+-      setBusy(false)
++      setBusy(false);
+diff --git a/src/videoExport.js b/src/videoExport.js
+--- a/src/videoExport.js
++++ b/src/videoExport.js
+@@ -1,1 +1,1 @@
+-import { toPng } from 'html-to-image'
++import { toPng } from "html-to-image";
+@@ -6,1 +6,1 @@
+-  const startTs = new Date(startYear, startMonth, 1).getTime()
++  const startTs = new Date(startYear, startMonth, 1).getTime();
+@@ -7,1 +7,1 @@
+-  const endTs = new Date(endYear, endMonth + 1, 1).getTime()
++  const endTs = new Date(endYear, endMonth + 1, 1).getTime();
+@@ -8,1 +8,1 @@
+-  const out = []
++  const out = [];
+@@ -10,1 +10,1 @@
+-    if (y < startYear || y > endYear) continue
++    if (y < startYear || y > endYear) continue;
+@@ -12,1 +12,1 @@
+-      const t = p.time.getTime()
++      const t = p.time.getTime();
+@@ -13,1 +13,1 @@
+-      if (t >= startTs && t < endTs) out.push(p)
++      if (t >= startTs && t < endTs) out.push(p);
+@@ -16,1 +16,1 @@
+-  out.sort((a, b) => a.time - b.time)
++  out.sort((a, b) => a.time - b.time);
+@@ -17,1 +17,1 @@
+-  return out
++  return out;
+@@ -21,1 +21,1 @@
+-  let dist = 0
++  let dist = 0;
+@@ -24,1 +24,1 @@
+-    dist += haversine(a.lat, a.lon, b.lat, b.lon)
++    dist += haversine(a.lat, a.lon, b.lat, b.lon);
+@@ -26,1 +26,1 @@
+-  return { count: points.length, distanceKm: dist / 1000 }
++  return { count: points.length, distanceKm: dist / 1000 };
+@@ -30,1 +30,1 @@
+-  const R = 6371000
++  const R = 6371000;
+@@ -31,1 +31,1 @@
+-  const toRad = d => d * Math.PI / 180
++  const toRad = (d) => (d * Math.PI) / 180;
+@@ -34,1 +34,1 @@
+-  return 2 * R * Math.asin(Math.sqrt(a))
++  return 2 * R * Math.asin(Math.sqrt(a));
+@@ -39,1 +39,1 @@
+-    'video/mp4;codecs=avc1.42E01F',
++    "video/mp4;codecs=avc1.42E01F",
+@@ -40,1 +40,1 @@
+-    'video/mp4;codecs=h264',
++    "video/mp4;codecs=h264",
+@@ -41,1 +41,1 @@
+-    'video/mp4',
++    "video/mp4",
+@@ -42,1 +42,1 @@
+-    'video/webm;codecs=vp9',
++    "video/webm;codecs=vp9",
+@@ -43,1 +43,1 @@
+-    'video/webm;codecs=vp8',
++    "video/webm;codecs=vp8",
+@@ -44,1 +44,1 @@
+-    'video/webm',
++    "video/webm",
+@@ -45,1 +45,1 @@
+-  ]
++  ];
+@@ -49,1 +49,1 @@
+-  return ''
++  return "";
+@@ -52,1 +52,1 @@
+-const HOLD_SECONDS = 10
++const HOLD_SECONDS = 10;
+@@ -59,1 +59,1 @@
+-  onStage?.('Fitting map to periodâ¦')
++  onStage?.("Fitting map to periodâ¦");
+@@ -60,1 +60,1 @@
+-  const lats = points.map(p => p.lat)
++  const lats = points.map((p) => p.lat);
+@@ -61,1 +61,1 @@
+-  const lons = points.map(p => p.lon)
++  const lons = points.map((p) => p.lon);
+@@ -65,1 +65,1 @@
+-  )
++  );
+@@ -67,1 +67,1 @@
+-  await new Promise(r => setTimeout(r, 300))
++  await new Promise((r) => setTimeout(r, 300));
+@@ -68,1 +68,1 @@
+-  await waitForTilesLoaded(map)
++  await waitForTilesLoaded(map);
+@@ -70,1 +70,1 @@
+-  onStage?.('Snapshotting map backgroundâ¦')
++  onStage?.("Snapshotting map backgroundâ¦");
+@@ -71,1 +71,1 @@
+-  const mapEl = map.getContainer()
++  const mapEl = map.getContainer();
+@@ -72,1 +72,1 @@
+-  const rect = mapEl.getBoundingClientRect()
++  const rect = mapEl.getBoundingClientRect();
+diff --git a/src/App.jsx b/src/App.jsx
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1,1 +1,1 @@
+-import React, { useState, useCallback, useEffect } from 'react'
++import React, { useState, useCallback, useEffect } from "react";
+@@ -2,1 +2,1 @@
+-import LoadingScreen from './components/LoadingScreen'
++import LoadingScreen from "./components/LoadingScreen";
+@@ -3,1 +3,1 @@
+-import MapView from './components/MapView'
++import MapView from "./components/MapView";
+@@ -4,1 +4,1 @@
+-import FirstVisitNotice from './components/FirstVisitNotice'
++import FirstVisitNotice from "./components/FirstVisitNotice";
+@@ -5,1 +5,1 @@
+-import { parseTimeline, organizeByYear } from './parser'
++import { parseTimeline, organizeByYear } from "./parser";
+@@ -6,1 +6,1 @@
+-import { getInitialTheme, applyTheme } from './theme'
++import { getInitialTheme, applyTheme } from "./theme";
+@@ -9,1 +9,1 @@
+-  const [loading, setLoading] = useState(false)
++  const [loading, setLoading] = useState(false);
+@@ -10,1 +10,1 @@
+-  const [loadingText, setLoadingText] = useState('')
++  const [loadingText, setLoadingText] = useState("");
+@@ -11,1 +11,1 @@
+-  const [loadingPct, setLoadingPct] = useState(0)
++  const [loadingPct, setLoadingPct] = useState(0);
+@@ -12,1 +12,1 @@
+-  const [yearData, setYearData] = useState(null)
++  const [yearData, setYearData] = useState(null);
+@@ -13,1 +13,1 @@
+-  const [theme, setTheme] = useState(getInitialTheme)
++  const [theme, setTheme] = useState(getInitialTheme);
+@@ -18,1 +18,1 @@
+-    setTheme(t => t === 'dark' ? 'light' : 'dark')
++    setTheme((t) => (t === "dark" ? "light" : "dark"));
+@@ -19,1 +19,1 @@
+-  }, [])
++  }, []);
+@@ -22,1 +22,1 @@
+-    setLoading(true)
++    setLoading(true);
+@@ -23,1 +23,1 @@
+-    setLoadingText('Reading fileâ¦')
++    setLoadingText("Reading fileâ¦");
+@@ -24,1 +24,1 @@
+-    setLoadingPct(5)
++    setLoadingPct(5);
+@@ -27,1 +27,1 @@
+-      const text = await file.text()
++      const text = await file.text();
+@@ -28,1 +28,1 @@
+-      setLoadingText('Parsing JSONâ¦')
++      setLoadingText("Parsing JSONâ¦");
+@@ -29,1 +29,1 @@
+-      setLoadingPct(20)
++      setLoadingPct(20);
+@@ -30,1 +30,1 @@
+-      await new Promise(r => setTimeout(r, 50))
++      await new Promise((r) => setTimeout(r, 50));
+@@ -32,1 +32,1 @@
+-      let data
++      let data;
+@@ -34,1 +34,1 @@
+-        data = JSON.parse(text)
++        data = JSON.parse(text);
+@@ -38,1 +38,1 @@
+-          if (text[i] === '{') depth++
++          if (text[i] === "{") depth++;
+@@ -41,1 +41,1 @@
+-        data = JSON.parse(text.slice(0, end))
++        data = JSON.parse(text.slice(0, end));
+@@ -43,1 +43,1 @@
+-      setLoadingText('Extracting timeline dataâ¦')
++      setLoadingText("Extracting timeline dataâ¦");
+@@ -44,1 +44,1 @@
+-      setLoadingPct(40)
++      setLoadingPct(40);
+@@ -47,1 +47,1 @@
+-      const parsed = parseTimeline(data)
++      const parsed = parseTimeline(data);
+@@ -48,1 +48,1 @@
+-      setLoadingText('Organizing by yearâ¦')
++      setLoadingText("Organizing by yearâ¦");
+@@ -49,1 +49,1 @@
+-      setLoadingPct(75)
++      setLoadingPct(75);
+@@ -52,1 +52,1 @@
+-      const organized = organizeByYear(parsed)
++      const organized = organizeByYear(parsed);
+@@ -53,1 +53,1 @@
+-      setLoadingText('Building mapâ¦')
++      setLoadingText("Building mapâ¦");
+@@ -54,1 +54,1 @@
+-      setLoadingPct(95)
++      setLoadingPct(95);

@@ -1,8 +1,8 @@
-import L from 'leaflet'
-import JSZip from 'jszip'
+import L from "leaflet";
+import JSZip from "jszip";
 
 function srcUrl(filename) {
-  if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`
+  if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`;
   return `https://rebornian48.my.id/otsum/proxy.php?f=${encodeURIComponent(filename)}`
 }
 
@@ -17,24 +17,24 @@ export const TRANSPORT_SOURCES = [
   { key: 'krl_lines',        label: 'KRL — garis rel',           group: 'Rel',        kind: 'railLines',     url: srcUrl('krl_lines.geojson') },
   { key: 'lrt_mrt_lines',    label: 'LRT & MRT — garis rel',     group: 'Rel',        kind: 'railLines',     url: srcUrl('lrt_mrt_lines.geojson') },
   { key: 'rails_stations',   label: 'Stasiun KRL/LRT/MRT',       group: 'Rel',        kind: 'railStations',  url: srcUrl('rails.kml') },
-]
+];
 
-const RAW_CACHE = new Map()
+const RAW_CACHE = new Map();
 
 async function fetchRaw(key, url, asBuffer = false) {
-  if (RAW_CACHE.has(key)) return RAW_CACHE.get(key)
-  const r = await fetch(url)
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`)
-  const data = asBuffer ? await r.arrayBuffer() : await r.text()
-  RAW_CACHE.set(key, data)
-  return data
+  if (RAW_CACHE.has(key)) return RAW_CACHE.get(key);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+  const data = asBuffer ? await r.arrayBuffer() : await r.text();
+  RAW_CACHE.set(key, data);
+  return data;
 }
 
 function normalizeColor(c) {
-  if (!c) return null
-  const s = String(c).trim()
-  if (!s) return null
-  return s.startsWith('#') ? s : `#${s}`
+  if (!c) return null;
+  const s = String(c).trim();
+  if (!s) return null;
+  return s.startsWith("#") ? s : `#${s}`;
 }
 
 function escapeHtml(s) {
@@ -44,38 +44,38 @@ function escapeHtml(s) {
 function stopCircle(lat, lon, name, color) {
   return L.circleMarker([lat, lon], {
     radius: 2.5,
-    fillColor: color || '#00ccaa',
+    fillColor: color || "#00ccaa",
     fillOpacity: 0.85,
-    color: '#0b0b0b',
+    color: "#0b0b0b",
     weight: 0.4,
     opacity: 0.6,
-    pane: 'markerPane',
-  }).bindTooltip(escapeHtml(name || ''), { direction: 'top', opacity: 0.9 })
+    pane: "markerPane",
+  }).bindTooltip(escapeHtml(name || ""), { direction: "top", opacity: 0.9 });
 }
 
 function routePolyline(latlngs, color, tooltip) {
   const pl = L.polyline(latlngs, {
-    color: color || '#3388ff',
+    color: color || "#3388ff",
     weight: 3,
     opacity: 0.85,
     smoothFactor: 1.2,
-  })
+  });
   if (tooltip) pl.bindTooltip(tooltip, { sticky: true, direction: 'top', opacity: 0.95 })
-  return pl
+  return pl;
 }
 
 async function buildBus(key, url) {
-  const text = await fetchRaw(key, url)
-  const data = JSON.parse(text)
-  const group = L.layerGroup()
-  const stopsSub = L.layerGroup()
-  const routesSub = L.layerGroup()
+  const text = await fetchRaw(key, url);
+  const data = JSON.parse(text);
+  const group = L.layerGroup();
+  const stopsSub = L.layerGroup();
+  const routesSub = L.layerGroup();
 
   for (const route of data.routes || []) {
-    const color = normalizeColor(route.color) || '#ff3366'
-    const shape = route.shape || []
+    const color = normalizeColor(route.color) || "#ff3366";
+    const shape = route.shape || [];
     if (shape.length >= 2) {
-      const latlngs = shape.map(([lng, lat]) => [lat, lng])
+      const latlngs = shape.map(([lng, lat]) => [lat, lng]);
       const tip = `<strong>${escapeHtml(route.shortName || route.fullName || route.id)}</strong>` +
         (route.fullName ? `<br/><span style="opacity:.75">${escapeHtml(route.fullName)}</span>` : '')
       routePolyline(latlngs, color, tip).addTo(routesSub)

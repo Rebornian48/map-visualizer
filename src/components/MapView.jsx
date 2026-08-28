@@ -1,26 +1,26 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import { ACTIVITY_COLORS } from '../parser'
-import { TRANSPORT_SOURCES, buildTransportLayer } from '../transport'
-import ThemeToggle from './ThemeToggle'
-import ExportModal from './ExportModal'
-import DataInfoModal from './DataInfoModal'
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { ACTIVITY_COLORS } from "../parser";
+import { TRANSPORT_SOURCES, buildTransportLayer } from "../transport";
+import ThemeToggle from "./ThemeToggle";
+import ExportModal from "./ExportModal";
+import DataInfoModal from "./DataInfoModal";
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-const SPEEDS = [1, 2, 5, 10]
+const SPEEDS = [1, 2, 5, 10];
 
 const BOUNDARY_SOURCES = {
-  provinsi: 'https://rebornian48.my.id/assets/json/provinsi.json',
-  kabkota: 'https://rebornian48.my.id/assets/json/kabkota.json',
-}
+  provinsi: "https://rebornian48.my.id/assets/json/provinsi.json",
+  kabkota: "https://rebornian48.my.id/assets/json/kabkota.json",
+};
 
 const BOUNDARY_STYLE = {
-  color: '#ff3366',
+  color: "#ff3366",
   weight: 1,
   opacity: 0.7,
   fillOpacity: 0.05,
-  fillColor: '#ff3366',
+  fillColor: "#ff3366",
 }
 
 const BOUNDARY_HOVER_STYLE = {
@@ -40,41 +40,41 @@ const BOUNDARY_SELECTED_STYLE = {
 }
 
 const BASEMAPS = {
-  'Carto Light': {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  "Carto Light": {
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    opts: { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" },
+  },
+  "Carto Dark": {
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
     opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' },
   },
-  'Carto Dark': {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' },
+  OpenStreetMap: {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    opts: { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" },
   },
-  'OpenStreetMap': {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' },
+  Satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    opts: { maxZoom: 19, attribution: "Tiles &copy; Esri" },
   },
-  'Satellite': {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    opts: { maxZoom: 19, attribution: 'Tiles &copy; Esri' },
-  },
-  'Topographic': {
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    opts: { maxZoom: 17, attribution: '&copy; OpenTopoMap (CC-BY-SA)' },
+  Topographic: {
+    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    opts: { maxZoom: 17, attribution: "&copy; OpenTopoMap (CC-BY-SA)" },
   },
 }
 
 function pickProp(props, keys) {
-  if (!props) return ''
+  if (!props) return "";
   for (const k of keys) {
-    const v = props[k]
-    if (v != null && String(v).trim() !== '') return String(v).trim()
+    const v = props[k];
+    if (v != null && String(v).trim() !== "") return String(v).trim();
   }
-  return ''
+  return "";
 }
 
 function boundaryLabel(kind, props) {
-  if (kind === 'provinsi') {
+  if (kind === "provinsi") {
     const name = pickProp(props, ['WADMPR', 'PROVINSI', 'Propinsi', 'NAME_1', 'nama_provinsi', 'province'])
-    return name ? `<strong>${escapeHtml(name)}</strong>` : ''
+    return name ? `<strong>${escapeHtml(name)}</strong>` : "";
   }
   if (kind === 'kabkota') {
     const kab = pickProp(props, ['KAB_KOTA', 'KABKOT', 'WADMKK', 'NAME_2', 'kabupaten'])

@@ -1,55 +1,55 @@
-import { toPng } from "html-to-image";
+import { toPng } from 'html-to-image'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 export function filterPointsByPeriod(yearData, startYear, startMonth, endYear, endMonth) {
-  const startTs = new Date(startYear, startMonth, 1).getTime();
-  const endTs = new Date(endYear, endMonth + 1, 1).getTime();
-  const out = [];
+  const startTs = new Date(startYear, startMonth, 1).getTime()
+  const endTs = new Date(endYear, endMonth + 1, 1).getTime()
+  const out = []
   for (const y of Object.keys(yearData).map(Number)) {
-    if (y < startYear || y > endYear) continue;
+    if (y < startYear || y > endYear) continue
     for (const p of yearData[y].points) {
-      const t = p.time.getTime();
-      if (t >= startTs && t < endTs) out.push(p);
+      const t = p.time.getTime()
+      if (t >= startTs && t < endTs) out.push(p)
     }
   }
-  out.sort((a, b) => a.time - b.time);
-  return out;
+  out.sort((a, b) => a.time - b.time)
+  return out
 }
 
 export function summarizePeriod(points) {
-  let dist = 0;
+  let dist = 0
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1], b = points[i]
-    dist += haversine(a.lat, a.lon, b.lat, b.lon);
+    dist += haversine(a.lat, a.lon, b.lat, b.lon)
   }
-  return { count: points.length, distanceKm: dist / 1000 };
+  return { count: points.length, distanceKm: dist / 1000 }
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 6371000
+  const toRad = d => d * Math.PI / 180
   const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1)
   const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2
-  return 2 * R * Math.asin(Math.sqrt(a));
+  return 2 * R * Math.asin(Math.sqrt(a))
 }
 
 function pickMimeType() {
   const candidates = [
-    "video/mp4;codecs=avc1.42E01F",
-    "video/mp4;codecs=h264",
-    "video/mp4",
-    "video/webm;codecs=vp9",
-    "video/webm;codecs=vp8",
-    "video/webm",
-  ];
+    'video/mp4;codecs=avc1.42E01F',
+    'video/mp4;codecs=h264',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+  ]
   for (const t of candidates) {
     if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) return t
   }
-  return "";
+  return ''
 }
 
-const HOLD_SECONDS = 10;
+const HOLD_SECONDS = 10
 
 export async function exportVideo({
   map, points, durationSeconds, fps = 30, title = '', onProgress, onStage,
@@ -57,19 +57,19 @@ export async function exportVideo({
   if (!points || points.length < 2) throw new Error('Not enough points in the selected period.')
 
   onStage?.('Fitting map to period…')
-  const lats = points.map((p) => p.lat);
-  const lons = points.map((p) => p.lon);
+  const lats = points.map(p => p.lat)
+  const lons = points.map(p => p.lon)
   map.fitBounds(
     [[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]],
     { padding: [40, 40], maxZoom: 14, animate: false }
-  );
+  )
 
-  await new Promise((r) => setTimeout(r, 300));
-  await waitForTilesLoaded(map);
+  await new Promise(r => setTimeout(r, 300))
+  await waitForTilesLoaded(map)
 
   onStage?.('Snapshotting map background…')
-  const mapEl = map.getContainer();
-  const rect = mapEl.getBoundingClientRect();
+  const mapEl = map.getContainer()
+  const rect = mapEl.getBoundingClientRect()
   const width = Math.round(rect.width)
   const height = Math.round(rect.height)
 
