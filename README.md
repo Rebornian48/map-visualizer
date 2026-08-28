@@ -3,7 +3,7 @@
 Interactive web visualizer for Google Location History `Timeline.json` files.
 Built with **React + Vite + Leaflet** — auto-deploys to **Hostinger** via GitHub Actions.
 
-Live: https://rebornian48.my.id/map-visualizer/
+Live: <https://rebornian48.my.id/map-visualizer/>
 
 ## Features
 
