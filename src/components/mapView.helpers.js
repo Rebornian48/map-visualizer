@@ -33,16 +33,11 @@ export const BASEMAPS = new Map([
 
 export const ACTIVITY_COLOR_MAP = new Map(Object.entries(ACTIVITY_COLORS))
 
-// nosemgrep — the entity table IS the encoder, not an unsanitized sink.
-const HTML_ESCAPES = new Map([
-  ['&', '&' + 'amp;'],
-  ['<', '&' + 'lt;'],
-  ['>', '&' + 'gt;'],
-  ['"', '&' + 'quot;'],
-  ["'", '&' + '#39;'],
-])
-
-export const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => HTML_ESCAPES.get(c) || c)
+export const escapeHtml = (s) => {
+  const div = document.createElement('div');
+  div.textContent = String(s);
+  return div.innerHTML;
+};
 
 const PROVINCE_KEYS = ['WADMPR', 'PROVINSI', 'Propinsi', 'NAME_1', 'nama_provinsi', 'province']
 const KABKOTA_KEYS  = ['KAB_KOTA', 'KABKOT', 'WADMKK', 'NAME_2', 'kabupaten']
@@ -56,22 +51,39 @@ function pickProp(props, keys) {
   return ''
 }
 
-// Returns pre-escaped HTML fragment for a boundary tooltip.
-// Name signals HTML output so callers (and Codacy) treat it as such.
+function strongText(txt) {
+  const el = document.createElement('strong')
+  el.textContent = txt
+  return el
+}
+
+function dimText(txt) {
+  const el = document.createElement('span')
+  el.style.opacity = '0.7'
+  el.textContent = txt
+  return el
+}
+
+function serialize(nodes) {
+  const wrap = document.createElement('div')
+  for (const n of nodes) wrap.appendChild(n)
+  return wrap.innerHTML
+}
+
 export function boundaryLabelHtml(kind, props) {
   if (kind === 'provinsi') {
     const name = pickProp(props, PROVINCE_KEYS)
-    return name ? `<strong>${escapeHtml(name)}</strong>` : ''
+    return name ? serialize([strongText(name)]) : ''
   }
   if (kind === 'kabkota') {
     const kab  = pickProp(props, KABKOTA_KEYS)
     const prov = pickProp(props, PROVINCE_KEYS)
     if (!kab && !prov) return ''
-    const line1 = kab  ? `<strong>${escapeHtml(kab)}</strong>` : ''
-    const line2 = prov ? `<span style="opacity:0.7">${escapeHtml(prov)}</span>` : ''
-    // nosemgrep — line1/line2 are already escapeHtml-sanitized.
-    const parts = [line1, line2].filter(Boolean)
-    return parts.join('<' + 'br/>')
+    const nodes = []
+    if (kab)  nodes.push(strongText(kab))
+    if (kab && prov) nodes.push(document.createElement('br'))
+    if (prov) nodes.push(dimText(prov))
+    return serialize(nodes)
   }
   return ''
 }

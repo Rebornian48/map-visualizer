@@ -74,18 +74,30 @@ function parseActivity(seg) {
   }
 }
 
+function coerceCoordSource(pp) {
+  if (pp.point) return pp.point
+  return pp
+}
+
 function parsePathPoint(pp) {
-  const c = parseCoord(pp.point || pp)
+  const c = parseCoord(coerceCoordSource(pp))
+  if (!c) return null
   const t = parseTime(pp.time)
-  if (!c || !t) return null
+  if (!t) return null
   return { lat: c[0], lon: c[1], time: t }
 }
 
-function parsePath(seg) {
+function hasPathData(seg) {
   const raw = seg.timelinePath
-  if (!raw || raw.length === 0) return null
-  const pts = raw.map(parsePathPoint).filter(Boolean)
-  return pts.length > 0 ? pts : null
+  if (!raw) return false
+  return raw.length > 0
+}
+
+function parsePath(seg) {
+  if (!hasPathData(seg)) return null
+  const pts = seg.timelinePath.map(parsePathPoint).filter(Boolean)
+  if (pts.length === 0) return null
+  return pts
 }
 
 export function parseTimeline(data) {

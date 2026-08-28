@@ -5,6 +5,7 @@
  * Upload to: public_html/otsum/proxy.php.
  * Endpoint:  https://rebornian48.my.id/otsum/proxy.php?f=<filename>.
  */
+
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, HEAD, OPTIONS');
 header('Access-Control-Max-Age: 86400');

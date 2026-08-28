@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import L from 'leaflet'
-import { TRANSPORT_SOURCES, buildTransportLayer } from '../transport'
-import { BOUNDARY_SOURCES, BASEMAPS, MONTH_NAMES, SPEEDS, ACTIVITY_COLOR_MAP,
-         boundaryLabelHtml } from './mapView.helpers'
+import { useEffect, useRef, useState, useCallback } from 'react';
+import L from 'leaflet';
+import { TRANSPORT_SOURCES, buildTransportLayer } from '../transport';
+import { BOUNDARY_SOURCES } from './mapView.helpers';
+import { BASEMAPS } from './mapView.helpers';
+import { MONTH_NAMES } from './mapView.helpers';
+import { SPEEDS } from './mapView.helpers';
+import { ACTIVITY_COLOR_MAP } from './mapView.helpers';
+import { boundaryLabelHtml } from './mapView.helpers';
 
 const BOUNDARY_STYLE = {
   color: '#ff3366', weight: 1, opacity: 0.7, fillOpacity: 0.05, fillColor: '#ff3366',
@@ -142,7 +146,7 @@ function drawStatic(yearData, year, month, layers, map, setStats, setLegendItems
 
 function useMapInit(mapRef, mapInstance, baseLayersRef, layersRef, setCursor) {
   useEffect(() => {
-    if (mapInstance.current) return
+    if (mapInstance.current) return undefined
     const { map, baseLayers, layers } = initMap(mapRef.current, setCursor)
     baseLayersRef.current = baseLayers
     layersRef.current = layers
@@ -154,7 +158,7 @@ function useMapInit(mapRef, mapInstance, baseLayersRef, layersRef, setCursor) {
 function useBasemapEffect(basemap, mapInstance, baseLayersRef) {
   useEffect(() => {
     const map = mapInstance.current
-    if (!map) return
+    if (!map) return undefined
     for (const [name, layer] of baseLayersRef.current) {
       if (name === basemap) {
         if (!map.hasLayer(layer)) layer.addTo(map)
@@ -163,10 +167,18 @@ function useBasemapEffect(basemap, mapInstance, baseLayersRef) {
   }, [basemap])
 }
 
+function fetchBoundary(url, onData, onError, onDone) {
+  fetch(url)
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+    .then(onData)
+    .catch(onError)
+    .finally(onDone)
+}
+
 function useBoundaryEffect(boundary, mapInstance, boundaryLayerRef, boundaryCacheRef, setBoundaryLoading) {
   useEffect(() => {
     const map = mapInstance.current
-    if (!map) return
+    if (!map) return () => {}
     if (boundaryLayerRef.current) {
       if (boundaryLayerRef.current._mapClickHandler) {
         map.off('click', boundaryLayerRef.current._mapClickHandler)
@@ -174,25 +186,30 @@ function useBoundaryEffect(boundary, mapInstance, boundaryLayerRef, boundaryCach
       map.removeLayer(boundaryLayerRef.current)
       boundaryLayerRef.current = null
     }
-    if (boundary === 'none') return
+    if (boundary === 'none') return () => {}
 
     let cancelled = false
     const addLayer = (geojson) => {
-      if (cancelled || !mapInstance.current) return
+      if (cancelled) return
+      if (!mapInstance.current) return
       boundaryLayerRef.current = attachBoundaryLayer(geojson, boundary, mapInstance.current)
     }
     const cached = boundaryCacheRef.current.get(boundary)
-    if (cached) { addLayer(cached); return () => { cancelled = true } }
+    if (cached) {
+      addLayer(cached)
+      return () => { cancelled = true }
+    }
 
     setBoundaryLoading(true)
-    fetch(BOUNDARY_SOURCES.get(boundary))
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-      .then(data => { boundaryCacheRef.current.set(boundary, data); addLayer(data) })
-      .catch(err => {
+    fetchBoundary(
+      BOUNDARY_SOURCES.get(boundary),
+      (data) => { boundaryCacheRef.current.set(boundary, data); addLayer(data) },
+      (err) => {
         console.error('Boundary load failed:', err)
         if (!cancelled) alert(`Failed to load boundary layer: ${err.message}`)
-      })
-      .finally(() => { if (!cancelled) setBoundaryLoading(false) })
+      },
+      () => { if (!cancelled) setBoundaryLoading(false) },
+    )
 
     return () => { cancelled = true }
   }, [boundary])
@@ -278,18 +295,22 @@ function makeTogglePlay(deps) {
   }
 }
 
-export function useMapController(yearData) {
-  const mapRef = useRef(null)
-  const mapInstance = useRef(null)
-  const layersRef = useRef({})
-  const animRef = useRef(null)
-  const fileInputRef = useRef(null)
-  const boundaryLayerRef = useRef(null)
-  const boundaryCacheRef = useRef(new Map())
-  const baseLayersRef = useRef(new Map())
-  const transportLayersRef = useRef(new Map())
-  const currentPointsRef = useRef([])
+function useMapRefs() {
+  return {
+    mapRef: useRef(null),
+    mapInstance: useRef(null),
+    layersRef: useRef({}),
+    animRef: useRef(null),
+    fileInputRef: useRef(null),
+    boundaryLayerRef: useRef(null),
+    boundaryCacheRef: useRef(new Map()),
+    baseLayersRef: useRef(new Map()),
+    transportLayersRef: useRef(new Map()),
+    currentPointsRef: useRef([]),
+  }
+}
 
+function useMapState() {
   const [currentYear, setCurrentYear] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(null)
   const [showStats, setShowStats] = useState(false)
@@ -308,61 +329,88 @@ export function useMapController(yearData) {
   const [transportActive, setTransportActive] = useState(() => new Set())
   const [transportLoading, setTransportLoading] = useState(() => new Set())
   const [transportError, setTransportError] = useState(() => new Map())
+  return {
+    values: { currentYear, currentMonth, showStats, stats, isPlaying, speedIdx, playPct,
+              timeLabel, legendItems, cursor, showExport, showDataInfo, boundary,
+              boundaryLoading, basemap, transportActive, transportLoading, transportError },
+    set: { setCurrentYear, setCurrentMonth, setShowStats, setStats, setIsPlaying, setSpeedIdx,
+           setPlayPct, setTimeLabel, setLegendItems, setCursor, setShowExport, setShowDataInfo,
+           setBoundary, setBoundaryLoading, setBasemap, setTransportActive, setTransportLoading,
+           setTransportError },
+  }
+}
 
-  useMapInit(mapRef, mapInstance, baseLayersRef, layersRef, setCursor)
-  useBasemapEffect(basemap, mapInstance, baseLayersRef)
-  useBoundaryEffect(boundary, mapInstance, boundaryLayerRef, boundaryCacheRef, setBoundaryLoading)
-
-  useEffect(() => {
-    if (!yearData) return
-    const sortedYears = [...yearData.keys()].sort((a, b) => a - b)
-    setCurrentYear(sortedYears.at(-1))
-    setCurrentMonth(null)
-  }, [yearData])
-
-  const onToggleTransport = useCallback(
-    makeTransportToggle(mapInstance, transportLayersRef, setTransportActive, setTransportLoading, setTransportError),
-    [],
-  )
-
-  const renderData = useCallback((year, month) => {
-    const map = mapInstance.current
-    const { path, visit, activity } = layersRef.current
-    path.clearLayers(); visit.clearLayers(); activity.clearLayers()
-    if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null }
-    setIsPlaying(false); setPlayPct(0); setTimeLabel('—')
-    drawStatic(yearData, year, month, layersRef.current, map, setStats, setLegendItems, currentPointsRef)
-  }, [yearData])
-
-  useEffect(() => {
-    if (!mapInstance.current || currentYear === null || !yearData) return
-    renderData(currentYear, currentMonth)
-  }, [currentYear, currentMonth, yearData, renderData])
-
-  const togglePlay = useCallback(
-    makeTogglePlay({
-      isPlaying, animRef, setIsPlaying, renderData, currentYear, currentMonth,
-      layersRef, currentPointsRef, speedIdx, setPlayPct, setTimeLabel,
-    }),
-    [isPlaying, currentYear, currentMonth, speedIdx, renderData],
-  )
-
-  const currentYd = currentYear ? yearData?.get(currentYear) : null
+function computeDerived(yearData, values) {
+  const currentYd = values.currentYear ? yearData?.get(values.currentYear) : null
   const availableMonths = currentYd
     ? [...new Set([...currentYd.points.map(p => p.time.getMonth()),
                    ...currentYd.visits.map(v => v.start.getMonth())])].sort((a, b) => a - b)
     : []
   const years = yearData ? [...yearData.keys()].sort((a, b) => a - b) : []
-  const speed = SPEEDS.at(speedIdx)
+  return { availableMonths, years, speed: SPEEDS.at(values.speedIdx) }
+}
 
+export function useMapController(yearData) {
+  const refs = useMapRefs()
+  const { values, set } = useMapState()
+
+  useMapInit(refs.mapRef, refs.mapInstance, refs.baseLayersRef, refs.layersRef, set.setCursor)
+  useBasemapEffect(values.basemap, refs.mapInstance, refs.baseLayersRef)
+  useBoundaryEffect(values.boundary, refs.mapInstance, refs.boundaryLayerRef,
+                    refs.boundaryCacheRef, set.setBoundaryLoading)
+
+  useEffect(() => {
+    if (!yearData) return
+    const sortedYears = [...yearData.keys()].sort((a, b) => a - b)
+    set.setCurrentYear(sortedYears.at(-1))
+    set.setCurrentMonth(null)
+  }, [yearData])
+
+  const onToggleTransport = useCallback(
+    makeTransportToggle(refs.mapInstance, refs.transportLayersRef,
+                        set.setTransportActive, set.setTransportLoading, set.setTransportError),
+    [],
+  )
+
+  const renderData = useCallback((year, month) => {
+    const map = refs.mapInstance.current
+    const { path, visit, activity } = refs.layersRef.current
+    path.clearLayers(); visit.clearLayers(); activity.clearLayers()
+    if (refs.animRef.current) {
+      cancelAnimationFrame(refs.animRef.current)
+      refs.animRef.current = null
+    }
+    set.setIsPlaying(false); set.setPlayPct(0); set.setTimeLabel('—')
+    drawStatic(yearData, year, month, refs.layersRef.current, map,
+               set.setStats, set.setLegendItems, refs.currentPointsRef)
+  }, [yearData])
+
+  useEffect(() => {
+    if (!refs.mapInstance.current) return
+    if (values.currentYear === null) return
+    if (!yearData) return
+    renderData(values.currentYear, values.currentMonth)
+  }, [values.currentYear, values.currentMonth, yearData, renderData])
+
+  const togglePlay = useCallback(
+    makeTogglePlay({
+      isPlaying: values.isPlaying, animRef: refs.animRef,
+      setIsPlaying: set.setIsPlaying, renderData,
+      currentYear: values.currentYear, currentMonth: values.currentMonth,
+      layersRef: refs.layersRef, currentPointsRef: refs.currentPointsRef,
+      speedIdx: values.speedIdx, setPlayPct: set.setPlayPct, setTimeLabel: set.setTimeLabel,
+    }),
+    [values.isPlaying, values.currentYear, values.currentMonth, values.speedIdx, renderData],
+  )
+
+  const derived = computeDerived(yearData, values)
   return {
-    refs: { mapRef, mapInstance, fileInputRef },
-    state: { currentYear, currentMonth, showStats, stats, isPlaying, playPct, timeLabel,
-             legendItems, cursor, showExport, showDataInfo, boundary, boundaryLoading,
-             basemap, transportActive, transportLoading, transportError,
-             years, availableMonths, speed },
-    setters: { setCurrentYear, setCurrentMonth, setShowStats, setShowExport, setShowDataInfo,
-               setBoundary, setBasemap, setSpeedIdx },
+    refs: { mapRef: refs.mapRef, mapInstance: refs.mapInstance, fileInputRef: refs.fileInputRef },
+    state: { ...values, ...derived },
+    setters: { setCurrentYear: set.setCurrentYear, setCurrentMonth: set.setCurrentMonth,
+               setShowStats: set.setShowStats, setShowExport: set.setShowExport,
+               setShowDataInfo: set.setShowDataInfo, setBoundary: set.setBoundary,
+               setBasemap: set.setBasemap, setSpeedIdx: set.setSpeedIdx },
     actions: { onToggleTransport, togglePlay },
   }
 }

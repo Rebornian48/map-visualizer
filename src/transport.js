@@ -37,16 +37,11 @@ function normalizeColor(c) {
   return s.startsWith("#") ? s : `#${s}`;
 }
 
-// nosemgrep — the entity table IS the encoder, not an unsanitized sink.
-const HTML_ESCAPES = new Map([
-  ['&', '&' + 'amp;'],
-  ['<', '&' + 'lt;'],
-  ['>', '&' + 'gt;'],
-  ['"', '&' + 'quot;'],
-  ["'", '&' + '#39;'],
-])
-
-const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => HTML_ESCAPES.get(c) || c)
+const escapeHtml = (s) => {
+  const div = document.createElement('div');
+  div.textContent = String(s);
+  return div.innerHTML;
+};
 
 function stopCircle(lat, lon, name, color) {
   return L.circleMarker([lat, lon], {
