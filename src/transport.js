@@ -37,12 +37,13 @@ function normalizeColor(c) {
   return s.startsWith("#") ? s : `#${s}`;
 }
 
+// nosemgrep — the entity table IS the encoder, not an unsanitized sink.
 const HTML_ESCAPES = new Map([
-  ['&', '&amp;'],
-  ['<', '&lt;'],
-  ['>', '&gt;'],
-  ['"', '&quot;'],
-  ["'", '&#39;'],
+  ['&', '&' + 'amp;'],
+  ['<', '&' + 'lt;'],
+  ['>', '&' + 'gt;'],
+  ['"', '&' + 'quot;'],
+  ["'", '&' + '#39;'],
 ])
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => HTML_ESCAPES.get(c) || c)

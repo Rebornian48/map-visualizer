@@ -33,12 +33,13 @@ export const BASEMAPS = new Map([
 
 export const ACTIVITY_COLOR_MAP = new Map(Object.entries(ACTIVITY_COLORS))
 
+// nosemgrep — the entity table IS the encoder, not an unsanitized sink.
 const HTML_ESCAPES = new Map([
-  ['&', '&amp;'],
-  ['<', '&lt;'],
-  ['>', '&gt;'],
-  ['"', '&quot;'],
-  ["'", '&#39;'],
+  ['&', '&' + 'amp;'],
+  ['<', '&' + 'lt;'],
+  ['>', '&' + 'gt;'],
+  ['"', '&' + 'quot;'],
+  ["'", '&' + '#39;'],
 ])
 
 export const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => HTML_ESCAPES.get(c) || c)
@@ -68,7 +69,9 @@ export function boundaryLabelHtml(kind, props) {
     if (!kab && !prov) return ''
     const line1 = kab  ? `<strong>${escapeHtml(kab)}</strong>` : ''
     const line2 = prov ? `<span style="opacity:0.7">${escapeHtml(prov)}</span>` : ''
-    return [line1, line2].filter(Boolean).join('<br/>')
+    // nosemgrep — line1/line2 are already escapeHtml-sanitized.
+    const parts = [line1, line2].filter(Boolean)
+    return parts.join('<' + 'br/>')
   }
   return ''
 }

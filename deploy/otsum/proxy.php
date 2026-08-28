@@ -1,9 +1,10 @@
 <?php
-// Opentransum CDN proxy — adds CORS header so the map-visualizer.
-// frontend (different origin) can fetch data files.
-// Upload to: public_html/otsum/proxy.php.
-// Endpoint:  https://rebornian48.my.id/otsum/proxy.php?f=<filename>.
-
+/*
+ * Opentransum CDN proxy — adds CORS header so the map-visualizer
+ * frontend (different origin) can fetch data files.
+ * Upload to: public_html/otsum/proxy.php.
+ * Endpoint:  https://rebornian48.my.id/otsum/proxy.php?f=<filename>.
+ */
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, HEAD, OPTIONS');
 header('Access-Control-Max-Age: 86400');

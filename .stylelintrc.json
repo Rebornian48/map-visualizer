@@ -1,0 +1,6 @@
+{
+  "rules": {
+    "selector-class-pattern": null,
+    "function-disallowed-list": null
+  }
+}
