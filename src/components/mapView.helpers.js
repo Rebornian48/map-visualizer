@@ -41,9 +41,7 @@ const HTML_ESCAPES = new Map([
   ["'", '&#39;'],
 ])
 
-export function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => HTML_ESCAPES.get(c) || c)
-}
+export const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => HTML_ESCAPES.get(c) || c)
 
 const PROVINCE_KEYS = ['WADMPR', 'PROVINSI', 'Propinsi', 'NAME_1', 'nama_provinsi', 'province']
 const KABKOTA_KEYS  = ['KAB_KOTA', 'KABKOT', 'WADMKK', 'NAME_2', 'kabupaten']

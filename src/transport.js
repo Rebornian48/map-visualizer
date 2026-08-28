@@ -45,9 +45,7 @@ const HTML_ESCAPES = new Map([
   ["'", '&#39;'],
 ])
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => HTML_ESCAPES.get(c) || c)
-}
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => HTML_ESCAPES.get(c) || c)
 
 function stopCircle(lat, lon, name, color) {
   return L.circleMarker([lat, lon], {

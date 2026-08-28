@@ -74,14 +74,17 @@ function parseActivity(seg) {
   }
 }
 
+function parsePathPoint(pp) {
+  const c = parseCoord(pp.point || pp)
+  const t = parseTime(pp.time)
+  if (!c || !t) return null
+  return { lat: c[0], lon: c[1], time: t }
+}
+
 function parsePath(seg) {
-  if (!seg.timelinePath || seg.timelinePath.length === 0) return null
-  const pts = []
-  for (const pp of seg.timelinePath) {
-    const c = parseCoord(pp.point || pp)
-    const t = parseTime(pp.time)
-    if (c && t) pts.push({ lat: c[0], lon: c[1], time: t })
-  }
+  const raw = seg.timelinePath
+  if (!raw || raw.length === 0) return null
+  const pts = raw.map(parsePathPoint).filter(Boolean)
   return pts.length > 0 ? pts : null
 }
 

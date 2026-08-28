@@ -31,30 +31,6 @@ const labelStyle = {
   fontFamily: "'DM Mono', monospace",
 }
 
-function PeriodPicker({ years, startYear, endYear, startMonth, endMonth,
-                       setStartYear, setEndYear, setStartMonth, setEndMonth,
-                       busy, rangeInvalid, summary, duration }) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <label style={labelStyle}>Selected period</label>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-        <YearSelect label="Start year" value={startYear} onChange={setStartYear} years={years} busy={busy} />
-        <YearSelect label="End year"   value={endYear}   onChange={setEndYear}   years={years} busy={busy} />
-        <MonthSelect label="Start month" value={startMonth} onChange={setStartMonth} busy={busy} />
-        <MonthSelect label="End month"   value={endMonth}   onChange={setEndMonth}   busy={busy} />
-      </div>
-      <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontFamily: "'DM Mono', monospace" }}>
-        {rangeInvalid
-          ? <span style={{ color: 'var(--accent)' }}>End must be on or after start</span>
-          : <>{summary.count.toLocaleString()} points · about {summary.distanceKm.toFixed(0)} km</>}
-      </div>
-      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 4, fontFamily: "'DM Mono', monospace" }}>
-        Final video: {duration}s animation + 10s hold = {duration + 10}s total
-      </div>
-    </div>
-  )
-}
-
 function YearSelect({ label, value, onChange, years, busy }) {
   return (
     <div>
@@ -77,6 +53,36 @@ function MonthSelect({ label, value, onChange, busy }) {
   )
 }
 
+function PeriodSummary({ rangeInvalid, summary, duration }) {
+  return (
+    <>
+      <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontFamily: "'DM Mono', monospace" }}>
+        {rangeInvalid
+          ? <span style={{ color: 'var(--accent)' }}>End must be on or after start</span>
+          : <>{summary.count.toLocaleString()} points · about {summary.distanceKm.toFixed(0)} km</>}
+      </div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 4, fontFamily: "'DM Mono', monospace" }}>
+        Final video: {duration}s animation + 10s hold = {duration + 10}s total
+      </div>
+    </>
+  )
+}
+
+function PeriodPicker({ years, period, setPeriod, meta }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <label style={labelStyle}>Selected period</label>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <YearSelect label="Start year" value={period.startYear} onChange={setPeriod.setStartYear} years={years} busy={meta.busy} />
+        <YearSelect label="End year"   value={period.endYear}   onChange={setPeriod.setEndYear}   years={years} busy={meta.busy} />
+        <MonthSelect label="Start month" value={period.startMonth} onChange={setPeriod.setStartMonth} busy={meta.busy} />
+        <MonthSelect label="End month"   value={period.endMonth}   onChange={setPeriod.setEndMonth}   busy={meta.busy} />
+      </div>
+      <PeriodSummary rangeInvalid={meta.rangeInvalid} summary={meta.summary} duration={meta.duration} />
+    </div>
+  )
+}
+
 function DurationPicker({ durationChoice, setDurationChoice, customSeconds, setCustomSeconds, busy }) {
   return (
     <div style={{ marginBottom: 24 }}>
@@ -93,18 +99,56 @@ function DurationPicker({ durationChoice, setDurationChoice, customSeconds, setC
           <input type="radio" name="dur" checked={durationChoice === 'custom'}
             onChange={() => setDurationChoice('custom')} disabled={busy} />
           <span>Custom:</span>
-          <input
-            type="number" min={5} max={600} step={1}
+          <input type="number" min={5} max={600} step={1}
             value={customSeconds}
             onChange={(e) => { setCustomSeconds(e.target.value); setDurationChoice('custom') }}
             disabled={busy}
-            style={{ ...fieldStyle, width: 90, padding: '4px 8px', fontFamily: "'DM Mono', monospace" }}
-          />
+            style={{ ...fieldStyle, width: 90, padding: '4px 8px', fontFamily: "'DM Mono', monospace" }} />
           <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>seconds</span>
         </label>
       </div>
     </div>
   )
+}
+
+const overlayStyle = {
+  position: 'fixed', inset: 0, zIndex: 2000,
+  background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+}
+
+function computeDuration(choice, custom) {
+  if (choice !== 'custom') return choice
+  return Math.max(5, Math.min(600, Number(custom) || 30))
+}
+
+function isRangeInvalid(p) {
+  return p.endYear < p.startYear || (p.endYear === p.startYear && p.endMonth < p.startMonth)
+}
+
+function useExportRun({ map, filtered, duration, effectiveTitle, onClose }) {
+  const [busy, setBusy] = useState(false)
+  const [stage, setStage] = useState('')
+  const [progress, setProgress] = useState(0)
+  const [error, setError] = useState('')
+
+  const run = async () => {
+    setBusy(true); setError(''); setStage('Preparing…'); setProgress(0)
+    try {
+      const res = await exportVideo({
+        map, points: filtered, durationSeconds: duration,
+        title: effectiveTitle, onProgress: setProgress, onStage: setStage,
+      })
+      const kind = res.isMp4 ? 'MP4' : 'WebM (MP4 not supported by this browser)'
+      const size = (res.sizeBytes / 1024 / 1024).toFixed(1)
+      setStage(`Done — ${kind} · ${size} MB`)
+      setTimeout(() => { setBusy(false); onClose() }, 1200)
+    } catch (e) {
+      setError(e.message || String(e))
+      setBusy(false)
+    }
+  }
+  return { busy, stage, progress, error, run }
 }
 
 export default function ExportModal({ yearData, map, onClose }) {
@@ -118,38 +162,21 @@ export default function ExportModal({ yearData, map, onClose }) {
   const [customSeconds, setCustomSeconds] = useState(45)
   const [title, setTitle] = useState('')
 
+  const period = { startYear, endYear, startMonth, endMonth }
+  const setPeriod = { setStartYear, setEndYear, setStartMonth, setEndMonth }
   const effectiveTitle = title.trim() || `${startYear}–${endYear} Timeline`
-
-  const [busy, setBusy] = useState(false)
-  const [stage, setStage] = useState('')
-  const [progress, setProgress] = useState(0)
-  const [error, setError] = useState('')
+  const duration = computeDuration(durationChoice, customSeconds)
 
   const filtered = useMemo(
     () => filterPointsByPeriod(yearData, startYear, startMonth, endYear, endMonth),
-    [yearData, startYear, startMonth, endYear, endMonth]
+    [yearData, startYear, startMonth, endYear, endMonth],
   )
   const summary = useMemo(() => summarizePeriod(filtered), [filtered])
+  const rangeInvalid = isRangeInvalid(period)
 
-  const duration = durationChoice === 'custom' ? Math.max(5, Math.min(600, Number(customSeconds) || 30)) : durationChoice
-
-  const handleGenerate = async () => {
-    setBusy(true); setError(''); setStage('Preparing…'); setProgress(0)
-    try {
-      const res = await exportVideo({
-        map, points: filtered, durationSeconds: duration,
-        title: effectiveTitle,
-        onProgress: setProgress, onStage: setStage,
-      })
-      setStage(`Done — ${res.isMp4 ? 'MP4' : 'WebM (MP4 not supported by this browser)'} · ${(res.sizeBytes / 1024 / 1024).toFixed(1)} MB`)
-      setTimeout(() => { setBusy(false); onClose() }, 1200)
-    } catch (e) {
-      setError(e.message || String(e))
-      setBusy(false)
-    }
-  }
-
-  const rangeInvalid = endYear < startYear || (endYear === startYear && endMonth < startMonth)
+  const { busy, stage, progress, error, run } = useExportRun({
+    map, filtered, duration, effectiveTitle, onClose,
+  })
   const canGenerate = !busy && !rangeInvalid && filtered.length >= 2
 
   return (
@@ -157,30 +184,18 @@ export default function ExportModal({ yearData, map, onClose }) {
       <div onClick={(e) => e.stopPropagation()}
            style={{ ...panel, width: '100%', maxWidth: 520, padding: 24, maxHeight: '90vh', overflow: 'auto' }}>
         <Header busy={busy} onClose={onClose} />
-        <TitleField title={title} setTitle={setTitle} busy={busy} placeholder={`${startYear}–${endYear} Timeline`} />
-        <PeriodPicker
-          years={years}
-          startYear={startYear} endYear={endYear} startMonth={startMonth} endMonth={endMonth}
-          setStartYear={setStartYear} setEndYear={setEndYear}
-          setStartMonth={setStartMonth} setEndMonth={setEndMonth}
-          busy={busy} rangeInvalid={rangeInvalid} summary={summary} duration={duration}
-        />
-        <DurationPicker
-          durationChoice={durationChoice} setDurationChoice={setDurationChoice}
-          customSeconds={customSeconds} setCustomSeconds={setCustomSeconds} busy={busy}
-        />
+        <TitleField title={title} setTitle={setTitle} busy={busy}
+                    placeholder={`${startYear}–${endYear} Timeline`} />
+        <PeriodPicker years={years} period={period} setPeriod={setPeriod}
+                      meta={{ busy, rangeInvalid, summary, duration }} />
+        <DurationPicker durationChoice={durationChoice} setDurationChoice={setDurationChoice}
+                        customSeconds={customSeconds} setCustomSeconds={setCustomSeconds} busy={busy} />
         {busy && <ProgressBar stage={stage} progress={progress} />}
         {error && <ErrorBanner error={error} />}
-        <Actions busy={busy} onClose={onClose} onGenerate={handleGenerate} canGenerate={canGenerate} />
+        <Actions busy={busy} onClose={onClose} onGenerate={run} canGenerate={canGenerate} />
       </div>
     </div>
   )
-}
-
-const overlayStyle = {
-  position: 'fixed', inset: 0, zIndex: 2000,
-  background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
 }
 
 function Header({ busy, onClose }) {
