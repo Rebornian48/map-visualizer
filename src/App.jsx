@@ -35,8 +35,9 @@ export default function App() {
       } catch {
         let depth = 0, end = 0
         for (let i = 0; i < text.length; i++) {
-          if (text[i] === '{') depth++
-          else if (text[i] === '}') { depth--; if (depth === 0) { end = i + 1; break } }
+          const ch = text.charAt(i)
+          if (ch === '{') depth++
+          else if (ch === '}') { depth--; if (depth === 0) { end = i + 1; break } }
         }
         data = JSON.parse(text.slice(0, end))
       }

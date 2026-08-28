@@ -6,9 +6,9 @@ export function filterPointsByPeriod(yearData, startYear, startMonth, endYear, e
   const startTs = new Date(startYear, startMonth, 1).getTime()
   const endTs = new Date(endYear, endMonth + 1, 1).getTime()
   const out = []
-  for (const y of Object.keys(yearData).map(Number)) {
+  for (const [y, entry] of yearData) {
     if (y < startYear || y > endYear) continue
-    for (const p of yearData[y].points) {
+    for (const p of entry.points) {
       const t = p.time.getTime()
       if (t >= startTs && t < endTs) out.push(p)
     }
@@ -19,9 +19,10 @@ export function filterPointsByPeriod(yearData, startYear, startMonth, endYear, e
 
 export function summarizePeriod(points) {
   let dist = 0
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1], b = points[i]
-    dist += haversine(a.lat, a.lon, b.lat, b.lon)
+  let prev = null
+  for (const p of points) {
+    if (prev) dist += haversine(prev.lat, prev.lon, p.lat, p.lon)
+    prev = p
   }
   return { count: points.length, distanceKm: dist / 1000 }
 }
@@ -87,13 +88,13 @@ export async function exportVideo({
     return { x: pt.x, y: pt.y, t: p.time, lat: p.lat, lon: p.lon }
   })
 
-  const cumKm = new Array(projected.length)
-  cumKm[0] = 0
+  const cumKm = []
+  cumKm.push(0)
+  let prev = projected.at(0)
   for (let i = 1; i < projected.length; i++) {
-    cumKm[i] = cumKm[i - 1] + haversine(
-      projected[i - 1].lat, projected[i - 1].lon,
-      projected[i].lat, projected[i].lon,
-    ) / 1000
+    const cur = projected.at(i)
+    cumKm.push(cumKm.at(-1) + haversine(prev.lat, prev.lon, cur.lat, cur.lon) / 1000)
+    prev = cur
   }
 
   const canvas = document.createElement('canvas')
@@ -112,8 +113,8 @@ export async function exportVideo({
 
   const stopped = new Promise((resolve) => { recorder.onstop = resolve })
 
-  const startPeriod = projected[0].t.getTime()
-  const endPeriod = projected[projected.length - 1].t.getTime()
+  const startPeriod = projected.at(0).t.getTime()
+  const endPeriod = projected.at(-1).t.getTime()
 
   const animMs = durationSeconds * 1000
   const holdMs = HOLD_SECONDS * 1000
@@ -123,10 +124,10 @@ export async function exportVideo({
     const cutoffTs = startPeriod + (endPeriod - startPeriod) * animPct
     let headIdx = 0
     for (let i = 0; i < projected.length; i++) {
-      if (projected[i].t.getTime() > cutoffTs) break
+      if (projected.at(i).t.getTime() > cutoffTs) break
       headIdx = i
     }
-    const head = projected[headIdx]
+    const head = projected.at(headIdx)
 
     ctx.drawImage(bgImg, 0, 0, width, height)
 
@@ -137,9 +138,11 @@ export async function exportVideo({
       ctx.lineCap = 'round'
       ctx.globalAlpha = 0.85
       ctx.beginPath()
-      ctx.moveTo(projected[0].x, projected[0].y)
+      const first = projected.at(0)
+      ctx.moveTo(first.x, first.y)
       for (let i = 1; i <= headIdx; i++) {
-        ctx.lineTo(projected[i].x, projected[i].y)
+        const q = projected.at(i)
+        ctx.lineTo(q.x, q.y)
       }
       ctx.stroke()
       ctx.globalAlpha = 1
@@ -158,7 +161,7 @@ export async function exportVideo({
 
     drawHeaderCard(ctx, width, {
       title: title || 'Timeline',
-      subtitle: formatSubtitle(head.t, cumKm[headIdx]),
+      subtitle: formatSubtitle(head.t, cumKm.at(headIdx)),
     })
   }
 

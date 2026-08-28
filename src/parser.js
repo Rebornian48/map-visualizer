@@ -15,17 +15,25 @@ const ACTIVITY_COLORS = {
 
 export { ACTIVITY_COLORS }
 
-function parseCoord(val) {
+const MAX_LAT = 85
+const MAX_LON = 180
+
+function normalizeCoordString(val) {
   if (!val) return null
-  let str = typeof val === 'string' ? val : (val.latLng || val.point || '')
+  const raw = typeof val === 'string' ? val : (val.latLng || val.point || '')
+  if (!raw) return null
+  return raw.replace(/°/g, '').replace(/\s/g, '')
+}
+
+function parseCoord(val) {
+  const str = normalizeCoordString(val)
   if (!str) return null
-  str = str.replace(/°/g, '').replace(/\s/g, '')
   const parts = str.split(',')
   if (parts.length < 2) return null
   const lat = parseFloat(parts[0])
   const lon = parseFloat(parts[1])
-  if (isNaN(lat) || isNaN(lon)) return null
-  if (Math.abs(lat) > 85 || Math.abs(lon) > 180) return null
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+  if (Math.abs(lat) > MAX_LAT || Math.abs(lon) > MAX_LON) return null
   return [lat, lon]
 }
 
@@ -34,91 +42,77 @@ function parseTime(t) {
   try { return new Date(t) } catch { return null }
 }
 
-export function parseTimeline(data, onProgress) {
+function parseVisit(seg) {
+  const cand = seg.visit?.topCandidate
+  if (!cand) return null
+  const loc = parseCoord(cand.placeLocation)
+  const t = parseTime(seg.startTime)
+  if (!loc || !t) return null
+  return {
+    lat: loc[0], lon: loc[1],
+    start: t,
+    end: parseTime(seg.endTime),
+    placeId: cand.placeId || '',
+    type: cand.semanticType || 'UNKNOWN',
+  }
+}
+
+function parseActivity(seg) {
+  const act = seg.activity
+  if (!act) return null
+  const s = parseCoord(act.start)
+  const e = parseCoord(act.end)
+  const t = parseTime(seg.startTime)
+  if (!s || !e || !t) return null
+  return {
+    startLat: s[0], startLon: s[1],
+    endLat: e[0], endLon: e[1],
+    start: t,
+    end: parseTime(seg.endTime),
+    type: act.topCandidate?.type || 'UNKNOWN_ACTIVITY_TYPE',
+    distance: act.distanceMeters || 0,
+  }
+}
+
+function parsePath(seg) {
+  if (!seg.timelinePath || seg.timelinePath.length === 0) return null
+  const pts = []
+  for (const pp of seg.timelinePath) {
+    const c = parseCoord(pp.point || pp)
+    const t = parseTime(pp.time)
+    if (c && t) pts.push({ lat: c[0], lon: c[1], time: t })
+  }
+  return pts.length > 0 ? pts : null
+}
+
+export function parseTimeline(data) {
   const segments = data.semanticSegments || (Array.isArray(data) ? data : [])
   const result = { visits: [], activities: [], paths: [] }
-  const total = segments.length
-
-  for (let i = 0; i < total; i++) {
-    const seg = segments[i]
+  for (const seg of segments) {
     if (!seg || typeof seg !== 'object') continue
-
-    if (seg.visit) {
-      const cand = seg.visit.topCandidate
-      if (cand) {
-        const loc = parseCoord(cand.placeLocation)
-        const t = parseTime(seg.startTime)
-        if (loc && t) {
-          result.visits.push({
-            lat: loc[0], lon: loc[1],
-            start: t,
-            end: parseTime(seg.endTime),
-            placeId: cand.placeId || '',
-            type: cand.semanticType || 'UNKNOWN',
-          })
-        }
-      }
-    }
-
-    if (seg.activity) {
-      const act = seg.activity
-      const startCoord = parseCoord(act.start)
-      const endCoord = parseCoord(act.end)
-      const t = parseTime(seg.startTime)
-      if (startCoord && endCoord && t) {
-        result.activities.push({
-          startLat: startCoord[0], startLon: startCoord[1],
-          endLat: endCoord[0], endLon: endCoord[1],
-          start: t,
-          end: parseTime(seg.endTime),
-          type: (act.topCandidate && act.topCandidate.type) || 'UNKNOWN_ACTIVITY_TYPE',
-          distance: act.distanceMeters || 0,
-        })
-      }
-    }
-
-    if (seg.timelinePath && seg.timelinePath.length > 0) {
-      const pts = []
-      for (const pp of seg.timelinePath) {
-        const coord = parseCoord(pp.point || pp)
-        const t = parseTime(pp.time)
-        if (coord && t) pts.push({ lat: coord[0], lon: coord[1], time: t })
-      }
-      if (pts.length > 0) result.paths.push(pts)
-    }
+    const v = parseVisit(seg); if (v) result.visits.push(v)
+    const a = parseActivity(seg); if (a) result.activities.push(a)
+    const p = parsePath(seg); if (p) result.paths.push(p)
   }
-
   return result
 }
 
+function ensureYear(map, y) {
+  if (!map.has(y)) map.set(y, { visits: [], activities: [], points: [] })
+  return map.get(y)
+}
+
 export function organizeByYear(data) {
-  const yearData = {}
-
-  for (const v of data.visits) {
-    const y = v.start.getFullYear()
-    if (!yearData[y]) yearData[y] = { visits: [], activities: [], points: [] }
-    yearData[y].visits.push(v)
+  const yearData = new Map()
+  for (const v of data.visits) ensureYear(yearData, v.start.getFullYear()).visits.push(v)
+  for (const a of data.activities) ensureYear(yearData, a.start.getFullYear()).activities.push(a)
+  for (const pg of data.paths) {
+    for (const pt of pg) ensureYear(yearData, pt.time.getFullYear()).points.push(pt)
   }
-
-  for (const a of data.activities) {
-    const y = a.start.getFullYear()
-    if (!yearData[y]) yearData[y] = { visits: [], activities: [], points: [] }
-    yearData[y].activities.push(a)
+  for (const y of yearData.values()) {
+    y.points.sort((a, b) => a.time - b.time)
+    y.visits.sort((a, b) => a.start - b.start)
+    y.activities.sort((a, b) => a.start - b.start)
   }
-
-  for (const pathGroup of data.paths) {
-    for (const pt of pathGroup) {
-      const y = pt.time.getFullYear()
-      if (!yearData[y]) yearData[y] = { visits: [], activities: [], points: [] }
-      yearData[y].points.push(pt)
-    }
-  }
-
-  for (const y of Object.keys(yearData)) {
-    yearData[y].points.sort((a, b) => a.time - b.time)
-    yearData[y].visits.sort((a, b) => a.start - b.start)
-    yearData[y].activities.sort((a, b) => a.start - b.start)
-  }
-
   return yearData
 }

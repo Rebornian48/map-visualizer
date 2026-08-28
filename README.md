@@ -94,6 +94,7 @@ For Apache/Hostinger, add this to `.htaccess` where the JSON lives:
 ## Data attribution
 
 ### Boundary GeoJSON
+
 Provinsi & Kab/Kota outlines hosted at `rebornian48.my.id/assets/json/`.
 
 ### Opentransum (transportasi umum)

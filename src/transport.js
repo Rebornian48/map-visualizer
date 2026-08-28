@@ -37,8 +37,16 @@ function normalizeColor(c) {
   return s.startsWith('#') ? s : `#${s}`
 }
 
+const HTML_ESCAPES = new Map([
+  ['&', '&amp;'],
+  ['<', '&lt;'],
+  ['>', '&gt;'],
+  ['"', '&quot;'],
+  ["'", '&#39;'],
+])
+
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
+  return String(s).replace(/[&<>"']/g, c => HTML_ESCAPES.get(c) || c)
 }
 
 function stopCircle(lat, lon, name, color) {
@@ -83,8 +91,7 @@ async function buildBus(key, url) {
   }
 
   const stops = data.stops || {}
-  for (const id in stops) {
-    const s = stops[id]
+  for (const s of Object.values(stops)) {
     if (typeof s.lat !== 'number' || typeof s.lng !== 'number') continue
     stopCircle(s.lat, s.lng, s.name, '#00ccaa').addTo(stopsSub)
   }
@@ -153,32 +160,35 @@ async function buildRailStations(key, url) {
   return group
 }
 
-function parseCsv(text) {
-  const lines = text.split(/\r?\n/)
-  if (!lines.length) return { header: [], rows: [] }
-  const parseLine = (line) => {
-    const out = []
-    let cur = '', inQ = false
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i]
-      if (inQ) {
-        if (c === '"') {
-          if (line[i + 1] === '"') { cur += '"'; i++ } else inQ = false
-        } else cur += c
-      } else {
-        if (c === ',') { out.push(cur); cur = '' }
-        else if (c === '"') inQ = true
-        else cur += c
-      }
-    }
-    out.push(cur)
-    return out
+function parseCsvLine(line) {
+  const chars = Array.from(line)
+  const out = []
+  let cur = '', inQ = false, i = 0
+  while (i < chars.length) {
+    const c = chars.at(i)
+    if (inQ) {
+      if (c === '"') {
+        if (chars.at(i + 1) === '"') { cur += '"'; i++ }
+        else inQ = false
+      } else cur += c
+    } else if (c === ',') { out.push(cur); cur = '' }
+    else if (c === '"') inQ = true
+    else cur += c
+    i++
   }
-  const header = parseLine(lines[0])
+  out.push(cur)
+  return out
+}
+
+function parseCsv(text) {
+  const rawLines = text.split(/\r?\n/)
+  if (rawLines.length === 0) return { header: [], rows: [] }
+  const header = parseCsvLine(rawLines[0])
   const rows = []
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i]) continue
-    rows.push(parseLine(lines[i]))
+  for (let i = 1; i < rawLines.length; i++) {
+    const line = rawLines.at(i)
+    if (!line) continue
+    rows.push(parseCsvLine(line))
   }
   return { header, rows }
 }
@@ -207,28 +217,28 @@ async function buildGtfs(key, url) {
   const routes = csvToObjects(routesTxt)
   const routeById = new Map()
   for (const r of routes.rows) {
-    routeById.set(r[routes.idx.route_id], {
-      short: r[routes.idx.route_short_name] || '',
-      long: r[routes.idx.route_long_name] || '',
-      color: normalizeColor(r[routes.idx.route_color]) || '#3388ff',
+    routeById.set(r.at(routes.idx.route_id), {
+      short: r.at(routes.idx.route_short_name) || '',
+      long: r.at(routes.idx.route_long_name) || '',
+      color: normalizeColor(r.at(routes.idx.route_color)) || '#3388ff',
     })
   }
 
   const trips = csvToObjects(tripsTxt)
   const shapeToRoute = new Map()
   for (const t of trips.rows) {
-    const sid = t[trips.idx.shape_id]
-    if (sid && !shapeToRoute.has(sid)) shapeToRoute.set(sid, t[trips.idx.route_id])
+    const sid = t.at(trips.idx.shape_id)
+    if (sid && !shapeToRoute.has(sid)) shapeToRoute.set(sid, t.at(trips.idx.route_id))
   }
 
   const shapes = csvToObjects(shapesTxt)
   const sIdx = shapes.idx
   const shapesById = new Map()
   for (const r of shapes.rows) {
-    const sid = r[sIdx.shape_id]
-    const seq = +r[sIdx.shape_pt_sequence]
-    const lat = +r[sIdx.shape_pt_lat]
-    const lon = +r[sIdx.shape_pt_lon]
+    const sid = r.at(sIdx.shape_id)
+    const seq = +r.at(sIdx.shape_pt_sequence)
+    const lat = +r.at(sIdx.shape_pt_lat)
+    const lon = +r.at(sIdx.shape_pt_lon)
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue
     if (!shapesById.has(sid)) shapesById.set(sid, [])
     shapesById.get(sid).push({ seq, lat, lon })
@@ -249,10 +259,10 @@ async function buildGtfs(key, url) {
   const stops = csvToObjects(stopsTxt)
   const stIdx = stops.idx
   for (const r of stops.rows) {
-    const lat = +r[stIdx.stop_lat]
-    const lon = +r[stIdx.stop_lon]
+    const lat = +r.at(stIdx.stop_lat)
+    const lon = +r.at(stIdx.stop_lon)
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue
-    stopCircle(lat, lon, r[stIdx.stop_name], '#00ccaa').addTo(stopsSub)
+    stopCircle(lat, lon, r.at(stIdx.stop_name), '#00ccaa').addTo(stopsSub)
   }
 
   routesSub.addTo(group)
@@ -260,12 +270,15 @@ async function buildGtfs(key, url) {
   return group
 }
 
+const BUILDERS = new Map([
+  ['bus',          buildBus],
+  ['railLines',    buildRailLines],
+  ['railStations', buildRailStations],
+  ['gtfs',         buildGtfs],
+])
+
 export async function buildTransportLayer(source) {
-  switch (source.kind) {
-    case 'bus':          return buildBus(source.key, source.url)
-    case 'railLines':    return buildRailLines(source.key, source.url)
-    case 'railStations': return buildRailStations(source.key, source.url)
-    case 'gtfs':         return buildGtfs(source.key, source.url)
-    default: throw new Error(`Unknown transport kind: ${source.kind}`)
-  }
+  const fn = BUILDERS.get(source.kind)
+  if (!fn) throw new Error(`Unknown transport kind: ${source.kind}`)
+  return fn(source.key, source.url)
 }

@@ -7,6 +7,7 @@ at the top.
 ## Unreleased
 
 ### Added
+
 - **Opentransum transport overlays.** Layer control gains a
   toggleable list of public-transport overlays sourced from
   [opentransum.randspace0.com](https://opentransum.randspace0.com/open-data):
@@ -31,6 +32,7 @@ at the top.
   in progress. Appears on every reload; dismissable per view.
 
 ### Changed
+
 - **Video export duration is now honored.** The rendering loop is
   driven by `requestAnimationFrame` anchored to wall-clock elapsed,
   instead of `setTimeout(1000/fps)` which was overshooting by ~5x.
@@ -46,6 +48,7 @@ at the top.
   full trajectory polyline is drawn as the finished state.
 
 ### Added — earlier in this window
+
 - **Video export (MP4).** New _Export Video_ button opens a modal
   with start/end year+month pickers and a duration control (30s,
   60s, or custom 5-600s). Renderer snapshots the fitted map with
@@ -65,12 +68,14 @@ at the top.
   cursor at 6-decimal precision.
 
 ### Removed
+
 - `UploadScreen` component — replaced by the header button.
 
 ## 2025-08 — repository rename
 
-### Changed
-- Project renamed from `visualisasi-peta` / 
+### Repository
+
+- Project renamed from `visualisasi-peta` /
   `google-timeline-visualizer-web` to **`map-visualizer`**.
   Package name, Vite `base`, `.htaccess` `RewriteBase`, the
   Hostinger `server-dir`, the page title, and the on-page heading
