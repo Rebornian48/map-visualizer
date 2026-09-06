@@ -13,6 +13,21 @@ const sectionLabel = {
   fontFamily: "'DM Mono', monospace",
 }
 
+const BMKG_DATASETS = [
+  { name: 'Gempa terbaru (autogempa)', format: 'JSON',
+    url: 'https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json' },
+  { name: 'Gempa terkini M 5+', format: 'JSON',
+    url: 'https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json' },
+  { name: 'Gempa dirasakan', format: 'JSON',
+    url: 'https://data.bmkg.go.id/DataMKG/TEWS/gempadirasakan.json' },
+  { name: 'Peringatan Dini Cuaca — RSS (index CAP)', format: 'RSS',
+    url: 'https://www.bmkg.go.id/alerts/nowcast/id/rss.xml' },
+  { name: 'Peringatan Dini Cuaca — per-alert (CAP 1.2)', format: 'CAP XML',
+    url: 'https://www.bmkg.go.id/alerts/nowcast/id/' },
+  { name: 'Prakiraan cuaca per wilayah (adm4)', format: 'JSON',
+    url: 'https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=31.71.01.1001' },
+]
+
 const DATASETS = [
   { name: 'Transjakarta (BRT, Mikrotrans, dll)', format: 'GTFS (.zip)',
     url: 'https://cdn.opentransum.randspace0.com/transport-data/file_gtfs.zip' },
@@ -36,13 +51,13 @@ const DATASETS = [
     url: 'https://cdn.opentransum.randspace0.com/transport-data/lrt_mrt_lines.geojson' },
 ]
 
-function DatasetList() {
+function DatasetList({ items }) {
   return (
     <ul style={{
       listStyle: 'none', margin: '0 0 24px', padding: 0,
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
-      {DATASETS.map(d => (
+      {items.map(d => (
         <li key={d.url} style={{
           background: 'var(--surface-2)', border: '1px solid var(--border)',
           borderRadius: 10, padding: '10px 14px',
@@ -59,6 +74,31 @@ function DatasetList() {
         </li>
       ))}
     </ul>
+  )
+}
+
+function BmkgSection() {
+  return (
+    <>
+      <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 22px' }} />
+      <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 8px', color: 'var(--text)' }}>
+        BMKG — Gempa, Peringatan Dini, & Cuaca
+      </h3>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 12px' }}>
+        Data dari <strong>Badan Meteorologi, Klimatologi, dan Geofisika (BMKG)</strong>,
+        yang dipublikasikan melalui repositori GitHub <em>infoBMKG</em>. Data
+        gempa & CAP diperbarui otomatis; prakiraan cuaca diterbitkan harian
+        dengan resolusi per 3 jam untuk 3 hari ke depan.
+      </p>
+      <div style={sectionLabel}>Dataset BMKG</div>
+      <DatasetList items={BMKG_DATASETS} />
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 6px' }}>
+        Data disajikan <em>as-is</em>. Untuk peringatan resmi dan tindakan lapangan,
+        rujuk selalu ke saluran resmi BMKG (
+        <a href="https://www.bmkg.go.id/" target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>bmkg.go.id</a>).
+      </p>
+    </>
   )
 }
 
@@ -127,9 +167,10 @@ export default function DataInfoModal({ onClose }) {
           masyarakat umum.
         </p>
         <div style={sectionLabel}>Dataset</div>
-        <DatasetList />
+        <DatasetList items={DATASETS} />
         <Disclaimer />
         <License />
+        <BmkgSection />
       </div>
     </div>
   )

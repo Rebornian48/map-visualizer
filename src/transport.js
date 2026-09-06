@@ -1,12 +1,13 @@
 import L from "leaflet";
 import JSZip from "jszip";
+import { BMKG_SOURCES, BMKG_BUILDERS } from "./bmkg";
 
 function srcUrl(filename) {
   if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`;
   return `https://rebornian48.my.id/otsum/proxy.php?f=${encodeURIComponent(filename)}`
 }
 
-export const TRANSPORT_SOURCES = [
+const TRANSIT_SOURCES = [
   { key: 'transsemarang',    label: 'Trans Semarang',            group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('transsemarang.json') },
   { key: 'metrojabartrans',  label: 'Metro Trans Jabar',         group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('metrojabartrans.json') },
   { key: 'buslistrikmedan',  label: 'Bus Listrik Medan',         group: 'Bus (JSON)', kind: 'bus',           url: srcUrl('buslistrikmedan.json') },
@@ -18,6 +19,8 @@ export const TRANSPORT_SOURCES = [
   { key: 'lrt_mrt_lines',    label: 'LRT & MRT — garis rel',     group: 'Rel',        kind: 'railLines',     url: srcUrl('lrt_mrt_lines.geojson') },
   { key: 'rails_stations',   label: 'Stasiun KRL/LRT/MRT',       group: 'Rel',        kind: 'railStations',  url: srcUrl('rails.kml') },
 ];
+
+export const TRANSPORT_SOURCES = [...TRANSIT_SOURCES, ...BMKG_SOURCES];
 
 const RAW_CACHE = new Map();
 
@@ -339,6 +342,7 @@ const BUILDERS = new Map([
   ['railLines',    buildRailLines],
   ['railStations', buildRailStations],
   ['gtfs',         buildGtfs],
+  ...BMKG_BUILDERS,
 ])
 
 export async function buildTransportLayer(source) {

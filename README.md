@@ -23,6 +23,23 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   KRL & LRT/MRT (GeoJSON), dan stasiun KRL/LRT/MRT (KML). Data
   diambil dari `cdn.opentransum.randspace0.com` dan di-cache per
   sesi. Lihat bagian _Data attribution_ di bawah untuk lisensi.
+- **BMKG · Gempa / Peringatan Dini / Cuaca** — overlay real-time dari
+  tiga endpoint publik BMKG (grup `BMKG · Gempa`, `BMKG · Peringatan
+  Dini`, `BMKG · Cuaca` di layer control):
+  - **Gempa Terbaru / Terkini M 5+ / Dirasakan** (`data.bmkg.go.id`) —
+    marker lingkaran berukuran magnitude, warna sesuai kedalaman
+    (dangkal merah / menengah oranye / dalam biru). Popup menampilkan
+    detail lengkap plus gambar shakemap dari `static.bmkg.go.id` bila
+    tersedia.
+  - **Peringatan Dini Cuaca** (`www.bmkg.go.id/alerts/nowcast`) — RSS
+    feed berisi daftar alert aktif; tiap alert diambil sebagai CAP 1.2
+    XML lalu direnderer sebagai polygon berwarna severity (Minor→
+    Extreme). Popup menampilkan headline, deskripsi, dan tautan
+    infografis BMKG.
+  - **Cuaca Kota Besar (hari ini)** (`api.bmkg.go.id/publik/
+    prakiraan-cuaca`) — 11 ibukota provinsi ter-hardcode dengan kode
+    `adm4`. Marker menampilkan emoji cuaca + suhu; popup menampilkan
+    kelembapan, angin, jarak pandang, dan jam prakiraan lokal.
 - **Year & Month filters** — dot-only render: path points as small red
   dots, visits as green dots; no polylines cluttering the view.
 - **Playback animation** — a single moving dot traces the timeline; once
@@ -141,6 +158,39 @@ Opentransum, dan menempelkan header CORS. Cache HTTP 1 jam di browser.
 
 Dev lokal tidak melewati proxy — `vite.config.js` memproxikan
 `/otsum-cdn/*` langsung ke CDN dari sisi Node server.
+
+### BMKG (Gempa, CAP, Cuaca)
+
+Ketiga host BMKG (`data.bmkg.go.id`, `www.bmkg.go.id`, `api.bmkg.go.id`)
+tidak mengirim header CORS, jadi build produksi memakai satu file PHP
+gabungan di Hostinger untuk merutekan ketiganya.
+
+**Setup proxy BMKG (sekali saja):**
+
+1. Upload [deploy/bmkg/proxy.php](deploy/bmkg/proxy.php) ke
+   `public_html/bmkg/proxy.php` di Hostinger.
+2. Verifikasi:
+   ```bash
+   curl -sI "https://rebornian48.my.id/bmkg/proxy.php?h=data&p=DataMKG/TEWS/autogempa.json" | grep -i access-control
+   ```
+   Harus muncul `access-control-allow-origin: *`.
+
+Proxy meng-whitelist tiga host (via `?h=data|www|api`) dan mem-validasi
+path dengan regex (untuk CAP alert dengan ID dinamis). Query string
+`?adm4=…` diteruskan untuk endpoint cuaca.
+
+Dev lokal tidak melewati proxy PHP — `vite.config.js` memproxikan
+`/bmkg-cdn/*`, `/bmkg-www/*`, dan `/bmkg-api/*` langsung ke masing-masing
+host BMKG.
+
+### Attribusi BMKG
+
+Data BMKG (gempa, peringatan dini cuaca, prakiraan cuaca) adalah **milik
+Badan Meteorologi, Klimatologi, dan Geofisika**. Sesuai ketentuan
+[infoBMKG](https://github.com/infoBMKG), wajib mencantumkan BMKG sebagai
+sumber pada aplikasi yang menampilkannya. Data disajikan _as-is_; untuk
+peringatan resmi dan tindakan lapangan, rujuk selalu ke
+[bmkg.go.id](https://www.bmkg.go.id/).
 
 ## Manual deploy (alternative)
 

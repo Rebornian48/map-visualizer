@@ -16,6 +16,21 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/otsum-cdn/, ""),
       },
+      "/bmkg-cdn": {
+        target: "https://data.bmkg.go.id",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/bmkg-cdn/, ""),
+      },
+      "/bmkg-www": {
+        target: "https://www.bmkg.go.id",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/bmkg-www/, ""),
+      },
+      "/bmkg-api": {
+        target: "https://api.bmkg.go.id",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/bmkg-api/, ""),
+      },
     },
   },
 });
