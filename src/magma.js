@@ -4,14 +4,24 @@ import L from "leaflet";
 // level inline in the homepage HTML as `var markersGunungApi = [...]`. There
 // is no separate JSON API, so we fetch the homepage through the same PHP
 // proxy the BMKG layers use and regex-extract the array on the client.
-function magmaUrl() {
+//
+// MAGMA is intermittently unreachable and appears to rate-limit / IP-block
+// datacenter ranges, so if the live fetch fails we fall back to a vendored
+// snapshot at public/magma/volcanoes.json. Refresh the snapshot periodically
+// by fetching the homepage manually and re-running the extractor.
+function magmaLiveUrl() {
   if (import.meta.env.DEV) return "/magma-web/";
   return "https://rebornian48.my.id/bmkg/proxy.php?h=magma&p=";
 }
 
+function magmaSnapshotUrl() {
+  const base = import.meta.env.BASE_URL || "/";
+  return `${base}magma/volcanoes.json`;
+}
+
 export const MAGMA_SOURCES = [
-  { key: "magma_gunungapi", label: "Status Gunung Api (MAGMA · live)",
-    group: "Vulkano", kind: "magmaVolcanoes", url: magmaUrl() },
+  { key: "magma_gunungapi", label: "Status Gunung Api (MAGMA)",
+    group: "Vulkano", kind: "magmaVolcanoes", url: magmaLiveUrl() },
 ];
 
 const escapeHtml = (s) => {
@@ -106,11 +116,26 @@ function addMagmaMarker(v, group) {
     .addTo(group);
 }
 
-async function buildMagma(_key, url) {
+async function fetchLive(url) {
   const r = await fetch(url, { cache: "no-store" });
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
-  const html = await r.text();
-  const list = extractVolcanoArray(html);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return extractVolcanoArray(await r.text());
+}
+
+async function fetchSnapshot() {
+  const r = await fetch(magmaSnapshotUrl(), { cache: "no-store" });
+  if (!r.ok) throw new Error(`snapshot HTTP ${r.status}`);
+  return r.json();
+}
+
+async function buildMagma(_key, url) {
+  let list;
+  try {
+    list = await fetchLive(url);
+  } catch (e) {
+    console.warn("MAGMA live fetch failed, using vendored snapshot:", e.message);
+    list = await fetchSnapshot();
+  }
   const group = L.layerGroup();
   for (const v of list) addMagmaMarker(v, group);
   return group;
