@@ -27,7 +27,7 @@ function initMap(container, setCursor) {
   })
   const baseLayers = new Map()
   for (const [name, { url, opts }] of BASEMAPS) baseLayers.set(name, L.tileLayer(url, opts))
-  baseLayers.get('Carto Light').addTo(map)
+  baseLayers.get('OpenStreetMap').addTo(map)
   const layers = {
     path: L.layerGroup().addTo(map),
     visit: L.layerGroup().addTo(map),
@@ -327,7 +327,7 @@ function useMapState() {
   const [showDataInfo, setShowDataInfo] = useState(false)
   const [boundary, setBoundary] = useState('none')
   const [boundaryLoading, setBoundaryLoading] = useState(false)
-  const [basemap, setBasemap] = useState('Carto Light')
+  const [basemap, setBasemap] = useState('OpenStreetMap')
   const [transportActive, setTransportActive] = useState(() => new Set())
   const [transportLoading, setTransportLoading] = useState(() => new Set())
   const [transportError, setTransportError] = useState(() => new Map())

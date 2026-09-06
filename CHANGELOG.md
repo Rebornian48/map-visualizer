@@ -8,6 +8,46 @@ at the top.
 
 ### Added
 
+- **BMKG overlays — gempa, peringatan dini cuaca (CAP), cuaca kota.**
+  Three toggleable layer groups under a new _Bencana Alam_ section:
+  - `data.bmkg.go.id/DataMKG/TEWS/{autogempa,gempaterkini,gempadirasakan}.json`
+    render as circle markers sized by magnitude and coloured by depth
+    (< 70 km red, 70–300 km orange, > 300 km blue); popup pulls the
+    shakemap image from `static.bmkg.go.id`.
+  - `www.bmkg.go.id/alerts/nowcast/id/rss.xml` (RSS index → per-alert
+    CAP 1.2 XML) renders as polygons/circles coloured by severity
+    (Minor → Extreme).
+  - `api.bmkg.go.id/publik/prakiraan-cuaca?adm4=…` fetched for 11
+    verified major-city `adm4` codes; emoji markers show current
+    weather + temperature.
+  All three routed through one PHP proxy
+  ([deploy/bmkg/proxy.php](deploy/bmkg/proxy.php)) with a regex
+  whitelist per host (`?h=data|www|api`), because BMKG endpoints
+  don't send CORS headers. Dev bypasses via three vite proxies
+  (`/bmkg-cdn`, `/bmkg-www`, `/bmkg-api`).
+- **Tectonic plates overlay (PB2002 · Bird 2003).** Three toggles
+  under _Bencana Alam · Tektonik_: 241 plate-boundary lines (with
+  subduction zones highlighted red), 54 plate polygons (stable
+  per-plate hash colour), and 13 orogens. GeoJSON bundled locally in
+  `public/tectonicplates/` (~600 KB total) from
+  [fraxen/tectonicplates](https://github.com/fraxen/tectonicplates)
+  so the build is self-contained.
+- **Legend cards for tectonic + BMKG layers.** Bottom-left
+  `LegendStack` renders one card per active section — tectonic
+  colour key (boundary / subduction / plates / orogen), gempa depth
+  colour scale + magnitude-size hint, CAP severity scale, and the
+  weather-icon reference grid. Only sections whose layer is on are
+  drawn.
+- **Layers panel split into 3 top-level sections.** _Basemap &
+  Wilayah_, _Transportasi Umum_ (Bus JSON / Bus GTFS / Rel), and
+  _Bencana Alam_ (BMKG + Tektonik). Each section header is
+  click-to-collapse so the panel stays scannable as more overlays
+  are added.
+- **Data attribution modal** now lists BMKG endpoints and cites
+  Bird (2003) for PB2002 tectonic data.
+- **GitHub Actions deploy** gains a second FTP step that syncs
+  `deploy/bmkg/` → `public_html/bmkg/` so the BMKG proxy lands
+  automatically on every push instead of needing a one-off upload.
 - **Opentransum transport overlays.** Layer control gains a
   toggleable list of public-transport overlays sourced from
   [opentransum.randspace0.com](https://opentransum.randspace0.com/open-data):
@@ -62,13 +102,18 @@ at the top.
   in the header as _+ Add Timeline JSON_ (turns into _Replace JSON_
   once data is loaded). `LoadingScreen` overlays the map during
   parsing.
-- **Basemap picker** in the top-right of the map: Carto Light,
-  Carto Dark, OpenStreetMap, Esri Satellite, OpenTopoMap.
+- **Basemap picker** in the top-right of the map: OpenStreetMap,
+  Esri Satellite, OpenTopoMap.
 - **Live coordinate readout** in the bottom-left, following the
   cursor at 6-decimal precision.
 
 ### Removed
 
+- **Carto Light / Carto Dark basemaps.** CARTO's `basemaps.cartocdn.com`
+  tiles now require an API key and were serving "API KEY REQUIRED"
+  watermarks over the map. Default basemap moves to OpenStreetMap.
+  Remaining basemap options: OpenStreetMap, Esri Satellite,
+  OpenTopoMap.
 - `UploadScreen` component — replaced by the header button.
 
 ## 2025-08 — repository rename

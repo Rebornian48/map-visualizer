@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { TRANSPORT_SOURCES } from '../transport'
 
-const BASEMAP_NAMES = ['Carto Light', 'Carto Dark', 'OpenStreetMap', 'Satellite', 'Topographic']
+const BASEMAP_NAMES = ['OpenStreetMap', 'Satellite', 'Topographic']
 
 const BOUNDARY_OPTIONS = [
   { key: 'none', label: 'No boundary' },

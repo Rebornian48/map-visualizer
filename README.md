@@ -11,9 +11,8 @@ Live: <https://rebornian48.my.id/map-visualizer/>
 
 - **Map-first flow** — the map loads immediately; drop a `Timeline.json` in
   from the header when you're ready.
-- **Multiple basemaps** — Carto Light, Carto Dark, OpenStreetMap, Esri
-  Satellite, and OpenTopoMap, switchable from the layer control in the
-  top-right of the map.
+- **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap,
+  switchable from the layer control in the top-right of the map.
 - **Indonesia boundary overlays** — toggle between Provinsi and Kab/Kota
   outlines (GeoJSON), mutually exclusive.
 - **Transportasi umum (Opentransum)** — overlay opsional yang bisa

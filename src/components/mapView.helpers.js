@@ -9,14 +9,6 @@ export const BOUNDARY_SOURCES = new Map([
 ])
 
 export const BASEMAPS = new Map([
-  ['Carto Light', {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' },
-  }],
-  ['Carto Dark', {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' },
-  }],
   ['OpenStreetMap', {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' },
