@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { BMKG_SOURCES, BMKG_BUILDERS } from "./bmkg";
 import { TECTONIC_SOURCES, TECTONIC_BUILDERS } from "./tectonic";
 import { VOLCANO_SOURCES, VOLCANO_BUILDERS } from "./volcanoes";
+import { MAGMA_SOURCES, MAGMA_BUILDERS } from "./magma";
 
 function srcUrl(filename) {
   if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`;
@@ -22,7 +23,7 @@ const TRANSIT_SOURCES = [
   { key: 'rails_stations',   label: 'Stasiun KRL/LRT/MRT',       group: 'Rel',        kind: 'railStations',  url: srcUrl('rails.kml') },
 ];
 
-export const TRANSPORT_SOURCES = [...TRANSIT_SOURCES, ...BMKG_SOURCES, ...TECTONIC_SOURCES, ...VOLCANO_SOURCES];
+export const TRANSPORT_SOURCES = [...TRANSIT_SOURCES, ...BMKG_SOURCES, ...TECTONIC_SOURCES, ...VOLCANO_SOURCES, ...MAGMA_SOURCES];
 
 const RAW_CACHE = new Map();
 
@@ -347,6 +348,7 @@ const BUILDERS = new Map([
   ...BMKG_BUILDERS,
   ...TECTONIC_BUILDERS,
   ...VOLCANO_BUILDERS,
+  ...MAGMA_BUILDERS,
 ])
 
 export async function buildTransportLayer(source) {

@@ -216,6 +216,25 @@ const VOLCANO_ROWS = [
   { color: '#8d6e63', label: 'Holocene (pra-1500)' },
 ]
 
+const MAGMA_ROWS = [
+  { color: '#e53935', label: 'Level IV · Awas' },
+  { color: '#fb8c00', label: 'Level III · Siaga' },
+  { color: '#fdd835', label: 'Level II · Waspada' },
+  { color: '#43a047', label: 'Level I · Normal' },
+]
+
+export function MagmaLegend({ uiPanel, activeKeys }) {
+  if (!activeKeys.has('magma_gunungapi')) return null
+  return (
+    <div style={{ ...uiPanel, ...legendCardStyle }}>
+      <div style={legendTitleStyle}>MAGMA · Status Gunung Api</div>
+      {MAGMA_ROWS.map(r => (
+        <LegendRow key={r.color} swatch={<Dot color={r.color} />} label={r.label} />
+      ))}
+    </div>
+  )
+}
+
 export function VolcanoLegend({ uiPanel, activeKeys }) {
   if (!activeKeys.has('volcanoes_gvp')) return null
   return (
@@ -257,6 +276,7 @@ export function LegendStack({ uiPanel, activeKeys }) {
     }}>
       <TectonicLegend uiPanel={uiPanel} activeKeys={activeKeys} />
       <VolcanoLegend uiPanel={uiPanel} activeKeys={activeKeys} />
+      <MagmaLegend uiPanel={uiPanel} activeKeys={activeKeys} />
       <BmkgLegend uiPanel={uiPanel} activeKeys={activeKeys} />
     </div>
   )

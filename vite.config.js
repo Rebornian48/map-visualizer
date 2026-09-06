@@ -31,6 +31,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/bmkg-api/, ""),
       },
+      "/magma-web": {
+        target: "https://magma.esdm.go.id",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/magma-web/, ""),
+      },
     },
   },
 });

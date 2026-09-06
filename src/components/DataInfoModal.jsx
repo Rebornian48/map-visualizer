@@ -77,6 +77,40 @@ function DatasetList({ items }) {
   )
 }
 
+function MagmaSection() {
+  return (
+    <>
+      <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 22px' }} />
+      <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 8px', color: 'var(--text)' }}>
+        MAGMA Indonesia — Status Gunung Api Live
+      </h3>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 12px' }}>
+        Status aktivitas 69 gunung api Indonesia dari{' '}
+        <a href="https://magma.esdm.go.id/" target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>MAGMA Indonesia</a>
+        {' '}(Pusat Vulkanologi dan Mitigasi Bencana Geologi — PVMBG · Badan Geologi
+        · Kementerian ESDM). Data live: MAGMA menyisipkan roster gunung api plus
+        level aktivitas terkini (Normal / Waspada / Siaga / Awas) sebagai variabel
+        inline di halaman utama; overlay ini fetch halaman via proxy PHP dan
+        ekstrak array-nya di klien.
+      </p>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 10px' }}>
+        Field yang dipakai: nama, kabupaten/kota, provinsi, elevasi, koordinat,
+        kode 3-huruf MAGMA, level aktivitas, dan flag VONA aktif (Volcano
+        Observatory Notice for Aviation) dengan nomor notice-nya.
+      </p>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: 0 }}>
+        Untuk peringatan resmi dan tindakan lapangan rujuk selalu ke{' '}
+        <a href="https://magma.esdm.go.id/v1/gunung-api/laporan-harian"
+           target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+          laporan harian MAGMA
+        </a>.
+      </p>
+    </>
+  )
+}
+
 function VolcanoSection() {
   return (
     <>
@@ -229,6 +263,7 @@ export default function DataInfoModal({ onClose }) {
         <Disclaimer />
         <License />
         <BmkgSection />
+        <MagmaSection />
         <VolcanoSection />
         <TectonicSection />
       </div>

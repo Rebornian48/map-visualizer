@@ -25,6 +25,17 @@ at the top.
   whitelist per host (`?h=data|www|api`), because BMKG endpoints
   don't send CORS headers. Dev bypasses via three vite proxies
   (`/bmkg-cdn`, `/bmkg-www`, `/bmkg-api`).
+- **MAGMA Indonesia overlay (live volcano status).** New toggle
+  under _Bencana Alam · Vulkano_ shows 69 Indonesian volcanoes with
+  live activity level from
+  [MAGMA Indonesia](https://magma.esdm.go.id/) (PVMBG · ESDM):
+  Normal (green) → Waspada (yellow) → Siaga (orange) → Awas (red).
+  MAGMA embeds the roster + status as an inline JS variable
+  (`markersGunungApi`) on its homepage; the layer fetches the HTML
+  through the shared PHP proxy (new `h=magma` host) and regex-extracts
+  the array on the client. Markers are colour + size coded by alert
+  level; popup surfaces province/regency, elevation, MAGMA code, and
+  the active VONA number when one is issued. Legend card added.
 - **Gunung Api overlay (Smithsonian GVP · Holocene).** New toggle
   under _Bencana Alam · Vulkano_ shows **1.214** Holocene volcanoes
   from the _Smithsonian Global Volcanism Program_. Snapshot taken

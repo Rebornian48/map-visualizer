@@ -39,6 +39,17 @@ Live: <https://rebornian48.my.id/map-visualizer/>
     prakiraan-cuaca`) — 11 ibukota provinsi ter-hardcode dengan kode
     `adm4`. Marker menampilkan emoji cuaca + suhu; popup menampilkan
     kelembapan, angin, jarak pandang, dan jam prakiraan lokal.
+- **Status Gunung Api Indonesia (MAGMA · live)** — 69 gunung api
+  Indonesia dengan status aktivitas real-time (Normal / Waspada /
+  Siaga / Awas) dari
+  [MAGMA Indonesia](https://magma.esdm.go.id/) (PVMBG · Badan
+  Geologi · ESDM). MAGMA menyisipkan roster + level sebagai variabel
+  JS inline (`markersGunungApi`) di halaman utama; overlay fetch
+  halaman via proxy PHP lalu ekstrak array-nya di klien. Marker
+  warna sesuai level (hijau/kuning/oranye/merah), ukuran mengikuti
+  level agar yang berstatus tinggi lebih menonjol. Popup menampilkan
+  nama, provinsi, kabupaten/kota, elevasi, kode MAGMA, dan nomor
+  VONA jika ada.
 - **Gunung Api (Smithsonian GVP · Holocene)** — 1.214 gunung api
   Holocene dari _Smithsonian Global Volcanism Program_, snapshot
   langsung dari WFS resmi mereka
@@ -191,13 +202,16 @@ gabungan di Hostinger untuk merutekan ketiganya.
    ```
    Harus muncul `access-control-allow-origin: *`.
 
-Proxy meng-whitelist tiga host (via `?h=data|www|api`) dan mem-validasi
-path dengan regex (untuk CAP alert dengan ID dinamis). Query string
-`?adm4=…` diteruskan untuk endpoint cuaca.
+Proxy meng-whitelist empat host (via `?h=data|www|api|magma`) dan
+mem-validasi path dengan regex (untuk CAP alert dengan ID dinamis).
+Query string `?adm4=…` diteruskan untuk endpoint cuaca. Host `magma`
+menunjuk ke `magma.esdm.go.id` — halaman utama-nya menyisipkan roster
+gunung api live sebagai variabel JS inline yang di-ekstrak di klien
+oleh overlay MAGMA.
 
 Dev lokal tidak melewati proxy PHP — `vite.config.js` memproxikan
-`/bmkg-cdn/*`, `/bmkg-www/*`, dan `/bmkg-api/*` langsung ke masing-masing
-host BMKG.
+`/bmkg-cdn/*`, `/bmkg-www/*`, `/bmkg-api/*`, dan `/magma-web/*`
+langsung ke masing-masing host.
 
 ### Gunung Api (Smithsonian GVP · Holocene)
 

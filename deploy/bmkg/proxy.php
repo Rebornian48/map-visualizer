@@ -19,9 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 $hosts = [
-          'data' => 'data.bmkg.go.id',
-          'www'  => 'www.bmkg.go.id',
-          'api'  => 'api.bmkg.go.id',
+          'data'  => 'data.bmkg.go.id',
+          'www'   => 'www.bmkg.go.id',
+          'api'   => 'api.bmkg.go.id',
+          'magma' => 'magma.esdm.go.id',
          ];
 
 // Whitelist: [host, path-regex, response Content-Type, cache seconds].
@@ -35,6 +36,10 @@ $whitelist = [
               ['www',  '#^alerts/nowcast/id/[A-Za-z0-9]+_alert\.xml$#',                  'application/xml',  600],
               // Prakiraan cuaca (api.bmkg.go.id) — the query string is passed through
               ['api',  '#^publik/prakiraan-cuaca$#',                                     'application/json', 600],
+              // MAGMA Indonesia (PVMBG) — homepage HTML embeds `var markersGunungApi`
+              // as inline JS; the client extracts it. Cache 5 min because status can
+              // change on new VONA / level updates.
+              ['magma', '#^$#',                                                          'text/html; charset=UTF-8', 300],
              ];
 
 $h = $_GET['h'] ?? '';
