@@ -18,6 +18,12 @@ const TRANSPORT_GROUPS = (() => {
   return [...g.entries()]
 })()
 
+const SECTIONS = [
+  { key: 'wilayah',   title: 'Basemap & Wilayah',   kind: 'base' },
+  { key: 'transport', title: 'Transportasi Umum',   kind: 'groups', groups: ['Bus (JSON)', 'Bus (GTFS)', 'Rel'] },
+  { key: 'bencana',   title: 'Bencana Alam',        kind: 'groups', groups: ['BMKG · Gempa', 'BMKG · Peringatan Dini', 'BMKG · Cuaca', 'Tektonik'] },
+]
+
 const rowStyle = {
   display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0',
   fontSize: '0.82rem', color: 'var(--text)', cursor: 'pointer',
@@ -28,6 +34,12 @@ const groupLabel = {
   fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em',
   color: 'var(--text-dim)', fontFamily: "'DM Mono', monospace",
   marginBottom: 4,
+}
+
+const sectionHeaderStyle = {
+  display: 'flex', width: '100%', background: 'none', border: 'none', padding: '4px 0',
+  color: 'var(--text)', fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+  fontSize: '0.88rem', fontWeight: 600, alignItems: 'center', justifyContent: 'space-between',
 }
 
 function ClosedButton({ onOpen }) {
@@ -48,6 +60,20 @@ function ClosedButton({ onOpen }) {
         <polyline points="2 12 12 17 22 12" />
       </svg>
     </button>
+  )
+}
+
+function CollapsibleSection({ title, children, first }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <>
+      {!first && <div style={{ height: 1, background: 'var(--border)', margin: '10px 0' }} />}
+      <button onClick={() => setOpen(o => !o)} style={sectionHeaderStyle}>
+        <span>{title}</span>
+        <span style={{ fontSize: '0.7rem', opacity: 0.55 }}>{open ? '▾' : '▸'}</span>
+      </button>
+      {open && <div style={{ marginTop: 6 }}>{children}</div>}
+    </>
   )
 }
 
@@ -102,11 +128,11 @@ function TransportRow({ src, on, loading, err, onToggle }) {
   )
 }
 
-function TransportSections({ transportActive, transportLoading, transportError, onToggleTransport }) {
-  return TRANSPORT_GROUPS.map(([groupName, items]) => (
-    <React.Fragment key={groupName}>
-      <div style={{ height: 1, background: 'var(--border)', margin: '10px 0' }} />
-      <div style={groupLabel}>{groupName}</div>
+function GroupBlock({ name, items, transportActive, transportLoading, transportError, onToggleTransport, first }) {
+  return (
+    <>
+      {!first && <div style={{ height: 1, background: 'var(--border)', margin: '10px 0' }} />}
+      <div style={groupLabel}>{name}</div>
       {items.map(src => (
         <TransportRow key={src.key}
           src={src}
@@ -115,32 +141,61 @@ function TransportSections({ transportActive, transportLoading, transportError, 
           err={transportError.get(src.key)}
           onToggle={onToggleTransport} />
       ))}
-    </React.Fragment>
+    </>
+  )
+}
+
+function TransportGroups({ groups, transportActive, transportLoading, transportError, onToggleTransport }) {
+  const allowed = new Set(groups)
+  const filtered = TRANSPORT_GROUPS.filter(([name]) => allowed.has(name))
+  return filtered.map(([name, items], i) => (
+    <GroupBlock key={name}
+      name={name} items={items} first={i === 0}
+      transportActive={transportActive}
+      transportLoading={transportLoading}
+      transportError={transportError}
+      onToggleTransport={onToggleTransport} />
   ))
+}
+
+function SectionBody({ section, props }) {
+  if (section.kind === 'base') {
+    return (
+      <>
+        <BasemapSection basemap={props.basemap} onBasemap={props.onBasemap} />
+        <BoundarySection
+          boundary={props.boundary}
+          onBoundary={props.onBoundary}
+          boundaryLoading={props.boundaryLoading} />
+      </>
+    )
+  }
+  return (
+    <TransportGroups
+      groups={section.groups}
+      transportActive={props.transportActive}
+      transportLoading={props.transportLoading}
+      transportError={props.transportError}
+      onToggleTransport={props.onToggleTransport} />
+  )
 }
 
 export default function LayersControl(props) {
   const [open, setOpen] = useState(false)
   if (!open) return <ClosedButton onOpen={setOpen} />
-
-  const { basemap, onBasemap, boundary, onBoundary, boundaryLoading,
-          transportActive, transportLoading, transportError, onToggleTransport } = props
-
   return (
     <div onMouseLeave={() => setOpen(false)}
       style={{
         position: 'absolute', top: 12, right: 12, zIndex: 1000,
         background: 'var(--surface-solid)', border: '1px solid var(--border)',
         borderRadius: 8, boxShadow: 'var(--shadow)',
-        padding: '12px 16px', minWidth: 220, maxHeight: '80vh', overflowY: 'auto',
+        padding: '12px 16px', minWidth: 240, maxHeight: '80vh', overflowY: 'auto',
       }}>
-      <BasemapSection basemap={basemap} onBasemap={onBasemap} />
-      <BoundarySection boundary={boundary} onBoundary={onBoundary} boundaryLoading={boundaryLoading} />
-      <TransportSections
-        transportActive={transportActive}
-        transportLoading={transportLoading}
-        transportError={transportError}
-        onToggleTransport={onToggleTransport} />
+      {SECTIONS.map((section, i) => (
+        <CollapsibleSection key={section.key} title={section.title} first={i === 0}>
+          <SectionBody section={section} props={props} />
+        </CollapsibleSection>
+      ))}
     </div>
   )
 }
