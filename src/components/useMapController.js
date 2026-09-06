@@ -217,7 +217,7 @@ function useBoundaryEffect(boundary, mapInstance, boundaryLayerRef, boundaryCach
   }, [boundary])
 }
 
-function makeTransportToggle(mapInstance, transportLayersRef, setTransportActive, setTransportLoading, setTransportError) {
+function makeTransportToggle(mapInstance, transportLayersRef, setTransportActive, setTransportLoading, setTransportError, setTransportMeta) {
   return (key) => {
     const map = mapInstance.current
     if (!map) return
@@ -228,6 +228,7 @@ function makeTransportToggle(mapInstance, transportLayersRef, setTransportActive
       if (map.hasLayer(existing)) map.removeLayer(existing)
       transportLayersRef.current.delete(key)
       setTransportActive(prev => { const n = new Set(prev); n.delete(key); return n })
+      setTransportMeta(prev => { const n = new Map(prev); n.delete(key); return n })
       return
     }
     setTransportLoading(prev => new Set(prev).add(key))
@@ -238,6 +239,9 @@ function makeTransportToggle(mapInstance, transportLayersRef, setTransportActive
         layer.addTo(mapInstance.current)
         transportLayersRef.current.set(key, layer)
         setTransportActive(prev => new Set(prev).add(key))
+        if (layer && layer._meta) {
+          setTransportMeta(prev => new Map(prev).set(key, layer._meta))
+        }
       })
       .catch(err => {
         console.error(`Transport load failed [${key}]:`, err)
@@ -331,14 +335,16 @@ function useMapState() {
   const [transportActive, setTransportActive] = useState(() => new Set())
   const [transportLoading, setTransportLoading] = useState(() => new Set())
   const [transportError, setTransportError] = useState(() => new Map())
+  const [transportMeta, setTransportMeta] = useState(() => new Map())
   return {
     values: { currentYear, currentMonth, showStats, stats, isPlaying, speedIdx, playPct,
               timeLabel, legendItems, cursor, showExport, showDataInfo, boundary,
-              boundaryLoading, basemap, transportActive, transportLoading, transportError },
+              boundaryLoading, basemap, transportActive, transportLoading, transportError,
+              transportMeta },
     set: { setCurrentYear, setCurrentMonth, setShowStats, setStats, setIsPlaying, setSpeedIdx,
            setPlayPct, setTimeLabel, setLegendItems, setCursor, setShowExport, setShowDataInfo,
            setBoundary, setBoundaryLoading, setBasemap, setTransportActive, setTransportLoading,
-           setTransportError },
+           setTransportError, setTransportMeta },
   }
 }
 
@@ -370,7 +376,8 @@ export function useMapController(yearData) {
 
   const onToggleTransport = useCallback(
     makeTransportToggle(refs.mapInstance, refs.transportLayersRef,
-                        set.setTransportActive, set.setTransportLoading, set.setTransportError),
+                        set.setTransportActive, set.setTransportLoading, set.setTransportError,
+                        set.setTransportMeta),
     [],
   )
 

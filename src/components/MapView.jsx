@@ -1,7 +1,6 @@
 import React from 'react'
 import 'leaflet/dist/leaflet.css'
 import ExportModal from './ExportModal'
-import DataInfoModal from './DataInfoModal'
 import LayersControl from './LayersControl'
 import HeaderBar from './HeaderBar'
 import { StatsPanel, MonthBar, Legend, LegendStack, CoordinateReadout, PlaybackBar } from './MapPanels'
@@ -37,7 +36,7 @@ function DataInfoButton({ onClick }) {
   )
 }
 
-function MapArea({ controller, hasData }) {
+function MapArea({ controller, hasData, onOpenInfo }) {
   const { refs, state, setters, actions } = controller
   return (
     <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
@@ -53,15 +52,14 @@ function MapArea({ controller, hasData }) {
         transportError={state.transportError}
         onToggleTransport={actions.onToggleTransport}
       />
-      <DataInfoButton onClick={() => setters.setShowDataInfo(true)} />
-      {state.showDataInfo && <DataInfoModal onClose={() => setters.setShowDataInfo(false)} />}
+      <DataInfoButton onClick={onOpenInfo} />
       {hasData && state.showStats && <StatsPanel stats={state.stats} uiPanel={uiPanel} />}
       {hasData && state.currentYear && (
         <MonthBar uiPanel={uiPanel} months={state.availableMonths}
                   current={state.currentMonth} onSelect={setters.setCurrentMonth} />
       )}
       {hasData && state.legendItems.length > 0 && <Legend uiPanel={uiPanel} items={state.legendItems} />}
-      <LegendStack uiPanel={uiPanel} activeKeys={state.transportActive} />
+      <LegendStack uiPanel={uiPanel} activeKeys={state.transportActive} meta={state.transportMeta} />
       <CoordinateReadout uiPanel={uiPanel} cursor={state.cursor} />
       {hasData && (
         <PlaybackBar uiPanel={uiPanel}
@@ -74,7 +72,7 @@ function MapArea({ controller, hasData }) {
   )
 }
 
-export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
+export default function MapView({ yearData, theme, onToggleTheme, onFile, onOpenInfo }) {
   const controller = useMapController(yearData)
   const { refs, state, setters } = controller
   const hasData = !!yearData
@@ -101,7 +99,7 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile }) {
         <ExportModal yearData={yearData} map={refs.mapInstance.current}
                      onClose={() => setters.setShowExport(false)} />
       )}
-      <MapArea controller={controller} hasData={hasData} />
+      <MapArea controller={controller} hasData={hasData} onOpenInfo={onOpenInfo} />
     </div>
   )
 }

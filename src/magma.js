@@ -128,16 +128,29 @@ async function fetchSnapshot() {
   return r.json();
 }
 
+function countByStatus(list) {
+  const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const v of list) {
+    const s = v.ga_status;
+    if (counts[s] !== undefined) counts[s] += 1;
+  }
+  return counts;
+}
+
 async function buildMagma(_key, url) {
   let list;
+  let source = "live";
   try {
     list = await fetchLive(url);
   } catch (e) {
     console.warn("MAGMA live fetch failed, using vendored snapshot:", e.message);
     list = await fetchSnapshot();
+    source = "snapshot";
   }
   const group = L.layerGroup();
   for (const v of list) addMagmaMarker(v, group);
+  // Expose per-level counts (and data source) so the legend can label them.
+  group._meta = { counts: countByStatus(list), total: list.length, source };
   return group;
 }
 

@@ -98,8 +98,19 @@ const legendRowStyle = {
   fontSize: '0.75rem', color: 'var(--text-dim)',
 }
 
-function LegendRow({ swatch, label }) {
-  return <div style={legendRowStyle}>{swatch}{label}</div>
+function LegendRow({ swatch, label, right }) {
+  return (
+    <div style={legendRowStyle}>
+      {swatch}
+      <span style={{ flex: 1 }}>{label}</span>
+      {right != null && (
+        <span style={{
+          marginLeft: 8, fontFamily: "'DM Mono', monospace",
+          fontSize: '0.7rem', color: 'var(--text)', fontWeight: 500,
+        }}>{right}</span>
+      )}
+    </div>
+  )
 }
 
 export function TectonicLegend({ uiPanel, activeKeys }) {
@@ -217,20 +228,38 @@ const VOLCANO_ROWS = [
 ]
 
 const MAGMA_ROWS = [
-  { color: '#e53935', label: 'Level IV · Awas' },
-  { color: '#fb8c00', label: 'Level III · Siaga' },
-  { color: '#fdd835', label: 'Level II · Waspada' },
-  { color: '#43a047', label: 'Level I · Normal' },
+  { statusCode: 4, color: '#e53935', label: 'Level IV · Awas' },
+  { statusCode: 3, color: '#fb8c00', label: 'Level III · Siaga' },
+  { statusCode: 2, color: '#fdd835', label: 'Level II · Waspada' },
+  { statusCode: 1, color: '#43a047', label: 'Level I · Normal' },
 ]
 
-export function MagmaLegend({ uiPanel, activeKeys }) {
+export function MagmaLegend({ uiPanel, activeKeys, meta }) {
   if (!activeKeys.has('magma_gunungapi')) return null
+  const info = meta?.get('magma_gunungapi')
+  const counts = info?.counts
+  const total = info?.total
+  const isSnapshot = info?.source === 'snapshot'
   return (
-    <div style={{ ...uiPanel, ...legendCardStyle }}>
-      <div style={legendTitleStyle}>MAGMA · Status Gunung Api</div>
+    <div style={{ ...uiPanel, ...legendCardStyle, minWidth: 210 }}>
+      <div style={{ ...legendTitleStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span>MAGMA · Status Gunung Api</span>
+        {total != null && (
+          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Σ {total}</span>
+        )}
+      </div>
       {MAGMA_ROWS.map(r => (
-        <LegendRow key={r.color} swatch={<Dot color={r.color} />} label={r.label} />
+        <LegendRow key={r.color}
+          swatch={<Dot color={r.color} />}
+          label={r.label}
+          right={counts ? counts[r.statusCode] ?? 0 : undefined} />
       ))}
+      {isSnapshot && (
+        <div style={{
+          marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border)',
+          fontSize: '0.68rem', color: 'var(--text-dim)', fontStyle: 'italic',
+        }}>Fallback snapshot (MAGMA live tak terjangkau)</div>
+      )}
     </div>
   )
 }
@@ -267,7 +296,7 @@ export function BmkgLegend({ uiPanel, activeKeys }) {
   )
 }
 
-export function LegendStack({ uiPanel, activeKeys }) {
+export function LegendStack({ uiPanel, activeKeys, meta }) {
   return (
     <div style={{
       position: 'absolute', bottom: 60, left: 16, zIndex: 1000,
@@ -276,7 +305,7 @@ export function LegendStack({ uiPanel, activeKeys }) {
     }}>
       <TectonicLegend uiPanel={uiPanel} activeKeys={activeKeys} />
       <VolcanoLegend uiPanel={uiPanel} activeKeys={activeKeys} />
-      <MagmaLegend uiPanel={uiPanel} activeKeys={activeKeys} />
+      <MagmaLegend uiPanel={uiPanel} activeKeys={activeKeys} meta={meta} />
       <BmkgLegend uiPanel={uiPanel} activeKeys={activeKeys} />
     </div>
   )

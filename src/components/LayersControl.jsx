@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { TRANSPORT_SOURCES } from '../transport'
 
 const BASEMAP_NAMES = ['OpenStreetMap', 'Satellite', 'Topographic']
@@ -18,10 +18,58 @@ const TRANSPORT_GROUPS = (() => {
   return [...g.entries()]
 })()
 
+const TRANSPORT_GROUP_NAMES = ['Bus (JSON)', 'Bus (GTFS)', 'Rel']
+const BENCANA_GROUP_NAMES   = ['BMKG · Gempa', 'BMKG · Peringatan Dini', 'BMKG · Cuaca', 'Vulkano', 'Tektonik']
+
+// SVG icon components — kept small so 4 fit in a row at top-right.
+function IconBasemap() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  )
+}
+function IconWilayah() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="4 5 12 3 20 6 20 19 12 21 4 18 4 5" />
+      <line x1="12" y1="3" x2="12" y2="21" />
+    </svg>
+  )
+}
+function IconTransport() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="3" width="16" height="14" rx="2" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <circle cx="8" cy="19" r="1.5" />
+      <circle cx="16" cy="19" r="1.5" />
+      <line x1="4" y1="17" x2="4" y2="20" />
+      <line x1="20" y1="17" x2="20" y2="20" />
+    </svg>
+  )
+}
+function IconBencana() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3 L22 20 L2 20 Z" />
+      <line x1="12" y1="10" x2="12" y2="15" />
+      <line x1="12" y1="18" x2="12" y2="18.5" />
+    </svg>
+  )
+}
+
 const SECTIONS = [
-  { key: 'wilayah',   title: 'Basemap & Wilayah',   kind: 'base' },
-  { key: 'transport', title: 'Transportasi Umum',   kind: 'groups', groups: ['Bus (JSON)', 'Bus (GTFS)', 'Rel'] },
-  { key: 'bencana',   title: 'Bencana Alam',        kind: 'groups', groups: ['BMKG · Gempa', 'BMKG · Peringatan Dini', 'BMKG · Cuaca', 'Vulkano', 'Tektonik'] },
+  { key: 'basemap',   title: 'Basemap',      kind: 'basemap',  Icon: IconBasemap },
+  { key: 'wilayah',   title: 'Wilayah',      kind: 'wilayah',  Icon: IconWilayah },
+  { key: 'transport', title: 'Transportasi', kind: 'groups',   Icon: IconTransport, groups: TRANSPORT_GROUP_NAMES },
+  { key: 'bencana',   title: 'Bencana Alam', kind: 'groups',   Icon: IconBencana,   groups: BENCANA_GROUP_NAMES },
 ]
 
 const rowStyle = {
@@ -36,44 +84,19 @@ const groupLabel = {
   marginBottom: 4,
 }
 
-const sectionHeaderStyle = {
-  display: 'flex', width: '100%', background: 'none', border: 'none', padding: '4px 0',
-  color: 'var(--text)', fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
-  fontSize: '0.88rem', fontWeight: 600, alignItems: 'center', justifyContent: 'space-between',
-}
-
-function ClosedButton({ onOpen }) {
+function LayerButton({ title, active, onClick, Icon }) {
   return (
-    <button onClick={() => onOpen(true)} onMouseEnter={() => onOpen(true)} title="Layers"
-      style={{
-        position: 'absolute', top: 12, right: 12, zIndex: 1000,
-        width: 36, height: 36, borderRadius: 8,
-        background: 'var(--surface-solid)', border: '1px solid var(--border)',
-        boxShadow: 'var(--shadow)', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-      }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-           style={{ color: 'var(--text)' }}>
-        <polygon points="12 2 2 7 12 12 22 7 12 2" />
-        <polyline points="2 17 12 22 22 17" />
-        <polyline points="2 12 12 17 22 12" />
-      </svg>
+    <button onClick={onClick} title={title} aria-label={title} style={{
+      width: 36, height: 36, borderRadius: 8, padding: 0,
+      background: active ? 'var(--accent)' : 'var(--surface-solid)',
+      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+      boxShadow: 'var(--shadow)', cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: active ? 'white' : 'var(--text)',
+      transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+    }}>
+      <Icon />
     </button>
-  )
-}
-
-function CollapsibleSection({ title, children, first }) {
-  const [open, setOpen] = useState(true)
-  return (
-    <>
-      {!first && <div style={{ height: 1, background: 'var(--border)', margin: '10px 0' }} />}
-      <button onClick={() => setOpen(o => !o)} style={sectionHeaderStyle}>
-        <span>{title}</span>
-        <span style={{ fontSize: '0.7rem', opacity: 0.55 }}>{open ? '▾' : '▸'}</span>
-      </button>
-      {open && <div style={{ marginTop: 6 }}>{children}</div>}
-    </>
   )
 }
 
@@ -96,7 +119,6 @@ function BasemapSection({ basemap, onBasemap }) {
 function BoundarySection({ boundary, onBoundary, boundaryLoading }) {
   return (
     <>
-      <div style={{ height: 1, background: 'var(--border)', margin: '10px 0' }} />
       <div style={groupLabel}>Boundary</div>
       {BOUNDARY_OPTIONS.map(opt => {
         const busy = boundaryLoading && boundary !== opt.key
@@ -159,15 +181,15 @@ function TransportGroups({ groups, transportActive, transportLoading, transportE
 }
 
 function SectionBody({ section, props }) {
-  if (section.kind === 'base') {
+  if (section.kind === 'basemap') {
+    return <BasemapSection basemap={props.basemap} onBasemap={props.onBasemap} />
+  }
+  if (section.kind === 'wilayah') {
     return (
-      <>
-        <BasemapSection basemap={props.basemap} onBasemap={props.onBasemap} />
-        <BoundarySection
-          boundary={props.boundary}
-          onBoundary={props.onBoundary}
-          boundaryLoading={props.boundaryLoading} />
-      </>
+      <BoundarySection
+        boundary={props.boundary}
+        onBoundary={props.onBoundary}
+        boundaryLoading={props.boundaryLoading} />
     )
   }
   return (
@@ -180,22 +202,61 @@ function SectionBody({ section, props }) {
   )
 }
 
-export default function LayersControl(props) {
-  const [open, setOpen] = useState(false)
-  if (!open) return <ClosedButton onOpen={setOpen} />
+function Panel({ section, props, onClose }) {
+  const panelRef = useRef(null)
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) onClose()
+    }
+    // Delay so the button click that opened this panel doesn't immediately close it
+    const t = setTimeout(() => document.addEventListener('mousedown', onDocClick), 0)
+    return () => { clearTimeout(t); document.removeEventListener('mousedown', onDocClick) }
+  }, [onClose])
   return (
-    <div onMouseLeave={() => setOpen(false)}
-      style={{
-        position: 'absolute', top: 12, right: 12, zIndex: 1000,
-        background: 'var(--surface-solid)', border: '1px solid var(--border)',
-        borderRadius: 8, boxShadow: 'var(--shadow)',
-        padding: '12px 16px', minWidth: 240, maxHeight: '80vh', overflowY: 'auto',
+    <div ref={panelRef} style={{
+      position: 'absolute', top: 56, right: 12, zIndex: 1000,
+      background: 'var(--surface-solid)', border: '1px solid var(--border)',
+      borderRadius: 8, boxShadow: 'var(--shadow)',
+      padding: '12px 16px', minWidth: 240, maxHeight: '80vh', overflowY: 'auto',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)',
       }}>
-      {SECTIONS.map((section, i) => (
-        <CollapsibleSection key={section.key} title={section.title} first={i === 0}>
-          <SectionBody section={section} props={props} />
-        </CollapsibleSection>
-      ))}
+        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
+          {section.title}
+        </span>
+        <button onClick={onClose} aria-label="Tutup" style={{
+          background: 'none', border: 'none', color: 'var(--text-dim)',
+          cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, padding: 2,
+        }}>×</button>
+      </div>
+      <SectionBody section={section} props={props} />
     </div>
+  )
+}
+
+export default function LayersControl(props) {
+  const [openKey, setOpenKey] = useState(null)
+  const activeSection = SECTIONS.find(s => s.key === openKey)
+  const toggle = (key) => setOpenKey(prev => prev === key ? null : key)
+  return (
+    <>
+      <div style={{
+        position: 'absolute', top: 12, right: 12, zIndex: 1001,
+        display: 'flex', gap: 6,
+      }}>
+        {SECTIONS.map(s => (
+          <LayerButton key={s.key}
+            title={s.title}
+            Icon={s.Icon}
+            active={openKey === s.key}
+            onClick={() => toggle(s.key)} />
+        ))}
+      </div>
+      {activeSection && (
+        <Panel section={activeSection} props={props} onClose={() => setOpenKey(null)} />
+      )}
+    </>
   )
 }

@@ -11,10 +11,16 @@ Live: <https://rebornian48.my.id/map-visualizer/>
 
 - **Map-first flow** — the map loads immediately; drop a `Timeline.json` in
   from the header when you're ready.
-- **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap,
-  switchable from the layer control in the top-right of the map.
-- **Indonesia boundary overlays** — toggle between Provinsi and Kab/Kota
-  outlines (GeoJSON), mutually exclusive.
+- **Layer panel = 4 tombol kategori** di top-right — _Basemap_,
+  _Wilayah_, _Transportasi_, _Bencana Alam_. Klik salah satu → panel
+  konten yang relevan muncul; hanya satu terbuka pada satu waktu.
+  Group baru dengan nama yang cocok (di `SECTIONS` di
+  [src/components/LayersControl.jsx](src/components/LayersControl.jsx))
+  otomatis mendarat di kategori yang benar.
+- **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap
+  (Basemap tab).
+- **Indonesia boundary overlays** — toggle Provinsi / Kab/Kota
+  (GeoJSON), mutually exclusive (Wilayah tab).
 - **Transportasi umum (Opentransum)** — overlay opsional yang bisa
   di-toggle satu per satu dari layer control: enam jaringan bus JSON
   (Trans Semarang, Metro Trans Jabar, Bus Listrik Medan, Trans
@@ -80,6 +86,16 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   magenta trail, and a glowing pin at the head, with a 10-second
   trajectory hold at the end. Falls back to WebM only when the browser
   cannot encode MP4 (Firefox).
+- **Halaman info di URL sendiri** — tombol `i` navigasi ke
+  `/map-visualizer/info` (bukan modal), berisi dokumentasi lengkap
+  tiap sumber data (endpoint, atribusi, lisensi, penyangkalan).
+  URL shareable; `.htaccess` SPA fallback bikin deep link works di
+  prod, dan Vite dev server juga SPA fallback by default.
+- **Legend MAGMA dengan angka per level** — begitu overlay _Status
+  Gunung Api (MAGMA)_ aktif, legend di kiri-bawah menampilkan
+  jumlah gunung per Level IV/III/II/I plus Σ total. Kalau data live
+  gagal dan overlay pakai snapshot vendored, legend tandain
+  "Fallback snapshot".
 - **Privacy-first** — all data processing happens in the browser.
   Nothing is uploaded.
 

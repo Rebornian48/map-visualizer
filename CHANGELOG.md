@@ -99,6 +99,30 @@ at the top.
 
 ### Changed
 
+- **Layers panel is four separate buttons.** Instead of one panel with
+  collapsible sections, the layer control is now a row of four icon
+  buttons at top-right — _Basemap_, _Wilayah_, _Transportasi_,
+  _Bencana Alam_. Only one panel is open at a time; clicking outside
+  or the × in the panel header closes it. Group→section mapping
+  lives in `LayersControl.jsx` so new overlays with an existing group
+  name auto-slot into the right button.
+- **Info opens a dedicated page, not a modal.** The `i` button now
+  navigates to `/map-visualizer/info` via client-side `history.pushState`;
+  App.jsx renders `InfoPage` for that route and `MapView` for
+  everything else. Content is the same (Opentransum + BMKG + MAGMA
+  + GVP + PB2002 attribution & datasets) but laid out as a full-page
+  document with a back button, so the URL is shareable and the map
+  isn't obscured by an overlay. Existing `.htaccess` SPA fallback
+  makes deep links to `/info` work in prod.
+- **MAGMA legend now shows per-level counts.** Builder attaches
+  `{ counts, total, source }` metadata onto the returned layer;
+  useMapController exposes it via a new `transportMeta` state;
+  MagmaLegend reads the count for each `ga_status` code and prints
+  it right-aligned per row (Awas / Siaga / Waspada / Normal), plus a
+  Σ total on the header. When the live fetch failed and the layer
+  fell back to the vendored snapshot, the legend appends a
+  "Fallback snapshot" note so it's obvious the numbers might be
+  slightly stale.
 - **Video export duration is now honored.** The rendering loop is
   driven by `requestAnimationFrame` anchored to wall-clock elapsed,
   instead of `setTimeout(1000/fps)` which was overshooting by ~5x.
@@ -135,6 +159,9 @@ at the top.
 
 ### Removed
 
+- **`DataInfoModal`** — replaced by the standalone `InfoPage` at
+  `/map-visualizer/info`. Content moved verbatim into `InfoPage.jsx`;
+  the modal wrapper is gone.
 - **Carto Light / Carto Dark basemaps.** CARTO's `basemaps.cartocdn.com`
   tiles now require an API key and were serving "API KEY REQUIRED"
   watermarks over the map. Default basemap moves to OpenStreetMap.

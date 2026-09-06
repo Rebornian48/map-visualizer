@@ -1,9 +1,17 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import LoadingScreen from './components/LoadingScreen'
 import MapView from './components/MapView'
+import InfoPage from './components/InfoPage'
 import FirstVisitNotice from './components/FirstVisitNotice'
 import { parseTimeline, organizeByYear } from './parser'
 import { getInitialTheme, applyTheme } from './theme'
+
+const BASE = import.meta.env.BASE_URL || '/'
+const INFO_PATH = `${BASE}info`
+
+function isInfoPath(p) {
+  return p === INFO_PATH || p === `${INFO_PATH}/`
+}
 
 export default function App() {
   const [loading, setLoading] = useState(false)
@@ -11,8 +19,21 @@ export default function App() {
   const [loadingPct, setLoadingPct] = useState(0)
   const [yearData, setYearData] = useState(null)
   const [theme, setTheme] = useState(getInitialTheme)
+  const [pathname, setPathname] = useState(() => window.location.pathname)
 
   useEffect(() => { applyTheme(theme) }, [theme])
+
+  useEffect(() => {
+    const onPop = () => setPathname(window.location.pathname)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  const navigate = useCallback((path) => {
+    if (window.location.pathname === path) return
+    window.history.pushState({}, '', path)
+    setPathname(path)
+  }, [])
 
   const toggleTheme = useCallback(() => {
     setTheme(t => t === 'dark' ? 'light' : 'dark')
@@ -63,9 +84,19 @@ export default function App() {
     }
   }, [])
 
+  if (isInfoPath(pathname)) {
+    return <InfoPage onBack={() => navigate(BASE)} />
+  }
+
   return (
     <>
-      <MapView yearData={yearData} theme={theme} onToggleTheme={toggleTheme} onFile={handleFile} />
+      <MapView
+        yearData={yearData}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onFile={handleFile}
+        onOpenInfo={() => navigate(INFO_PATH)}
+      />
       <FirstVisitNotice />
       {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
     </>
