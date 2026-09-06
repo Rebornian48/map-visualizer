@@ -77,6 +77,29 @@ function DatasetList({ items }) {
   )
 }
 
+function TectonicSection() {
+  return (
+    <>
+      <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 22px' }} />
+      <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 8px', color: 'var(--text)' }}>
+        Lempeng Tektonik (PB2002 · Bird 2003)
+      </h3>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 12px' }}>
+        Batas lempeng, poligon lempeng, dan orogen berasal dari{' '}
+        <a href="https://github.com/fraxen/tectonicplates" target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>fraxen/tectonicplates</a>
+        {' '}(GeoJSON turunan dari model PB2002 Peter Bird, 2003). Bundel di
+        dalam build supaya tidak bergantung ke sumber eksternal.
+      </p>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 6px' }}>
+        Bird, P. (2003), <em>An updated digital model of plate boundaries</em>,
+        Geochemistry Geophysics Geosystems, 4(3), 1027,
+        doi:10.1029/2001GC000252.
+      </p>
+    </>
+  )
+}
+
 function BmkgSection() {
   return (
     <>
@@ -171,6 +194,7 @@ export default function DataInfoModal({ onClose }) {
         <Disclaimer />
         <License />
         <BmkgSection />
+        <TectonicSection />
       </div>
     </div>
   )

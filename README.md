@@ -40,6 +40,13 @@ Live: <https://rebornian48.my.id/map-visualizer/>
     prakiraan-cuaca`) — 11 ibukota provinsi ter-hardcode dengan kode
     `adm4`. Marker menampilkan emoji cuaca + suhu; popup menampilkan
     kelembapan, angin, jarak pandang, dan jam prakiraan lokal.
+- **Tektonik (PB2002)** — grup `Tektonik` di layer control dengan
+  tiga toggle: batas lempeng (garis; zona subduksi ditandai merah
+  tebal), poligon lempeng (54 lempeng dengan warna stabil per kode),
+  dan orogen (13 zona pegunungan). GeoJSON di-bundle di
+  `public/tectonicplates/` (~600 KB total) dari
+  [fraxen/tectonicplates](https://github.com/fraxen/tectonicplates)
+  — model PB2002 Bird (2003).
 - **Year & Month filters** — dot-only render: path points as small red
   dots, visits as green dots; no polylines cluttering the view.
 - **Playback animation** — a single moving dot traces the timeline; once
@@ -182,6 +189,19 @@ path dengan regex (untuk CAP alert dengan ID dinamis). Query string
 Dev lokal tidak melewati proxy PHP — `vite.config.js` memproxikan
 `/bmkg-cdn/*`, `/bmkg-www/*`, dan `/bmkg-api/*` langsung ke masing-masing
 host BMKG.
+
+### Tektonik (PB2002)
+
+Data batas lempeng, poligon lempeng, dan orogen diambil dari repo
+[fraxen/tectonicplates](https://github.com/fraxen/tectonicplates),
+turunan langsung dari model **PB2002** Peter Bird:
+
+> Bird, P. (2003), _An updated digital model of plate boundaries_,
+> Geochemistry Geophysics Geosystems, 4(3), 1027,
+> doi:10.1029/2001GC000252.
+
+File-nya di-vendor ke `public/tectonicplates/{boundaries,plates,orogens}.json`
+supaya build self-contained (tidak fetch ke GitHub raw saat runtime).
 
 ### Attribusi BMKG
 
