@@ -25,6 +25,13 @@ at the top.
   whitelist per host (`?h=data|www|api`), because BMKG endpoints
   don't send CORS headers. Dev bypasses via three vite proxies
   (`/bmkg-cdn`, `/bmkg-www`, `/bmkg-api`).
+- **Ringkasan Isi Peta di InfoPage.** Halaman `/info` sekarang
+  diawali dengan card per kategori tombol layer (Basemap / Wilayah /
+  Transportasi / Cuaca / Bencana Alam) yang menampilkan semua
+  overlay yang tersedia — jumlah item, jaringan/dataset yang
+  dicover, dan format singkat. Detail teknis (endpoint, atribusi,
+  lisensi) tetap tersedia di bagian-bagian di bawahnya. Berfungsi
+  sebagai "peta situs" untuk semua data yang bisa ditoggle.
 - **SIGMET overlay (NOAA Aviation Weather Center).** New toggle
   under _Bencana Alam · Aviasi_ shows worldwide active SIGMETs
   (Significant Meteorological Information) — hazardous weather
@@ -111,6 +118,12 @@ at the top.
 
 ### Changed
 
+- **Cuaca split into its own layer button.** BMKG · Peringatan Dini
+  and BMKG · Cuaca moved from _Bencana Alam_ into a new _Cuaca_
+  button (cloud-with-rain icon). The panel is now 5 buttons instead
+  of 4: Basemap · Wilayah · Transportasi · Cuaca · Bencana Alam.
+  Bencana Alam keeps hazard-only data (Gempa, Vulkano, Tektonik,
+  Aviasi/SIGMET).
 - **Layers panel is four separate buttons.** Instead of one panel with
   collapsible sections, the layer control is now a row of four icon
   buttons at top-right — _Basemap_, _Wilayah_, _Transportasi_,

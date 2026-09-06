@@ -11,10 +11,10 @@ Live: <https://rebornian48.my.id/map-visualizer/>
 
 - **Map-first flow** — the map loads immediately; drop a `Timeline.json` in
   from the header when you're ready.
-- **Layer panel = 4 tombol kategori** di top-right — _Basemap_,
-  _Wilayah_, _Transportasi_, _Bencana Alam_. Klik salah satu → panel
-  konten yang relevan muncul; hanya satu terbuka pada satu waktu.
-  Group baru dengan nama yang cocok (di `SECTIONS` di
+- **Layer panel = 5 tombol kategori** di top-right — _Basemap_,
+  _Wilayah_, _Transportasi_, _Cuaca_, _Bencana Alam_. Klik salah
+  satu → panel konten yang relevan muncul; hanya satu terbuka pada
+  satu waktu. Group baru dengan nama yang cocok (di `SECTIONS` di
   [src/components/LayersControl.jsx](src/components/LayersControl.jsx))
   otomatis mendarat di kategori yang benar.
 - **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap
@@ -95,10 +95,13 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   trajectory hold at the end. Falls back to WebM only when the browser
   cannot encode MP4 (Firefox).
 - **Halaman info di URL sendiri** — tombol `i` navigasi ke
-  `/map-visualizer/info` (bukan modal), berisi dokumentasi lengkap
-  tiap sumber data (endpoint, atribusi, lisensi, penyangkalan).
-  URL shareable; `.htaccess` SPA fallback bikin deep link works di
-  prod, dan Vite dev server juga SPA fallback by default.
+  `/map-visualizer/info` (bukan modal). Diawali dengan **ringkasan
+  isi peta** — card per kategori tombol (Basemap / Wilayah /
+  Transportasi / Cuaca / Bencana Alam) yang mendaftar semua overlay
+  yang tersedia — lalu bagian detail per sumber (endpoint, atribusi,
+  lisensi, penyangkalan). URL shareable; `.htaccess` SPA fallback
+  bikin deep link works di prod, dan Vite dev server juga SPA
+  fallback by default.
 - **Legend MAGMA dengan angka per level** — begitu overlay _Status
   Gunung Api (MAGMA)_ aktif, legend di kiri-bawah menampilkan
   jumlah gunung per Level IV/III/II/I plus Σ total. Kalau data live

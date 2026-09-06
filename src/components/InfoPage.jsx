@@ -255,6 +255,61 @@ function TectonicSection() {
   )
 }
 
+const OVERLAY_SUMMARY = [
+  { section: 'Basemap', items: ['OpenStreetMap · Esri Satellite · OpenTopoMap (3 opsi)'] },
+  { section: 'Wilayah', items: ['Provinsi (batas GeoJSON)', 'Kab/Kota (batas GeoJSON)'] },
+  { section: 'Transportasi Umum', items: [
+    'Bus JSON — 6 jaringan (Trans Semarang, Metro Trans Jabar, Bus Listrik Medan, Trans Koetaradja, Transpakuan, Mitra Darat)',
+    'Bus GTFS — Transjakarta (BRT + Mikrotrans)',
+    'Rel — KRL, LRT & MRT (garis + stasiun)',
+  ] },
+  { section: 'Cuaca', items: [
+    'Peringatan Dini Cuaca — CAP nowcast BMKG (severity polygon, live)',
+    'Prakiraan Cuaca Kota Besar — 11 ibukota provinsi via api.bmkg.go.id',
+  ] },
+  { section: 'Bencana Alam', items: [
+    'Gempa BMKG — autogempa (1), gempaterkini M 5+ (15), gempadirasakan (15)',
+    'Tektonik PB2002 — 241 batas lempeng, 54 lempeng, 13 orogen',
+    'Vulkano — 1.214 gunung Holocene (Smithsonian GVP) + 69 status live (MAGMA · PVMBG)',
+    'Aviasi — SIGMET aktif worldwide dari NOAA AWC (VA, TS, TC, TURB, ICE, MTW, DS)',
+  ] },
+]
+
+function OverlaySummary() {
+  return (
+    <section>
+      <h3 style={h3Style}>Ringkasan Isi Peta</h3>
+      <p style={pStyle}>
+        Peta ini menggabungkan overlay dari berbagai sumber terbuka. Panel
+        di kanan-atas dibagi ke lima tombol berdasarkan kategori:
+      </p>
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4,
+      }}>
+        {OVERLAY_SUMMARY.map(g => (
+          <div key={g.section} style={{
+            background: 'var(--surface-2)', border: '1px solid var(--border)',
+            borderRadius: 10, padding: '12px 14px',
+          }}>
+            <div style={{
+              fontFamily: "'DM Mono', monospace", fontSize: '0.72rem',
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+              color: 'var(--accent)', marginBottom: 6,
+            }}>{g.section}</div>
+            <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text)', fontSize: '0.85rem', lineHeight: 1.55 }}>
+              {g.items.map((it, i) => <li key={i} style={{ marginBottom: 2 }}>{it}</li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p style={{ ...pMuted, marginTop: 12 }}>
+        Detail teknis (endpoint, atribusi, lisensi, penyangkalan) tiap sumber
+        ada di bagian-bagian di bawah.
+      </p>
+    </section>
+  )
+}
+
 function Header({ onBack }) {
   return (
     <header style={{
@@ -302,6 +357,7 @@ export default function InfoPage({ onBack }) {
             lisensi, dan penyangkalan per sumber.
           </p>
         </section>
+        <OverlaySummary />
         <OpentransumSection />
         <BmkgSection />
         <SigmetSection />
