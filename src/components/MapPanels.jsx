@@ -88,26 +88,151 @@ function TectSwatch({ shape, color }) {
   }} />
 }
 
-export function TectonicLegend({ uiPanel, activeKeys, bottom = 60 }) {
+const legendCardStyle = { padding: '10px 14px' }
+const legendTitleStyle = {
+  fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em',
+  color: 'var(--text-dim)', fontFamily: "'DM Mono', monospace", marginBottom: 6,
+}
+const legendRowStyle = {
+  display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0',
+  fontSize: '0.75rem', color: 'var(--text-dim)',
+}
+
+function LegendRow({ swatch, label }) {
+  return <div style={legendRowStyle}>{swatch}{label}</div>
+}
+
+export function TectonicLegend({ uiPanel, activeKeys }) {
   const rows = TECT_LEGEND_ROWS.filter(r => activeKeys.has(r.key))
   if (rows.length === 0) return null
   return (
-    <div style={{
-      ...uiPanel, position: 'absolute', bottom, left: 16, zIndex: 1000, padding: '10px 14px',
-    }}>
-      <div style={{
-        fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em',
-        color: 'var(--text-dim)', fontFamily: "'DM Mono', monospace", marginBottom: 6,
-      }}>Tektonik (PB2002)</div>
+    <div style={{ ...uiPanel, ...legendCardStyle }}>
+      <div style={legendTitleStyle}>Tektonik (PB2002)</div>
       {rows.map((r, i) => (
-        <div key={`${r.key}-${i}`} style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0',
-          fontSize: '0.75rem', color: 'var(--text-dim)',
-        }}>
-          <TectSwatch shape={r.shape} color={r.color} />
-          {r.label}
-        </div>
+        <LegendRow key={`${r.key}-${i}`}
+          swatch={<TectSwatch shape={r.shape} color={r.color} />}
+          label={r.label} />
       ))}
+    </div>
+  )
+}
+
+const GEMPA_KEYS = new Set(['bmkg_gempa_auto', 'bmkg_gempa_terkini', 'bmkg_gempa_rasa'])
+const GEMPA_ROWS = [
+  { color: '#e53935', label: 'Dangkal (< 70 km)' },
+  { color: '#fb8c00', label: 'Menengah (70–300 km)' },
+  { color: '#1e88e5', label: 'Dalam (> 300 km)' },
+]
+
+const CAP_ROWS = [
+  { color: '#7b1fa2', label: 'Extreme' },
+  { color: '#e53935', label: 'Severe' },
+  { color: '#fb8c00', label: 'Moderate' },
+  { color: '#fdd835', label: 'Minor' },
+  { color: '#9e9e9e', label: 'Unknown' },
+]
+
+const CUACA_ICON_ROWS = [
+  ['☀️', 'Cerah'],
+  ['🌤️', 'Cerah Berawan'],
+  ['⛅', 'Berawan'],
+  ['☁️', 'Berawan Tebal'],
+  ['🌫️', 'Kabut / Asap'],
+  ['🌦️', 'Hujan Ringan'],
+  ['🌧️', 'Hujan Sedang / Lebat'],
+  ['⛈️', 'Hujan Petir'],
+]
+
+function Dot({ color, size = 10 }) {
+  return <span style={{
+    width: size, height: size, borderRadius: '50%', background: color,
+    border: '1.5px solid #fff', boxSizing: 'border-box', flexShrink: 0,
+  }} />
+}
+
+function CircleSwatch({ color, size }) {
+  return <span style={{
+    width: size, height: size, borderRadius: '50%', background: color,
+    opacity: 0.6, border: '1.5px solid #fff', boxSizing: 'border-box', flexShrink: 0,
+  }} />
+}
+
+function CapSwatch({ color }) {
+  return <span style={{
+    width: 14, height: 10, background: color, opacity: 0.35,
+    border: `1.5px solid ${color}`, borderRadius: 2, flexShrink: 0,
+  }} />
+}
+
+function GempaSection() {
+  return (
+    <>
+      <div style={legendTitleStyle}>Gempa · kedalaman</div>
+      {GEMPA_ROWS.map(r => (
+        <LegendRow key={r.color} swatch={<Dot color={r.color} />} label={r.label} />
+      ))}
+      <div style={{ ...legendRowStyle, gap: 6, marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
+        <CircleSwatch color="#e53935" size={7} />
+        <CircleSwatch color="#e53935" size={11} />
+        <CircleSwatch color="#e53935" size={16} />
+        <span style={{ marginLeft: 4, opacity: 0.85 }}>ukuran = magnitude</span>
+      </div>
+    </>
+  )
+}
+
+function CapSection() {
+  return (
+    <>
+      <div style={{ ...legendTitleStyle, marginTop: 10 }}>Peringatan dini · severity</div>
+      {CAP_ROWS.map(r => (
+        <LegendRow key={r.color} swatch={<CapSwatch color={r.color} />} label={r.label} />
+      ))}
+    </>
+  )
+}
+
+function CuacaSection() {
+  return (
+    <>
+      <div style={{ ...legendTitleStyle, marginTop: 10 }}>Cuaca · ikon</div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 14, rowGap: 3,
+      }}>
+        {CUACA_ICON_ROWS.map(([icon, label]) => (
+          <div key={label} style={{ ...legendRowStyle, padding: '2px 0' }}>
+            <span style={{ fontSize: 14, width: 18, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+export function BmkgLegend({ uiPanel, activeKeys }) {
+  const showGempa = [...GEMPA_KEYS].some(k => activeKeys.has(k))
+  const showCap = activeKeys.has('bmkg_cap_nowcast')
+  const showCuaca = activeKeys.has('bmkg_cuaca_kota')
+  if (!showGempa && !showCap && !showCuaca) return null
+  return (
+    <div style={{ ...uiPanel, ...legendCardStyle }}>
+      {showGempa && <GempaSection />}
+      {showCap && <CapSection />}
+      {showCuaca && <CuacaSection />}
+    </div>
+  )
+}
+
+export function LegendStack({ uiPanel, activeKeys }) {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 60, left: 16, zIndex: 1000,
+      display: 'flex', flexDirection: 'column-reverse', gap: 8, alignItems: 'flex-start',
+      maxWidth: 320,
+    }}>
+      <TectonicLegend uiPanel={uiPanel} activeKeys={activeKeys} />
+      <BmkgLegend uiPanel={uiPanel} activeKeys={activeKeys} />
     </div>
   )
 }
