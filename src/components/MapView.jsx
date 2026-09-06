@@ -4,7 +4,7 @@ import ExportModal from './ExportModal'
 import DataInfoModal from './DataInfoModal'
 import LayersControl from './LayersControl'
 import HeaderBar from './HeaderBar'
-import { StatsPanel, MonthBar, Legend, CoordinateReadout, PlaybackBar } from './MapPanels'
+import { StatsPanel, MonthBar, Legend, TectonicLegend, CoordinateReadout, PlaybackBar } from './MapPanels'
 import { SPEEDS } from './mapView.helpers'
 import { useMapController } from './useMapController'
 
@@ -61,6 +61,7 @@ function MapArea({ controller, hasData }) {
                   current={state.currentMonth} onSelect={setters.setCurrentMonth} />
       )}
       {hasData && state.legendItems.length > 0 && <Legend uiPanel={uiPanel} items={state.legendItems} />}
+      <TectonicLegend uiPanel={uiPanel} activeKeys={state.transportActive} />
       <CoordinateReadout uiPanel={uiPanel} cursor={state.cursor} />
       {hasData && (
         <PlaybackBar uiPanel={uiPanel}

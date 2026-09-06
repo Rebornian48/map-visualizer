@@ -62,6 +62,56 @@ export function MonthBar({ uiPanel, months, current, onSelect }) {
   )
 }
 
+const TECT_LEGEND_ROWS = [
+  { key: 'tect_boundaries', shape: 'line', color: '#ff9800', label: 'Batas lempeng' },
+  { key: 'tect_boundaries', shape: 'line', color: '#d32f2f', label: 'Zona subduksi' },
+  { key: 'tect_plates',     shape: 'grad', label: 'Lempeng tektonik' },
+  { key: 'tect_orogens',    shape: 'fill', color: '#8d6e63', label: 'Orogen (zona pegunungan)' },
+]
+
+const TECT_GRAD_COLORS = ['#1976d2', '#388e3c', '#f57c00', '#7b1fa2', '#00838f', '#c2185b']
+
+function TectSwatch({ shape, color }) {
+  if (shape === 'line') {
+    return <span style={{ width: 14, height: 3, background: color, borderRadius: 1, flexShrink: 0 }} />
+  }
+  if (shape === 'fill') {
+    return <span style={{
+      width: 14, height: 10, background: color, opacity: 0.85,
+      border: '1px solid rgba(255,255,255,0.15)', borderRadius: 2, flexShrink: 0,
+    }} />
+  }
+  const stripes = TECT_GRAD_COLORS.map((c, i) => `${c} ${(i / TECT_GRAD_COLORS.length) * 100}%, ${c} ${((i + 1) / TECT_GRAD_COLORS.length) * 100}%`).join(', ')
+  return <span style={{
+    width: 14, height: 10, background: `linear-gradient(90deg, ${stripes})`,
+    border: '1px solid rgba(255,255,255,0.15)', borderRadius: 2, flexShrink: 0,
+  }} />
+}
+
+export function TectonicLegend({ uiPanel, activeKeys, bottom = 60 }) {
+  const rows = TECT_LEGEND_ROWS.filter(r => activeKeys.has(r.key))
+  if (rows.length === 0) return null
+  return (
+    <div style={{
+      ...uiPanel, position: 'absolute', bottom, left: 16, zIndex: 1000, padding: '10px 14px',
+    }}>
+      <div style={{
+        fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em',
+        color: 'var(--text-dim)', fontFamily: "'DM Mono', monospace", marginBottom: 6,
+      }}>Tektonik (PB2002)</div>
+      {rows.map((r, i) => (
+        <div key={`${r.key}-${i}`} style={{
+          display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0',
+          fontSize: '0.75rem', color: 'var(--text-dim)',
+        }}>
+          <TectSwatch shape={r.shape} color={r.color} />
+          {r.label}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function Legend({ uiPanel, items }) {
   return (
     <div style={{
