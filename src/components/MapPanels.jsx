@@ -234,6 +234,53 @@ const MAGMA_ROWS = [
   { statusCode: 1, color: '#43a047', label: 'Level I · Normal' },
 ]
 
+const SIGMET_ROWS = [
+  { code: 'VA',   color: '#b71c1c', label: 'Volcanic ash' },
+  { code: 'TC',   color: '#7b1fa2', label: 'Tropical cyclone' },
+  { code: 'TS',   color: '#fb8c00', label: 'Thunderstorm' },
+  { code: 'TSGR', color: '#e64a19', label: 'Thunderstorm + hail' },
+  { code: 'TURB', color: '#00838f', label: 'Turbulence' },
+  { code: 'ICE',  color: '#0288d1', label: 'Icing' },
+  { code: 'MTW',  color: '#5d4037', label: 'Mountain waves' },
+  { code: 'DS',   color: '#c9a227', label: 'Dust / sand storm' },
+]
+
+function CapLineSwatch({ color }) {
+  return <span style={{
+    width: 14, height: 10, background: `${color}22`,
+    border: `1.5px solid ${color}`, borderRadius: 2, flexShrink: 0,
+  }} />
+}
+
+export function SigmetLegend({ uiPanel, activeKeys, meta }) {
+  if (!activeKeys.has('sigmet_intl')) return null
+  const info = meta?.get('sigmet_intl')
+  const counts = info?.counts || {}
+  const total = info?.total
+  const rows = SIGMET_ROWS.filter(r => (counts[r.code] ?? 0) > 0)
+  return (
+    <div style={{ ...uiPanel, ...legendCardStyle, minWidth: 210 }}>
+      <div style={{ ...legendTitleStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span>SIGMET · Hazard aktif</span>
+        {total != null && (
+          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Σ {total}</span>
+        )}
+      </div>
+      {rows.length === 0 && (
+        <div style={{ ...legendRowStyle, fontStyle: 'italic', opacity: 0.7 }}>
+          Tidak ada SIGMET aktif
+        </div>
+      )}
+      {rows.map(r => (
+        <LegendRow key={r.code}
+          swatch={<CapLineSwatch color={r.color} />}
+          label={`${r.label} (${r.code})`}
+          right={counts[r.code]} />
+      ))}
+    </div>
+  )
+}
+
 export function MagmaLegend({ uiPanel, activeKeys, meta }) {
   if (!activeKeys.has('magma_gunungapi')) return null
   const info = meta?.get('magma_gunungapi')
@@ -306,6 +353,7 @@ export function LegendStack({ uiPanel, activeKeys, meta }) {
       <TectonicLegend uiPanel={uiPanel} activeKeys={activeKeys} />
       <VolcanoLegend uiPanel={uiPanel} activeKeys={activeKeys} />
       <MagmaLegend uiPanel={uiPanel} activeKeys={activeKeys} meta={meta} />
+      <SigmetLegend uiPanel={uiPanel} activeKeys={activeKeys} meta={meta} />
       <BmkgLegend uiPanel={uiPanel} activeKeys={activeKeys} />
     </div>
   )

@@ -171,6 +171,44 @@ function MagmaSection() {
   )
 }
 
+function SigmetSection() {
+  return (
+    <section>
+      <h3 style={h3Style}>SIGMET — NOAA Aviation Weather Center</h3>
+      <p style={pStyle}>
+        Peringatan cuaca berbahaya untuk penerbangan (<em>Significant
+        Meteorological Information</em>) dari{' '}
+        <ExternalLink href="https://aviationweather.gov/">NOAA Aviation
+        Weather Center</ExternalLink>, endpoint publik JSON:
+      </p>
+      <p style={{ ...pMuted, fontFamily: "'DM Mono', monospace" }}>
+        <ExternalLink href="https://aviationweather.gov/api/data/isigmet?format=json">
+          aviationweather.gov/api/data/isigmet?format=json
+        </ExternalLink>
+      </p>
+      <p style={pStyle}>
+        Hazard yang ditangani: <strong>VA</strong> (volcanic ash — paling
+        relevan untuk Indonesia karena Ring of Fire), <strong>TS</strong> (thunderstorm,
+        termasuk qualifier EMBD/OBSC), <strong>TC</strong> (tropical cyclone),
+        <strong> TURB</strong>, <strong>ICE</strong>, <strong>MTW</strong>{' '}
+        (mountain waves), dan <strong>DS/SS</strong> (dust/sand storm). Polygon
+        area terdampak warna sesuai hazard; popup menampilkan FIR, valid time,
+        ketinggian base/top (FL), seri, dan waktu terbitnya.
+      </p>
+      <p style={pStyle}>
+        Endpoint tidak mengirim header CORS; overlay lewat proxy PHP kita
+        (<code>?h=awc&amp;p=api/data/isigmet&amp;q=format=json</code>) supaya browser
+        bisa fetch dari origin manapun. Cache 5 menit di proxy karena SIGMET
+        umumnya valid 4–6 jam dan di-refresh sesuai kondisi.
+      </p>
+      <p style={pMuted}>
+        Sitasi: NOAA <em>National Weather Service — Aviation Weather Center</em>.
+        Data domain publik.
+      </p>
+    </section>
+  )
+}
+
 function VolcanoSection() {
   return (
     <section>
@@ -266,6 +304,7 @@ export default function InfoPage({ onBack }) {
         </section>
         <OpentransumSection />
         <BmkgSection />
+        <SigmetSection />
         <MagmaSection />
         <VolcanoSection />
         <TectonicSection />

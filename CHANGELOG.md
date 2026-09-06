@@ -25,6 +25,18 @@ at the top.
   whitelist per host (`?h=data|www|api`), because BMKG endpoints
   don't send CORS headers. Dev bypasses via three vite proxies
   (`/bmkg-cdn`, `/bmkg-www`, `/bmkg-api`).
+- **SIGMET overlay (NOAA Aviation Weather Center).** New toggle
+  under _Bencana Alam · Aviasi_ shows worldwide active SIGMETs
+  (Significant Meteorological Information) — hazardous weather
+  advisories for aviation. Colour-coded polygons per hazard: VA
+  (volcanic ash), TC (tropical cyclone), TS (thunderstorm), TURB,
+  ICE, MTW (mountain waves), DS/SS. Popup surfaces FIR, hazard +
+  qualifier, valid time window, ketinggian base/top (FL), and
+  series. Legend card ("SIGMET · Hazard aktif") only lists hazards
+  with at least one active advisory and shows the count per hazard
+  + Σ total. Source: `aviationweather.gov/api/data/isigmet?format=json`,
+  routed through the shared PHP proxy (new `h=awc` host + `q=`
+  passthrough) since the AWC API doesn't send CORS headers.
 - **MAGMA Indonesia overlay (live volcano status).** New toggle
   under _Bencana Alam · Vulkano_ shows 69 Indonesian volcanoes with
   live activity level from

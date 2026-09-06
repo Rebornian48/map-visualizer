@@ -23,6 +23,7 @@ $hosts = [
           'www'   => 'www.bmkg.go.id',
           'api'   => 'api.bmkg.go.id',
           'magma' => 'magma.esdm.go.id',
+          'awc'   => 'aviationweather.gov',
          ];
 
 // Whitelist: [host, path-regex, response Content-Type, cache seconds].
@@ -40,6 +41,9 @@ $whitelist = [
               // as inline JS; the client extracts it. Cache 5 min because status can
               // change on new VONA / level updates.
               ['magma', '#^$#',                                                          'text/html; charset=UTF-8', 300],
+              // NOAA Aviation Weather Center — international SIGMET / AIRMET as JSON.
+              // Cache 5 min; SIGMET updates when a new observation is issued.
+              ['awc',   '#^api/data/(isigmet|airsigmet)$#',                              'application/json', 300],
              ];
 
 $h = $_GET['h'] ?? '';
@@ -67,12 +71,13 @@ if ($matched === null) {
     exit('path not allowed');
 }
 
-// Only allow a query string for hosts that expect one — currently just the
-// cuaca API. Restrict to a safe key=value shape so no arbitrary payload can
-// be smuggled through.
+// Only allow a query string for hosts that expect one — currently the cuaca
+// API (adm4=…) and the AWC SIGMET endpoint (format=json). Restrict to a safe
+// key=value shape so no arbitrary payload can be smuggled through.
 $queryPart = '';
 if ($q !== '') {
-    if ($h !== 'api' || preg_match('#^[A-Za-z0-9_]+=[A-Za-z0-9._-]+$#', $q) !== 1) {
+    $queryHosts = ['api' => true, 'awc' => true];
+    if (isset($queryHosts[$h]) === false || preg_match('#^[A-Za-z0-9_]+=[A-Za-z0-9._-]+$#', $q) !== 1) {
         http_response_code(400);
         header('Content-Type: text/plain');
         exit('query not allowed');

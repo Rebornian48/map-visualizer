@@ -36,6 +36,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/magma-web/, ""),
       },
+      "/awc-api": {
+        target: "https://aviationweather.gov",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/awc-api/, ""),
+      },
     },
   },
 });

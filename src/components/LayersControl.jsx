@@ -69,7 +69,7 @@ const SECTIONS = [
   { key: 'basemap',   title: 'Basemap',      kind: 'basemap',  Icon: IconBasemap },
   { key: 'wilayah',   title: 'Wilayah',      kind: 'wilayah',  Icon: IconWilayah },
   { key: 'transport', title: 'Transportasi', kind: 'groups',   Icon: IconTransport, groups: TRANSPORT_GROUP_NAMES },
-  { key: 'bencana',   title: 'Bencana Alam', kind: 'groups',   Icon: IconBencana,   groups: BENCANA_GROUP_NAMES },
+  { key: 'bencana',   title: 'Bencana Alam', kind: 'groups',   Icon: IconBencana,   groups: [...BENCANA_GROUP_NAMES, 'Aviasi'] },
 ]
 
 const rowStyle = {

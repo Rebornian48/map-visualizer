@@ -45,6 +45,14 @@ Live: <https://rebornian48.my.id/map-visualizer/>
     prakiraan-cuaca`) — 11 ibukota provinsi ter-hardcode dengan kode
     `adm4`. Marker menampilkan emoji cuaca + suhu; popup menampilkan
     kelembapan, angin, jarak pandang, dan jam prakiraan lokal.
+- **SIGMET Aktif (NOAA AWC)** — peringatan cuaca berbahaya untuk
+  penerbangan (Significant Meteorological Information) dari NOAA
+  Aviation Weather Center. Polygon area terdampak warna sesuai
+  hazard: VA (volcanic ash — merah tua), TC (tropical cyclone —
+  ungu), TS (thunderstorm — oranye), TURB, ICE, MTW, DS/SS. Popup
+  menampilkan FIR, hazard + qualifier, valid time, ketinggian
+  base/top (FL), dan seri. Endpoint tidak berCORS jadi lewat proxy
+  PHP kita (`?h=awc&p=api/data/isigmet&q=format=json`).
 - **Status Gunung Api Indonesia (MAGMA · live)** — 69 gunung api
   Indonesia dengan status aktivitas real-time (Normal / Waspada /
   Siaga / Awas) dari
