@@ -244,9 +244,12 @@ function Header({ onBack }) {
 }
 
 export default function InfoPage({ onBack }) {
+  // body has `overflow: hidden` globally (map needs a fixed viewport), so
+  // make this page's own container the scroll surface.
   return (
     <div style={{
-      minHeight: '100vh', background: 'var(--map-bg)',
+      height: '100vh', overflowY: 'auto', overflowX: 'hidden',
+      background: 'var(--map-bg)',
       fontFamily: "'Outfit', sans-serif", color: 'var(--text)',
     }}>
       <Header onBack={onBack} />
