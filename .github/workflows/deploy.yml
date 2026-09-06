@@ -27,3 +27,13 @@ jobs:
           local-dir: ./dist/
           server-dir: /domains/rebornian48.my.id/public_html/map-visualizer/
           dangerous-clean-slate: false
+
+      - name: Upload BMKG proxy
+        uses: SamKirkland/FTP-Deploy-Action@8e83cea8672e3fbcbb9fdafff34debf6ae4c5f65 # v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          local-dir: ./deploy/bmkg/
+          server-dir: /domains/rebornian48.my.id/public_html/bmkg/
+          dangerous-clean-slate: false
