@@ -19,7 +19,8 @@ const TRANSPORT_GROUPS = (() => {
 })()
 
 const TRANSPORT_GROUP_NAMES = ['Bus (JSON)', 'Bus (GTFS)', 'Rel']
-const BENCANA_GROUP_NAMES   = ['BMKG · Gempa', 'BMKG · Peringatan Dini', 'BMKG · Cuaca', 'Vulkano', 'Tektonik']
+const CUACA_GROUP_NAMES     = ['BMKG · Peringatan Dini', 'BMKG · Cuaca']
+const BENCANA_GROUP_NAMES   = ['BMKG · Gempa', 'Vulkano', 'Tektonik', 'Aviasi']
 
 // SVG icon components — kept small so 4 fit in a row at top-right.
 function IconBasemap() {
@@ -64,12 +65,24 @@ function IconBencana() {
     </svg>
   )
 }
+function IconCuaca() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 18a5 5 0 0 0 0-10 6 6 0 0 0-11.5 2A4 4 0 0 0 6 18h11" />
+      <line x1="8"  y1="20" x2="8"  y2="22" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="16" y1="20" x2="16" y2="22" />
+    </svg>
+  )
+}
 
 const SECTIONS = [
   { key: 'basemap',   title: 'Basemap',      kind: 'basemap',  Icon: IconBasemap },
   { key: 'wilayah',   title: 'Wilayah',      kind: 'wilayah',  Icon: IconWilayah },
   { key: 'transport', title: 'Transportasi', kind: 'groups',   Icon: IconTransport, groups: TRANSPORT_GROUP_NAMES },
-  { key: 'bencana',   title: 'Bencana Alam', kind: 'groups',   Icon: IconBencana,   groups: [...BENCANA_GROUP_NAMES, 'Aviasi'] },
+  { key: 'cuaca',     title: 'Cuaca',        kind: 'groups',   Icon: IconCuaca,     groups: CUACA_GROUP_NAMES },
+  { key: 'bencana',   title: 'Bencana Alam', kind: 'groups',   Icon: IconBencana,   groups: BENCANA_GROUP_NAMES },
 ]
 
 const rowStyle = {
