@@ -82,21 +82,31 @@ function VolcanoSection() {
     <>
       <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 22px' }} />
       <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 8px', color: 'var(--text)' }}>
-        Gunung Api (Smithsonian GVP · Holocene)
+        Gunung Api — Smithsonian GVP (Holocene)
       </h3>
       <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 12px' }}>
-        832 gunung api aktif atau tercatat erupsi selama Holocene, disederhanakan
-        dari <em>Smithsonian Global Volcanism Program</em> oleh proyek{' '}
-        <a href="https://github.com/Salar2035/veins-of-the-earth" target="_blank" rel="noopener noreferrer"
-           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>Salar2035/veins-of-the-earth</a>.
-        Data (nama, koordinat, elevasi, tipe, batuan utama, tektonik, ringkasan
-        geologis, tahun erupsi) di-bundle di{' '}
-        <code>public/veins/volcanoes.json</code>.
+        1.214 gunung api Holocene dari <em>Smithsonian Global Volcanism
+        Program</em>, snapshot langsung dari WFS resmi mereka di{' '}
+        <a href="https://webservices.volcano.si.edu/geoserver/GVP-VOTW/wfs?request=GetCapabilities"
+           target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+          webservices.volcano.si.edu/geoserver/GVP-VOTW
+        </a> (feature type <code>Smithsonian_VOTW_Holocene_Volcanoes</code>).
+        GeoJSON di-vendor ke <code>public/veins/volcanoes.json</code> (~2,4 MB)
+        untuk build self-contained; refresh berkala untuk erupsi baru.
+      </p>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 10px' }}>
+        Field yang dipakai: nama, negara, wilayah/subwilayah, tipe, landform,
+        elevasi, batuan utama, setting tektonik, tahun erupsi terakhir, bukti
+        (Evidence Category), foto GVP + kredit, ringkasan geologis, dan nomor
+        VOTW untuk deep-link ke halaman resmi tiap gunung.
       </p>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: 0 }}>
-        Sumber asli: <a href="https://volcano.si.edu/" target="_blank" rel="noopener noreferrer"
-           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>volcano.si.edu</a>{' '}
-        (Global Volcanism Program). Konsep visualisasi: Shahnab.
+        Sitasi wajib: <em>Global Volcanism Program</em>,{' '}
+        <a href="https://doi.org/10.5479/si.GVP.VOTW5-2026.5.4" target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+          Volcanoes of the World (v. 5.2.6)
+        </a>, Smithsonian Institution.
       </p>
     </>
   )

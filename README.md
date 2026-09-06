@@ -39,13 +39,16 @@ Live: <https://rebornian48.my.id/map-visualizer/>
     prakiraan-cuaca`) — 11 ibukota provinsi ter-hardcode dengan kode
     `adm4`. Marker menampilkan emoji cuaca + suhu; popup menampilkan
     kelembapan, angin, jarak pandang, dan jam prakiraan lokal.
-- **Gunung Api (GVP · Holocene)** — 832 gunung api aktif/tercatat
-  erupsi selama Holocene dari _Smithsonian Global Volcanism Program_
-  (via [Salar2035/veins-of-the-earth](https://github.com/Salar2035/veins-of-the-earth)).
-  Marker warna sesuai aktivitas terakhir (aktif ≥ 1900 merah, historis
-  1500–1899 oranye, holocene pra-1500 coklat), ukuran skala elevasi.
-  Popup menampilkan nama, negara, wilayah, tipe, batuan utama, setting
-  tektonik, erupsi terakhir, dan ringkasan geologis.
+- **Gunung Api (Smithsonian GVP · Holocene)** — 1.214 gunung api
+  Holocene dari _Smithsonian Global Volcanism Program_, snapshot
+  langsung dari WFS resmi mereka
+  (`webservices.volcano.si.edu/geoserver/GVP-VOTW`, feature type
+  `Smithsonian_VOTW_Holocene_Volcanoes`). Marker warna sesuai
+  aktivitas terakhir (aktif ≥ 1900 merah, historis 1500–1899 oranye,
+  holocene pra-1500 coklat), ukuran skala elevasi. Popup menampilkan
+  nama, negara, wilayah/subwilayah, tipe, landform, elevasi, batuan
+  utama, setting tektonik, tahun erupsi terakhir, bukti, foto GVP,
+  ringkasan geologis, dan deep-link ke halaman `volcano.si.edu`.
 - **Tektonik (PB2002)** — grup `Tektonik` di layer control dengan
   tiga toggle: batas lempeng (garis; zona subduksi ditandai merah
   tebal), poligon lempeng (54 lempeng dengan warna stabil per kode),
@@ -196,18 +199,23 @@ Dev lokal tidak melewati proxy PHP — `vite.config.js` memproxikan
 `/bmkg-cdn/*`, `/bmkg-www/*`, dan `/bmkg-api/*` langsung ke masing-masing
 host BMKG.
 
-### Gunung Api (GVP · Holocene)
+### Gunung Api (Smithsonian GVP · Holocene)
 
-Dataset gunung api aktif/tercatat erupsi selama Holocene diambil dari
-proyek [Salar2035/veins-of-the-earth](https://github.com/Salar2035/veins-of-the-earth)
-yang menyederhanakan katalog **Smithsonian Global Volcanism Program**
-([volcano.si.edu](https://volcano.si.edu/)) ke ~832 titik dengan
-field ringkas (nama, negara, koordinat, elevasi, tipe, batuan utama,
-setting tektonik, tahun erupsi, ringkasan geologis).
+Dataset gunung api Holocene diambil langsung dari **Smithsonian Global
+Volcanism Program**, via WFS resmi mereka:
 
-File JSON di-vendor ke `public/veins/volcanoes.json` (~420 KB) supaya
-build self-contained. Atribusi wajib pada aplikasi yang menampilkannya
-(GVP + veins-of-the-earth).
+```
+https://webservices.volcano.si.edu/geoserver/GVP-VOTW/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=GVP-VOTW:Smithsonian_VOTW_Holocene_Volcanoes&outputFormat=application/json
+```
+
+Snapshot GeoJSON (~2,4 MB, 1.214 fitur) di-vendor ke
+`public/veins/volcanoes.json` — refresh manual dengan `curl` di atas
+untuk pick-up erupsi baru.
+
+Sitasi wajib pada tampilan yang menampilkannya:
+
+> Global Volcanism Program, 2026. _[Volcanoes of the World (v. 5.2.6)](https://doi.org/10.5479/si.GVP.VOTW5-2026.5.4)_.
+> Smithsonian Institution.
 
 ### Tektonik (PB2002)
 

@@ -1,12 +1,16 @@
 import L from "leaflet";
 
+// Snapshot GeoJSON from Smithsonian GVP WFS
+// (webservices.volcano.si.edu/geoserver/GVP-VOTW/ows), pinned into the build
+// so we don't hammer the upstream on every page load. Re-fetch periodically to
+// pick up newly confirmed eruptions.
 function volcanoUrl() {
   const base = import.meta.env.BASE_URL || "/";
   return `${base}veins/volcanoes.json`;
 }
 
 export const VOLCANO_SOURCES = [
-  { key: "volcanoes_gvp", label: "Gunung Api (GVP · Holocene)", group: "Vulkano",
+  { key: "volcanoes_gvp", label: "Gunung Api (Smithsonian GVP)", group: "Vulkano",
     kind: "volcanoes", url: volcanoUrl() },
 ];
 
@@ -22,11 +26,10 @@ const ACTIVITY_COLORS = {
   holocene: "#8d6e63", // older
 };
 
-function classifyActivity(years) {
-  if (!Array.isArray(years) || years.length === 0) return "holocene";
-  const last = Math.max(...years);
-  if (last >= 1900) return "active";
-  if (last >= 1500) return "historic";
+function classifyActivity(lastYear) {
+  if (!Number.isFinite(lastYear)) return "holocene";
+  if (lastYear >= 1900) return "active";
+  if (lastYear >= 1500) return "historic";
   return "holocene";
 }
 
@@ -39,52 +42,81 @@ function radiusForElevation(m) {
 }
 
 function formatYear(y) {
+  if (!Number.isFinite(y)) return "—";
   if (y < 0) return `${-y} SM`;
   return String(y);
 }
 
-function lastEruption(years) {
-  if (!Array.isArray(years) || years.length === 0) return "—";
-  return formatYear(Math.max(...years));
-}
-
-function popupHtml(v) {
-  const rows = [
-    ["Nama", v.n],
-    ["Negara", v.c],
-    ["Wilayah", v.r],
-    ["Tipe", v.t],
-    ["Elevasi", v.e != null ? `${v.e} m` : "—"],
-    ["Batuan utama", v.k],
-    ["Tektonik", v.s],
-    ["Erupsi terakhir", lastEruption(v.y)],
+function popupRows(p) {
+  return [
+    ["Nama", p.Volcano_Name],
+    ["Negara", p.Country],
+    ["Wilayah", [p.Subregion, p.Region].filter(Boolean).join(" · ")],
+    ["Tipe", p.Primary_Volcano_Type],
+    ["Landform", p.Volcanic_Landform],
+    ["Elevasi", p.Elevation != null ? `${p.Elevation} m` : "—"],
+    ["Batuan utama", p.Major_Rock_Type],
+    ["Tektonik", p.Tectonic_Setting],
+    ["Erupsi terakhir", formatYear(p.Last_Eruption_Year)],
+    ["Bukti", p.Evidence_Category],
+    ["GVP #", p.Volcano_Number],
   ];
-  const table = rows.map(([k, val]) =>
-    `<tr><td style="opacity:.6;padding-right:8px;vertical-align:top">${escapeHtml(k)}</td><td>${escapeHtml(val)}</td></tr>`,
-  ).join("");
-  const desc = v.d
-    ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12);opacity:.85">${escapeHtml(v.d)}</div>`
+}
+
+function popupPhotoHtml(p) {
+  if (!p.Primary_Photo_Link) return "";
+  const cap = [p.Primary_Photo_Caption, p.Primary_Photo_Credit].filter(Boolean).join(" — ");
+  const capHtml = cap
+    ? `<div style="margin-top:4px;font-size:11px;opacity:.75;line-height:1.4">${escapeHtml(cap)}</div>`
     : "";
-  return `<div style="font-size:12px;line-height:1.45;max-width:320px"><table>${table}</table>${desc}</div>`;
+  return `<div style="margin-top:8px"><img src="${escapeHtml(p.Primary_Photo_Link)}" alt="${escapeHtml(p.Volcano_Name)}" loading="lazy" style="max-width:100%;border-radius:4px" />${capHtml}</div>`;
 }
 
-function tooltipHtml(v) {
-  return `<strong>${escapeHtml(v.n)}</strong> — ${escapeHtml(v.c)}<br/><span style="opacity:.75">${escapeHtml(v.t)} · ${escapeHtml(lastEruption(v.y))}</span>`;
+function popupHtml(p) {
+  const tbl = popupRows(p).map(([k, v]) =>
+    `<tr><td style="opacity:.6;padding-right:8px;vertical-align:top">${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`,
+  ).join("");
+  const desc = p.Geological_Summary
+    ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12);opacity:.85">${escapeHtml(p.Geological_Summary)}</div>`
+    : "";
+  const link = p.Volcano_Number
+    ? `<div style="margin-top:6px"><a href="https://volcano.si.edu/volcano.cfm?vn=${encodeURIComponent(p.Volcano_Number)}" target="_blank" rel="noopener noreferrer" style="color:#3388ff">Lihat di volcano.si.edu →</a></div>`
+    : "";
+  return `<div style="font-size:12px;line-height:1.45;max-width:340px"><table>${tbl}</table>${popupPhotoHtml(p)}${desc}${link}</div>`;
 }
 
-function addVolcanoMarker(v, group) {
-  if (!Number.isFinite(v.la) || !Number.isFinite(v.lo)) return;
-  const activity = classifyActivity(v.y);
-  L.circleMarker([v.la, v.lo], {
-    radius: radiusForElevation(v.e),
+function tooltipHtml(p) {
+  return `<strong>${escapeHtml(p.Volcano_Name)}</strong> — ${escapeHtml(p.Country)}<br/><span style="opacity:.75">${escapeHtml(p.Primary_Volcano_Type)} · erupsi ${escapeHtml(formatYear(p.Last_Eruption_Year))}</span>`;
+}
+
+function coordFromFeature(f) {
+  const g = f.geometry;
+  if (g?.type === "Point" && Array.isArray(g.coordinates)) {
+    const [lng, lat] = g.coordinates;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+  const p = f.properties || {};
+  if (Number.isFinite(p.Latitude) && Number.isFinite(p.Longitude)) {
+    return { lat: p.Latitude, lng: p.Longitude };
+  }
+  return null;
+}
+
+function addVolcanoMarker(feature, group) {
+  const coords = coordFromFeature(feature);
+  if (!coords) return;
+  const p = feature.properties || {};
+  const activity = classifyActivity(p.Last_Eruption_Year);
+  L.circleMarker([coords.lat, coords.lng], {
+    radius: radiusForElevation(p.Elevation),
     fillColor: ACTIVITY_COLORS[activity],
     fillOpacity: 0.75,
     color: "#fff",
     weight: 1,
     opacity: 0.85,
   })
-    .bindTooltip(tooltipHtml(v), { direction: "top", opacity: 0.95, sticky: true })
-    .bindPopup(popupHtml(v), { maxWidth: 340 })
+    .bindTooltip(tooltipHtml(p), { direction: "top", opacity: 0.95, sticky: true })
+    .bindPopup(popupHtml(p), { maxWidth: 360 })
     .addTo(group);
 }
 
@@ -92,8 +124,9 @@ async function buildVolcanoes(_key, url) {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
   const data = await r.json();
+  const features = Array.isArray(data?.features) ? data.features : [];
   const group = L.layerGroup();
-  for (const v of data) addVolcanoMarker(v, group);
+  for (const f of features) addVolcanoMarker(f, group);
   return group;
 }
 

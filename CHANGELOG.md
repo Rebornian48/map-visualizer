@@ -26,16 +26,20 @@ at the top.
   don't send CORS headers. Dev bypasses via three vite proxies
   (`/bmkg-cdn`, `/bmkg-www`, `/bmkg-api`).
 - **Gunung Api overlay (Smithsonian GVP · Holocene).** New toggle
-  under _Bencana Alam · Vulkano_ shows 832 active or Holocene-active
-  volcanoes from the Smithsonian Global Volcanism Program, via the
-  [Salar2035/veins-of-the-earth](https://github.com/Salar2035/veins-of-the-earth)
-  simplification. Markers are coloured by most recent eruption
-  (active ≥ 1900 red, historic 1500–1899 orange, holocene pre-1500
-  brown) and sized by summit elevation. Popup shows name, country,
-  region, type, major rock, tectonic setting, last eruption, and the
-  GVP geological summary. JSON bundled in `public/veins/volcanoes.json`
-  (~420 KB) so the build stays self-contained. Legend card added to
-  the bottom-left stack.
+  under _Bencana Alam · Vulkano_ shows **1.214** Holocene volcanoes
+  from the _Smithsonian Global Volcanism Program_. Snapshot taken
+  directly from GVP's official WFS
+  (`webservices.volcano.si.edu/geoserver/GVP-VOTW`, feature type
+  `Smithsonian_VOTW_Holocene_Volcanoes`) as GeoJSON, replacing the
+  earlier 832-point veins-of-the-earth simplification. Markers
+  coloured by most recent eruption (active ≥ 1900 red, historic
+  1500–1899 orange, holocene pre-1500 brown) and sized by summit
+  elevation. Popup now surfaces the extra GVP fields: subregion,
+  landform, evidence category, primary photo + credit, and a deep
+  link to `volcano.si.edu` via the volcano's VOTW number. JSON
+  bundled in `public/veins/volcanoes.json` (~2.4 MB) so the build
+  stays self-contained; refresh from WFS periodically. Legend card
+  added to the bottom-left stack.
 - **Tectonic plates overlay (PB2002 · Bird 2003).** Three toggles
   under _Bencana Alam · Tektonik_: 241 plate-boundary lines (with
   subduction zones highlighted red), 54 plate polygons (stable
