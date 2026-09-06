@@ -82,12 +82,23 @@ if ($q !== '') {
 
 $url = 'https://'.$hosts[$h].'/'.$p.$queryPart;
 
+// MAGMA (magma.esdm.go.id) rejects unknown user agents with a fast 502.
+// Impersonate a real browser for that host; the other BMKG endpoints don't
+// care and accept our proxy's own UA fine.
+$isMagma = $h === 'magma';
+$ua = $isMagma
+    ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    : 'map-visualizer-bmkg-proxy/1.0';
+
 $opts = [
          CURLOPT_RETURNTRANSFER => true,
          CURLOPT_FOLLOWLOCATION => true,
-         CURLOPT_TIMEOUT        => 60,
+         CURLOPT_TIMEOUT        => $isMagma ? 90 : 60,
          CURLOPT_CONNECTTIMEOUT => 10,
-         CURLOPT_USERAGENT      => 'map-visualizer-bmkg-proxy/1.0',
+         CURLOPT_USERAGENT      => $ua,
+         CURLOPT_HTTPHEADER     => $isMagma
+             ? ['Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language: id,en;q=0.8']
+             : [],
         ];
 
 $ch = curl_init($url);
