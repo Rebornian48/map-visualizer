@@ -21,7 +21,7 @@ const TRANSPORT_GROUPS = (() => {
 const SECTIONS = [
   { key: 'wilayah',   title: 'Basemap & Wilayah',   kind: 'base' },
   { key: 'transport', title: 'Transportasi Umum',   kind: 'groups', groups: ['Bus (JSON)', 'Bus (GTFS)', 'Rel'] },
-  { key: 'bencana',   title: 'Bencana Alam',        kind: 'groups', groups: ['BMKG · Gempa', 'BMKG · Peringatan Dini', 'BMKG · Cuaca', 'Tektonik'] },
+  { key: 'bencana',   title: 'Bencana Alam',        kind: 'groups', groups: ['BMKG · Gempa', 'BMKG · Peringatan Dini', 'BMKG · Cuaca', 'Vulkano', 'Tektonik'] },
 ]
 
 const rowStyle = {

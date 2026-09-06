@@ -210,6 +210,30 @@ function CuacaSection() {
   )
 }
 
+const VOLCANO_ROWS = [
+  { color: '#e53935', label: 'Aktif (erupsi ≥ 1900)' },
+  { color: '#fb8c00', label: 'Historis (1500–1899)' },
+  { color: '#8d6e63', label: 'Holocene (pra-1500)' },
+]
+
+export function VolcanoLegend({ uiPanel, activeKeys }) {
+  if (!activeKeys.has('volcanoes_gvp')) return null
+  return (
+    <div style={{ ...uiPanel, ...legendCardStyle }}>
+      <div style={legendTitleStyle}>Gunung Api (GVP)</div>
+      {VOLCANO_ROWS.map(r => (
+        <LegendRow key={r.color} swatch={<Dot color={r.color} />} label={r.label} />
+      ))}
+      <div style={{ ...legendRowStyle, gap: 6, marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
+        <CircleSwatch color="#8d6e63" size={7} />
+        <CircleSwatch color="#8d6e63" size={11} />
+        <CircleSwatch color="#8d6e63" size={14} />
+        <span style={{ marginLeft: 4, opacity: 0.85 }}>ukuran = elevasi</span>
+      </div>
+    </div>
+  )
+}
+
 export function BmkgLegend({ uiPanel, activeKeys }) {
   const showGempa = [...GEMPA_KEYS].some(k => activeKeys.has(k))
   const showCap = activeKeys.has('bmkg_cap_nowcast')
@@ -232,6 +256,7 @@ export function LegendStack({ uiPanel, activeKeys }) {
       maxWidth: 320,
     }}>
       <TectonicLegend uiPanel={uiPanel} activeKeys={activeKeys} />
+      <VolcanoLegend uiPanel={uiPanel} activeKeys={activeKeys} />
       <BmkgLegend uiPanel={uiPanel} activeKeys={activeKeys} />
     </div>
   )

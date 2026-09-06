@@ -39,6 +39,13 @@ Live: <https://rebornian48.my.id/map-visualizer/>
     prakiraan-cuaca`) — 11 ibukota provinsi ter-hardcode dengan kode
     `adm4`. Marker menampilkan emoji cuaca + suhu; popup menampilkan
     kelembapan, angin, jarak pandang, dan jam prakiraan lokal.
+- **Gunung Api (GVP · Holocene)** — 832 gunung api aktif/tercatat
+  erupsi selama Holocene dari _Smithsonian Global Volcanism Program_
+  (via [Salar2035/veins-of-the-earth](https://github.com/Salar2035/veins-of-the-earth)).
+  Marker warna sesuai aktivitas terakhir (aktif ≥ 1900 merah, historis
+  1500–1899 oranye, holocene pra-1500 coklat), ukuran skala elevasi.
+  Popup menampilkan nama, negara, wilayah, tipe, batuan utama, setting
+  tektonik, erupsi terakhir, dan ringkasan geologis.
 - **Tektonik (PB2002)** — grup `Tektonik` di layer control dengan
   tiga toggle: batas lempeng (garis; zona subduksi ditandai merah
   tebal), poligon lempeng (54 lempeng dengan warna stabil per kode),
@@ -188,6 +195,19 @@ path dengan regex (untuk CAP alert dengan ID dinamis). Query string
 Dev lokal tidak melewati proxy PHP — `vite.config.js` memproxikan
 `/bmkg-cdn/*`, `/bmkg-www/*`, dan `/bmkg-api/*` langsung ke masing-masing
 host BMKG.
+
+### Gunung Api (GVP · Holocene)
+
+Dataset gunung api aktif/tercatat erupsi selama Holocene diambil dari
+proyek [Salar2035/veins-of-the-earth](https://github.com/Salar2035/veins-of-the-earth)
+yang menyederhanakan katalog **Smithsonian Global Volcanism Program**
+([volcano.si.edu](https://volcano.si.edu/)) ke ~832 titik dengan
+field ringkas (nama, negara, koordinat, elevasi, tipe, batuan utama,
+setting tektonik, tahun erupsi, ringkasan geologis).
+
+File JSON di-vendor ke `public/veins/volcanoes.json` (~420 KB) supaya
+build self-contained. Atribusi wajib pada aplikasi yang menampilkannya
+(GVP + veins-of-the-earth).
 
 ### Tektonik (PB2002)
 

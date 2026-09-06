@@ -77,6 +77,31 @@ function DatasetList({ items }) {
   )
 }
 
+function VolcanoSection() {
+  return (
+    <>
+      <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 22px' }} />
+      <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 8px', color: 'var(--text)' }}>
+        Gunung Api (Smithsonian GVP · Holocene)
+      </h3>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 12px' }}>
+        832 gunung api aktif atau tercatat erupsi selama Holocene, disederhanakan
+        dari <em>Smithsonian Global Volcanism Program</em> oleh proyek{' '}
+        <a href="https://github.com/Salar2035/veins-of-the-earth" target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>Salar2035/veins-of-the-earth</a>.
+        Data (nama, koordinat, elevasi, tipe, batuan utama, tektonik, ringkasan
+        geologis, tahun erupsi) di-bundle di{' '}
+        <code>public/veins/volcanoes.json</code>.
+      </p>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.6, margin: 0 }}>
+        Sumber asli: <a href="https://volcano.si.edu/" target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'underline' }}>volcano.si.edu</a>{' '}
+        (Global Volcanism Program). Konsep visualisasi: Shahnab.
+      </p>
+    </>
+  )
+}
+
 function TectonicSection() {
   return (
     <>
@@ -194,6 +219,7 @@ export default function DataInfoModal({ onClose }) {
         <Disclaimer />
         <License />
         <BmkgSection />
+        <VolcanoSection />
         <TectonicSection />
       </div>
     </div>
