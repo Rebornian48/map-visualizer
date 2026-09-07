@@ -255,6 +255,48 @@ function TectonicSection() {
   )
 }
 
+function OpenAipSection() {
+  return (
+    <section>
+      <h3 style={h3Style}>Aeronautika — OpenAIP (Bandara + Airspace)</h3>
+      <p style={pStyle}>
+        Data bandara dan airspace polygon untuk Indonesia dari{' '}
+        <ExternalLink href="https://www.openaip.net">OpenAIP</ExternalLink> —
+        crowdsourced aeronautical database. Ambil via Core REST API{' '}
+        <code>api.core.openaip.net</code> dengan filter{' '}
+        <code>?country=ID</code>, snapshot di-vendor ke{' '}
+        <code>public/openaip/&#123;airports,airspaces&#125;.json</code> (~125 KB
+        total). Refresh manual tiap AIRAC cycle (~28 hari) dengan{' '}
+        <code>OPENAIP_KEY=… node scripts/refresh-openaip.mjs</code>.
+      </p>
+      <p style={pStyle}>
+        <strong>Coverage per snapshot:</strong> 286 aerodrome (civil, militer,
+        internasional, heliport, seaplane base — lengkap dengan runway
+        designator/panjang/permukaan dan frekuensi TWR/APP/ATIS) + 8 polygon
+        airspace: 2 <strong>FIR</strong> nasional (Jakarta, Ujung Pandang), 3{' '}
+        <strong>CTR</strong> dan 3 <strong>TMA</strong> di Papua (Jayapura,
+        Merauke, Timika). Marker warna sesuai tipe bandara; polygon warna
+        sesuai kelas airspace (FIR biru tipis, CTR merah bata, TMA oranye).
+      </p>
+      <p style={pStyle}>
+        <strong>Batasan:</strong> OpenAIP di-populate komunitas. Kontribusi
+        untuk Indonesia masih terbatas — CTR/TMA di luar Papua, sebagian besar
+        area PRD (Prohibited/Restricted/Danger), navaid VOR/DME/NDB, dan
+        waypoint VFR belum terisi. Struktur overlay sudah siap kalau di masa
+        depan data-nya bertambah.
+      </p>
+      <p style={pMuted}>
+        Lisensi: <strong>Attribution-NonCommercial 4.0 (CC BY-NC 4.0)</strong>.
+        Sitasi:{' '}
+        <ExternalLink href="https://www.openaip.net">openaip.net</ExternalLink>{' '}
+        — data disajikan <em>as-is</em>, jangan dipakai untuk navigasi
+        penerbangan sungguhan; rujuk selalu ke AIP resmi Indonesia (AirNav
+        Indonesia) dan NOTAM aktif.
+      </p>
+    </section>
+  )
+}
+
 const OVERLAY_SUMMARY = [
   { section: 'Basemap', items: ['OpenStreetMap · Esri Satellite · OpenTopoMap (3 opsi)'] },
   { section: 'Wilayah', items: ['Provinsi (batas GeoJSON)', 'Kab/Kota (batas GeoJSON)'] },
@@ -273,6 +315,10 @@ const OVERLAY_SUMMARY = [
     'Vulkano — 1.214 gunung Holocene (Smithsonian GVP) + 69 status live (MAGMA · PVMBG)',
     'Aviasi — SIGMET aktif worldwide dari NOAA AWC (VA, TS, TC, TURB, ICE, MTW, DS)',
   ] },
+  { section: 'Aeronautika', items: [
+    'Bandara Indonesia — 286 aerodrome dari OpenAIP (runway, frekuensi, tipe)',
+    'FIR & Airspace — 2 FIR (Jakarta, Ujung Pandang) + 3 CTR + 3 TMA Papua (OpenAIP; coverage terbatas)',
+  ] },
 ]
 
 function OverlaySummary() {
@@ -281,7 +327,7 @@ function OverlaySummary() {
       <h3 style={h3Style}>Ringkasan Isi Peta</h3>
       <p style={pStyle}>
         Peta ini menggabungkan overlay dari berbagai sumber terbuka. Panel
-        di kanan-atas dibagi ke lima tombol berdasarkan kategori:
+        di kanan-atas dibagi ke enam tombol berdasarkan kategori:
       </p>
       <div style={{
         display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4,
@@ -364,6 +410,7 @@ export default function InfoPage({ onBack }) {
         <MagmaSection />
         <VolcanoSection />
         <TectonicSection />
+        <OpenAipSection />
       </main>
     </div>
   )

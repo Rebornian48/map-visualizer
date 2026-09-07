@@ -11,10 +11,11 @@ Live: <https://rebornian48.my.id/map-visualizer/>
 
 - **Map-first flow** — the map loads immediately; drop a `Timeline.json` in
   from the header when you're ready.
-- **Layer panel = 5 tombol kategori** di top-right — _Basemap_,
-  _Wilayah_, _Transportasi_, _Cuaca_, _Bencana Alam_. Klik salah
-  satu → panel konten yang relevan muncul; hanya satu terbuka pada
-  satu waktu. Group baru dengan nama yang cocok (di `SECTIONS` di
+- **Layer panel = 6 tombol kategori** di top-right — _Basemap_,
+  _Wilayah_, _Transportasi_, _Cuaca_, _Bencana Alam_, _Aeronautika_.
+  Klik salah satu → panel konten yang relevan muncul; hanya satu
+  terbuka pada satu waktu. Group baru dengan nama yang cocok (di
+  `SECTIONS` di
   [src/components/LayersControl.jsx](src/components/LayersControl.jsx))
   otomatis mendarat di kategori yang benar.
 - **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap
@@ -74,6 +75,20 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   nama, negara, wilayah/subwilayah, tipe, landform, elevasi, batuan
   utama, setting tektonik, tahun erupsi terakhir, bukti, foto GVP,
   ringkasan geologis, dan deep-link ke halaman `volcano.si.edu`.
+- **Aeronautika (OpenAIP)** — tab `Aeronautika` (tombol pesawat di
+  top-right) dengan dua toggle:
+  - **Bandara Indonesia** — 286 aerodrome dari OpenAIP (civil,
+    militer, internasional, heliport, seaplane base) lengkap dengan
+    runway (designator, panjang, permukaan) dan frekuensi ATS
+    (TWR/APP/ATIS). Marker warna sesuai tipe.
+  - **FIR & Airspace** — 8 polygon airspace: 2 FIR nasional
+    (Jakarta, Ujung Pandang) + 3 CTR + 3 TMA di Papua. Warna sesuai
+    kelas airspace (FIR biru tipis, CTR merah bata, TMA oranye).
+  Snapshot di-vendor ke `public/openaip/{airports,airspaces}.json`
+  (~125 KB total), refresh manual dengan
+  `OPENAIP_KEY=… node scripts/refresh-openaip.mjs` tiap AIRAC cycle.
+  OpenAIP di-populate komunitas — coverage Indonesia terbatas (CTR/TMA
+  di luar Papua, PRD areas, navaid, dan waypoint belum terisi).
 - **Tektonik (PB2002)** — grup `Tektonik` di layer control dengan
   tiga toggle: batas lempeng (garis; zona subduksi ditandai merah
   tebal), poligon lempeng (54 lempeng dengan warna stabil per kode),
@@ -270,6 +285,32 @@ turunan langsung dari model **PB2002** Peter Bird:
 
 File-nya di-vendor ke `public/tectonicplates/{boundaries,plates,orogens}.json`
 supaya build self-contained (tidak fetch ke GitHub raw saat runtime).
+
+### Aeronautika (OpenAIP)
+
+Data bandara dan airspace polygon untuk Indonesia diambil dari
+[OpenAIP](https://www.openaip.net) via Core REST API
+(`api.core.openaip.net`) dengan filter `?country=ID`. Snapshot
+di-vendor ke `public/openaip/{airports,airspaces}.json`.
+
+- **Lisensi:** Attribution-NonCommercial 4.0 (**CC BY-NC 4.0**).
+- **Coverage per snapshot** (Sep 2026): 286 aerodrome + 8 airspace
+  polygon (2 FIR + Papua CTR/TMA). OpenAIP crowdsourced — bagian
+  Indonesia belum lengkap, banyak CTR/TMA/PRD/navaid/waypoint yang
+  belum terisi.
+- **Penyangkalan:** Data disajikan _as-is_. Jangan dipakai untuk
+  navigasi penerbangan sungguhan; rujuk selalu ke AIP resmi Indonesia
+  (AirNav Indonesia) dan NOTAM aktif.
+
+**Refresh snapshot** (perlu API key gratis dari
+[openaip.net](https://www.openaip.net) → profile → *API Clients*):
+
+```bash
+OPENAIP_KEY=your-key-here node scripts/refresh-openaip.mjs
+```
+
+Data OpenAIP CORS-friendly, tapi karena API key tidak boleh ke-expose
+di bundle publik, snapshot approach lebih aman daripada runtime fetch.
 
 ### Attribusi BMKG
 
