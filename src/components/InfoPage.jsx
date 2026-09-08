@@ -297,6 +297,56 @@ function OpenAipSection() {
   )
 }
 
+function SearatesSection() {
+  return (
+    <section>
+      <h3 style={h3Style}>Maritim — SeaRates World Sea Ports</h3>
+      <p style={pStyle}>
+        Pelabuhan laut Indonesia dari{' '}
+        <ExternalLink href="https://docs.searates.com/spec/world-sea-ports-v1-openapi.json">
+          SeaRates World Sea Ports API
+        </ExternalLink>{' '}
+        (SeaRates by DP World). Endpoint <code>POST /geo/world-sea-ports/list-by-country</code>{' '}
+        di <code>geocoding.searates.com</code>, request body{' '}
+        <code>&#123;"country_code":"ID","is_river":false&#125;</code>, auth{' '}
+        <code>api_key</code> di query string. Snapshot di-vendor ke{' '}
+        <code>public/searates/ports.json</code>. Refresh manual dengan{' '}
+        <code>SEARATES_KEY=… node scripts/refresh-searates-ports.mjs</code>.
+      </p>
+      <p style={pStyle}>
+        Marker jangkar; warna sesuai fungsi intermoda (biru untuk pelabuhan
+        laut murni, biru-tua untuk sea+rail, teal untuk sungai, ungu untuk
+        ICD-only), ukuran sesuai throughput TEU (hub &gt; 3 juta TEU jadi
+        24 px, menengah 20 px, kecil/unknown 16 px). Popup menampilkan
+        LOCODE, kota, koordinat WGS84, TEU tahunan (jika ada), dan flag
+        fungsi intermoda (SEA / RIVER / RAIL / ROAD / AIR / ICD).
+      </p>
+      <p style={pStyle}>
+        <strong>Snapshot bawaan:</strong> tanpa API key, aplikasi ini ship
+        <em> seed</em> 15 pelabuhan utama (Tanjung Priok, Tanjung Perak,
+        Belawan, Makassar, Tanjung Emas, Batam, Balikpapan, Panjang,
+        Pontianak, Palembang, Dumai, Bitung, Sorong, Ambon, Jayapura) —
+        koordinat dari OpenStreetMap / UN-LOCODE (data publik). Begitu
+        script refresh dijalankan dengan key SeaRates, seed ini ditimpa
+        katalog nasional lengkap (200+ pelabuhan dengan LOCODE, IATA-code,
+        fungsi intermoda).
+      </p>
+      <p style={pMuted}>
+        Atribusi: © SeaRates by DP World. Data untuk keperluan riset &amp;
+        referensi; rujuk syarat penggunaan di{' '}
+        <ExternalLink href="https://www.searates.com/">searates.com</ExternalLink>{' '}
+        sebelum pemakaian komersial. Untuk data resmi pelabuhan Indonesia,
+        rujuk ke{' '}
+        <ExternalLink href="https://pelindo.co.id/">Pelindo</ExternalLink>{' '}
+        dan{' '}
+        <ExternalLink href="https://hubla.dephub.go.id/">
+          Direktorat Jenderal Perhubungan Laut
+        </ExternalLink>.
+      </p>
+    </section>
+  )
+}
+
 const OVERLAY_SUMMARY = [
   { section: 'Basemap', items: ['OpenStreetMap · Esri Satellite · OpenTopoMap (3 opsi)'] },
   { section: 'Wilayah', items: ['Provinsi (batas GeoJSON)', 'Kab/Kota (batas GeoJSON)'] },
@@ -318,6 +368,9 @@ const OVERLAY_SUMMARY = [
   { section: 'Aeronautika', items: [
     'Bandara Indonesia — 286 aerodrome dari OpenAIP (runway, frekuensi, tipe)',
     'FIR & Airspace — 2 FIR (Jakarta, Ujung Pandang) + 3 CTR + 3 TMA Papua (OpenAIP; coverage terbatas)',
+  ] },
+  { section: 'Maritim', items: [
+    'Pelabuhan Indonesia — SeaRates World Sea Ports (seed 15 pelabuhan utama; refresh manual pakai api_key untuk katalog nasional lengkap)',
   ] },
 ]
 
@@ -351,6 +404,18 @@ function SymBus({ color = '#00ccaa', size = 22 }) {
       <rect x="14.5" y="5" width="3.5" height="3" fill="#fff" opacity="0.9" />
       <circle cx="8" cy="18" r="1.6" fill="#222" stroke="#fff" strokeWidth="0.5" />
       <circle cx="16" cy="18" r="1.6" fill="#222" stroke="#fff" strokeWidth="0.5" />
+    </svg>
+  )
+}
+function SymAnchor({ color = '#0288d1', size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={svgBlock}>
+      <g fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="4.5" r="1.8" fill="#fff" />
+        <line x1="12" y1="6.3" x2="12" y2="20.5" />
+        <line x1="8.5" y1="10" x2="15.5" y2="10" />
+        <path d="M4 15c1.5 3.5 4.7 5.5 8 5.5s6.5-2 8-5.5" />
+      </g>
     </svg>
   )
 }
@@ -405,6 +470,9 @@ const SYMBOL_GROUPS = [
       { sym: <SymPlane color="#c62828" />,    name: 'Aerodrome militer',       note: 'Pesawat merah.' },
       { sym: <SymPlane color="#ec407a" />,    name: 'Heliport',                note: 'Pesawat pink (~14 px).' },
       { sym: <SymPlane color="#00acc1" />,    name: 'Seaplane base',           note: 'Pesawat teal.' },
+      { sym: <SymAnchor color="#0288d1" />,   name: 'Pelabuhan laut',           note: 'Jangkar biru — pelabuhan laut murni.' },
+      { sym: <SymAnchor color="#0277bd" />,   name: 'Pelabuhan intermoda',      note: 'Jangkar biru-tua — sea + rail (hub kontainer).' },
+      { sym: <SymAnchor color="#00838f" />,   name: 'Pelabuhan sungai',         note: 'Jangkar teal — riverport.' },
       { sym: <SymBus color="#00ccaa" />,      name: 'Halte / stop bus',        note: 'Glyph bus kecil (14 px), warna sesuai operator.' },
       { sym: <SymTrain color="#ffcc00" />,    name: 'Stasiun KRL/LRT/MRT',     note: 'Glyph kereta kuning (16 px).' },
       { sym: <SymCircle color="#e53935" />,   name: 'Gempa dangkal',           note: 'Lingkaran merah (< 70 km). Radius skala magnitude.' },
@@ -586,6 +654,7 @@ export default function InfoPage({ onBack }) {
         <VolcanoSection />
         <TectonicSection />
         <OpenAipSection />
+        <SearatesSection />
       </main>
     </div>
   )

@@ -51,6 +51,22 @@ export function planeIcon({ size = 18, color = "#1e88e5" }) {
   return svgDivIcon({ svg, size, className: "plane-icon" });
 }
 
+export function anchorIcon({ size = 18, color = "#0288d1" }) {
+  // Textbook glyph for a sea port — a filled anchor. White stroke keeps it
+  // legible against dark satellite basemaps and coloured harbour polygons.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" style="display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))">
+    <g fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="4.5" r="1.8" fill="#ffffff" />
+      <line x1="12" y1="6.3" x2="12" y2="20.5" />
+      <line x1="8.5" y1="10" x2="15.5" y2="10" />
+      <path d="M4 15c1.5 3.5 4.7 5.5 8 5.5s6.5-2 8-5.5" />
+      <polyline points="4,15 4.2,12.6 6.4,13.6" fill="${color}" />
+      <polyline points="20,15 19.8,12.6 17.6,13.6" fill="${color}" />
+    </g>
+  </svg>`;
+  return svgDivIcon({ svg, size, className: "anchor-icon" });
+}
+
 export function trainIcon({ size = 18, color = "#ffcc00" }) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" style="display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))">
     <rect x="6" y="3" width="12" height="15" rx="3" fill="${color}" stroke="#333" stroke-width="1" />

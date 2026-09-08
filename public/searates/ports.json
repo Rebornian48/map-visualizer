@@ -1,0 +1,23 @@
+{
+  "updated": "2026-09-08T00:00:00.000Z",
+  "source": "seed (OpenStreetMap / UN/LOCODE public data)",
+  "note": "Seed snapshot of 15 major Indonesian sea ports (Pelabuhan Utama Pelindo). Run scripts/refresh-searates-ports.mjs with a SearRates API key to replace with the full SearRates catalogue (200+ ports with LOCODE, features, TEU).",
+  "count": 15,
+  "items": [
+    { "id": "seed-idjkt", "name": "Tanjung Priok",            "locode": "IDJKT", "city": "Jakarta",        "location": [-6.1058, 106.8837], "features": { "is_seaport": true } },
+    { "id": "seed-idsub", "name": "Tanjung Perak",            "locode": "IDSUB", "city": "Surabaya",       "location": [-7.2043, 112.7326], "features": { "is_seaport": true } },
+    { "id": "seed-idblw", "name": "Belawan",                  "locode": "IDBLW", "city": "Medan",          "location": [ 3.7912,  98.6836], "features": { "is_seaport": true } },
+    { "id": "seed-idupg", "name": "Soekarno-Hatta (Makassar)","locode": "IDUPG", "city": "Makassar",       "location": [-5.1319, 119.4128], "features": { "is_seaport": true } },
+    { "id": "seed-idsrg", "name": "Tanjung Emas",             "locode": "IDSRG", "city": "Semarang",       "location": [-6.9469, 110.4222], "features": { "is_seaport": true } },
+    { "id": "seed-idbtm", "name": "Batu Ampar",               "locode": "IDBTM", "city": "Batam",          "location": [ 1.1611, 104.0231], "features": { "is_seaport": true } },
+    { "id": "seed-idbpn", "name": "Semayang (Balikpapan)",    "locode": "IDBPN", "city": "Balikpapan",     "location": [-1.2432, 116.8256], "features": { "is_seaport": true } },
+    { "id": "seed-idpnj", "name": "Panjang",                  "locode": "IDPNJ", "city": "Bandar Lampung", "location": [-5.4676, 105.3244], "features": { "is_seaport": true } },
+    { "id": "seed-idpnk", "name": "Pontianak",                "locode": "IDPNK", "city": "Pontianak",      "location": [-0.0234, 109.3406], "features": { "is_seaport": true, "is_river": true } },
+    { "id": "seed-idplm", "name": "Boom Baru (Palembang)",    "locode": "IDPLM", "city": "Palembang",      "location": [-2.9788, 104.7735], "features": { "is_seaport": true, "is_river": true } },
+    { "id": "seed-iddum", "name": "Dumai",                    "locode": "IDDUM", "city": "Dumai",          "location": [ 1.6822, 101.4429], "features": { "is_seaport": true } },
+    { "id": "seed-idbit", "name": "Bitung",                   "locode": "IDBIT", "city": "Bitung",         "location": [ 1.4409, 125.1935], "features": { "is_seaport": true } },
+    { "id": "seed-idsoq", "name": "Sorong",                   "locode": "IDSOQ", "city": "Sorong",         "location": [-0.8781, 131.2830], "features": { "is_seaport": true } },
+    { "id": "seed-idamq", "name": "Yos Sudarso (Ambon)",      "locode": "IDAMQ", "city": "Ambon",          "location": [-3.6914, 128.1837], "features": { "is_seaport": true } },
+    { "id": "seed-iddjj", "name": "Jayapura",                 "locode": "IDDJJ", "city": "Jayapura",       "location": [-2.5279, 140.7113], "features": { "is_seaport": true } }
+  ]
+}

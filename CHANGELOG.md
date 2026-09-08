@@ -8,6 +8,22 @@ at the top.
 
 ### Added
 
+- **Maritim overlay — Pelabuhan Indonesia (SeaRates World Sea Ports).**
+  New _Maritim_ section (anchor icon) exposes Indonesian sea ports as
+  anchor markers. Data lives at `public/searates/ports.json` and comes
+  from SeaRates' `POST /geo/world-sea-ports/list-by-country` endpoint
+  (`geocoding.searates.com`, filtered by `country_code:"ID"`). Refresh
+  is `SEARATES_KEY=… node scripts/refresh-searates-ports.mjs` — trims
+  each port to `{name, locode, iata, location, features}` so the
+  vendored file stays small even at full national coverage (200+ ports).
+  Colour encodes intermodal role (sea, sea+rail, river, ICD), size
+  encodes TEU throughput. Popup shows LOCODE, city, WGS84 coordinates,
+  TEU (if any), and intermodal flag badges (SEA/RIVER/RAIL/ROAD/AIR/ICD).
+  Ships out of the box with a seed of 15 major ports (Pelabuhan Utama —
+  Tanjung Priok, Tanjung Perak, Belawan, Makassar, Tanjung Emas, Batam,
+  Balikpapan, Panjang, Pontianak, Palembang, Dumai, Bitung, Sorong,
+  Ambon, Jayapura; coordinates from public OSM/UN-LOCODE) so the layer
+  works without an API key. Attribution: © SeaRates by DP World.
 - **BMKG overlays — gempa, peringatan dini cuaca (CAP), cuaca kota.**
   Three toggleable layer groups under a new _Bencana Alam_ section:
   - `data.bmkg.go.id/DataMKG/TEWS/{autogempa,gempaterkini,gempadirasakan}.json`

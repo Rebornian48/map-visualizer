@@ -7,6 +7,7 @@ import { VOLCANO_SOURCES, VOLCANO_BUILDERS } from "./volcanoes";
 import { MAGMA_SOURCES, MAGMA_BUILDERS } from "./magma";
 import { SIGMET_SOURCES, SIGMET_BUILDERS } from "./sigmet";
 import { OPENAIP_SOURCES, OPENAIP_BUILDERS } from "./openaip";
+import { SEARATES_SOURCES, SEARATES_BUILDERS } from "./searates";
 
 function srcUrl(filename) {
   if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`;
@@ -26,7 +27,7 @@ const TRANSIT_SOURCES = [
   { key: 'rails_stations',   label: 'Stasiun KRL/LRT/MRT',       group: 'Rel',        kind: 'railStations',  url: srcUrl('rails.kml') },
 ];
 
-export const TRANSPORT_SOURCES = [...TRANSIT_SOURCES, ...BMKG_SOURCES, ...TECTONIC_SOURCES, ...VOLCANO_SOURCES, ...MAGMA_SOURCES, ...SIGMET_SOURCES, ...OPENAIP_SOURCES];
+export const TRANSPORT_SOURCES = [...TRANSIT_SOURCES, ...BMKG_SOURCES, ...TECTONIC_SOURCES, ...VOLCANO_SOURCES, ...MAGMA_SOURCES, ...SIGMET_SOURCES, ...OPENAIP_SOURCES, ...SEARATES_SOURCES];
 
 const RAW_CACHE = new Map();
 
@@ -347,6 +348,7 @@ const BUILDERS = new Map([
   ...MAGMA_BUILDERS,
   ...SIGMET_BUILDERS,
   ...OPENAIP_BUILDERS,
+  ...SEARATES_BUILDERS,
 ])
 
 export async function buildTransportLayer(source) {
