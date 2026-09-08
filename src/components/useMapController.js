@@ -20,11 +20,26 @@ const BOUNDARY_SELECTED_STYLE = {
   color: '#ff3366', weight: 3, opacity: 1, fillOpacity: 0.28, fillColor: '#ff3366',
 }
 
+// Custom Leaflet panes so overlays can layer predictably regardless of
+// toggle order. Airspaces are nested (CTR ⊂ TMA ⊂ FIR); without explicit
+// z-order the large FIR polygon covers the smaller CTR/TMA it contains.
+function ensureAirspacePanes(map) {
+  const defs = [
+    ['airspaceFir', 402],
+    ['airspaceTma', 412],
+    ['airspaceCtr', 422],
+  ]
+  for (const [name, z] of defs) {
+    if (!map.getPane(name)) map.createPane(name).style.zIndex = String(z)
+  }
+}
+
 function initMap(container, setCursor) {
   const map = L.map(container, {
     center: [-2.5, 118], zoom: 5,
     zoomControl: true, attributionControl: true,
   })
+  ensureAirspacePanes(map)
   const baseLayers = new Map()
   for (const [name, { url, opts }] of BASEMAPS) baseLayers.set(name, L.tileLayer(url, opts))
   baseLayers.get('OpenStreetMap').addTo(map)

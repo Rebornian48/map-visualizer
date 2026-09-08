@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { planeIcon } from "./mapIcons";
 
 // Snapshot vendored from OpenAIP (openaip.net) — Indonesia aerodromes +
 // airspace polygons. Snapshots live in public/openaip/ and are refreshed
@@ -77,10 +78,11 @@ const SURFACE = new Map([
   [19, "Wood"], [20, "Unknown"],
 ]);
 
-function radiusForAirportType(t) {
-  if (t === 3 || t === 9) return 6;   // international
-  if (t === 0 || t === 2 || t === 5) return 5; // civil/military
-  return 4;
+// Plane glyph size — international bigger so the eye lands on them first.
+function planeSizeForType(t) {
+  if (t === 3 || t === 9) return 22;         // international
+  if (t === 0 || t === 2 || t === 5) return 18; // civil / military
+  return 14;                                  // heliport, ULM, seaplane, etc.
 }
 
 function airportPopupHtml(a) {
@@ -125,13 +127,9 @@ function addAirportMarker(a, group) {
   const [lng, lat] = c;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
   const meta = airportMeta(a.type);
-  L.circleMarker([lat, lng], {
-    radius: radiusForAirportType(a.type),
-    fillColor: meta.color,
-    fillOpacity: 0.85,
-    color: "#fff",
-    weight: 1,
-    opacity: 0.9,
+  L.marker([lat, lng], {
+    icon: planeIcon({ size: planeSizeForType(a.type), color: meta.color }),
+    riseOnHover: true,
   })
     .bindTooltip(airportTooltipHtml(a), { direction: "top", opacity: 0.95, sticky: true })
     .bindPopup(airportPopupHtml(a), { maxWidth: 360 })
@@ -240,6 +238,27 @@ function polygonLatLngs(geom) {
   return null;
 }
 
+// Airspaces are nested (CTR ⊂ TMA ⊂ FIR), so smaller ones must render on
+// top of the larger ones — otherwise the FIR fill/outline blankets the
+// CTR/TMA tooltip and popup targets. Custom Leaflet panes give us
+// deterministic z-order regardless of the order overlays are toggled on:
+//
+//   FIR / UIR         → pane "airspaceFir" (zIndex 402, thin outline)
+//   TMA / CTA         → pane "airspaceTma" (zIndex 412)
+//   CTR / ATZ / MATZ  → pane "airspaceCtr" (zIndex 422 — always topmost)
+//
+// The panes are created once by useMapController when the map inits.
+
+// FIR = 10, UIR = 11 — very large, draw furthest down.
+// TMA = 7, CTA = 26 — medium, draw above FIR.
+// CTR = 4, ATZ = 13, MATZ = 14 — smallest, draw on top of everything.
+function paneForAirspace(type) {
+  if (type === 10 || type === 11) return "airspaceFir";
+  if (type === 7 || type === 26) return "airspaceTma";
+  if (type === 4 || type === 13 || type === 14) return "airspaceCtr";
+  return "overlayPane";
+}
+
 function addAirspaceShape(a, group) {
   const latlngs = polygonLatLngs(a.geometry);
   if (!latlngs || latlngs.length === 0) return;
@@ -253,6 +272,7 @@ function addAirspaceShape(a, group) {
     fillOpacity: isFir ? 0.04 : 0.22,
     weight: isFir ? 2 : 1.5,
     opacity: 0.9,
+    pane: paneForAirspace(a.type),
   };
   L.polygon(latlngs, style)
     .bindTooltip(airspaceTooltipHtml(a), { sticky: true, direction: "top", opacity: 0.95 })

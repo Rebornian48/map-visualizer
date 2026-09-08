@@ -38,6 +38,19 @@ export function busIcon({ size = 18, color = "#00ccaa" }) {
   return svgDivIcon({ svg, size, className: "bus-icon" });
 }
 
+export function planeIcon({ size = 18, color = "#1e88e5" }) {
+  // Filled paper-plane silhouette so an airport symbol reads at a glance
+  // even at small size. Slight rotation so it looks like it's taking off
+  // to the upper-right (matches the textbook glyph).
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" style="display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))">
+    <g transform="rotate(-30 12 12)">
+      <path d="M2 12l20-8-8 20-3-8-9-4z" fill="${color}" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round" />
+      <path d="M10 14l4-4" stroke="#ffffff" stroke-width="1" stroke-linecap="round" opacity="0.7" />
+    </g>
+  </svg>`;
+  return svgDivIcon({ svg, size, className: "plane-icon" });
+}
+
 export function trainIcon({ size = 18, color = "#ffcc00" }) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" style="display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))">
     <rect x="6" y="3" width="12" height="15" rx="3" fill="${color}" stroke="#333" stroke-width="1" />
