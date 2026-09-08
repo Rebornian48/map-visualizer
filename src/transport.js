@@ -1,5 +1,6 @@
 import L from "leaflet";
 import JSZip from "jszip";
+import { busIcon, trainIcon } from "./mapIcons";
 import { BMKG_SOURCES, BMKG_BUILDERS } from "./bmkg";
 import { TECTONIC_SOURCES, TECTONIC_BUILDERS } from "./tectonic";
 import { VOLCANO_SOURCES, VOLCANO_BUILDERS } from "./volcanoes";
@@ -50,15 +51,12 @@ const escapeHtml = (s) => {
   return div.innerHTML;
 };
 
-function stopCircle(lat, lon, name, color) {
-  return L.circleMarker([lat, lon], {
-    radius: 2.5,
-    fillColor: color || "#00ccaa",
-    fillOpacity: 0.85,
-    color: "#0b0b0b",
-    weight: 0.4,
-    opacity: 0.6,
-    pane: "markerPane",
+// Bus stops use a bus glyph (textbook symbology). Bus networks can be dense —
+// keep the icon small (14px) so it doesn't smother the route line.
+function busStopMarker(lat, lon, name, color) {
+  return L.marker([lat, lon], {
+    icon: busIcon({ size: 14, color: color || "#00ccaa" }),
+    riseOnHover: true,
   }).bindTooltip(escapeHtml(name || ""), { direction: "top", opacity: 0.9 });
 }
 
@@ -96,7 +94,7 @@ function addBusRoute(route, routesSub) {
 function addBusStop(s, stopsSub) {
   if (typeof s.lat !== 'number') return
   if (typeof s.lng !== 'number') return
-  stopCircle(s.lat, s.lng, s.name, '#00ccaa').addTo(stopsSub)
+  busStopMarker(s.lat, s.lng, s.name, '#00ccaa').addTo(stopsSub)
 }
 
 async function buildBus(key, url) {
@@ -184,13 +182,9 @@ async function buildRailStations(key, url) {
   const pts = parseKmlPoints(text)
   const group = L.layerGroup()
   for (const p of pts) {
-    L.circleMarker([p.lat, p.lng], {
-      radius: 3.5,
-      fillColor: '#ffcc00',
-      fillOpacity: 0.95,
-      color: '#333',
-      weight: 0.6,
-      opacity: 0.8,
+    L.marker([p.lat, p.lng], {
+      icon: trainIcon({ size: 16, color: '#ffcc00' }),
+      riseOnHover: true,
     }).bindTooltip(`<strong>${escapeHtml(p.name)}</strong>`, { direction: 'top', opacity: 0.95 }).addTo(group)
   }
   return group
@@ -313,7 +307,7 @@ function addGtfsStops(stopsTxt, stopsSub) {
     const lat = +r.at(stIdx.stop_lat)
     const lon = +r.at(stIdx.stop_lon)
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue
-    stopCircle(lat, lon, r.at(stIdx.stop_name), '#00ccaa').addTo(stopsSub)
+    busStopMarker(lat, lon, r.at(stIdx.stop_name), '#00ccaa').addTo(stopsSub)
   }
 }
 

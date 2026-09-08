@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { triangleIcon } from "./mapIcons";
 
 // Snapshot GeoJSON from Smithsonian GVP WFS
 // (webservices.volcano.si.edu/geoserver/GVP-VOTW/ows), pinned into the build
@@ -33,12 +34,14 @@ function classifyActivity(lastYear) {
   return "holocene";
 }
 
-function radiusForElevation(m) {
-  if (m == null) return 3;
-  if (m < 500) return 3;
-  if (m < 2000) return 4;
-  if (m < 4000) return 5;
-  return 6;
+// Triangle icon size in px (larger than the old circle radius so the
+// glyph is legible at typical zooms).
+function sizeForElevation(m) {
+  if (m == null) return 12;
+  if (m < 500) return 12;
+  if (m < 2000) return 14;
+  if (m < 4000) return 18;
+  return 22;
 }
 
 function formatYear(y) {
@@ -107,13 +110,13 @@ function addVolcanoMarker(feature, group) {
   if (!coords) return;
   const p = feature.properties || {};
   const activity = classifyActivity(p.Last_Eruption_Year);
-  L.circleMarker([coords.lat, coords.lng], {
-    radius: radiusForElevation(p.Elevation),
-    fillColor: ACTIVITY_COLORS[activity],
-    fillOpacity: 0.75,
-    color: "#fff",
-    weight: 1,
-    opacity: 0.85,
+  L.marker([coords.lat, coords.lng], {
+    icon: triangleIcon({
+      size: sizeForElevation(p.Elevation),
+      fill: ACTIVITY_COLORS[activity],
+      fillOpacity: 0.85,
+    }),
+    riseOnHover: true,
   })
     .bindTooltip(tooltipHtml(p), { direction: "top", opacity: 0.95, sticky: true })
     .bindPopup(popupHtml(p), { maxWidth: 360 })

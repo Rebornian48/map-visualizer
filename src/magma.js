@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { triangleIcon } from "./mapIcons";
 
 // MAGMA Indonesia (PVMBG · ESDM) embeds the current volcano roster + activity
 // level inline in the homepage HTML as `var markersGunungApi = [...]`. There
@@ -42,12 +43,12 @@ function statusOf(code) {
   return STATUS_META.get(code) || { level: "?", label: "—", color: "#9e9e9e", ring: "rgba(158,158,158,0.9)" };
 }
 
-function radiusForStatus(code) {
-  // Bigger for higher alert so the eye lands on them first.
-  if (code >= 4) return 10;
-  if (code === 3) return 8;
-  if (code === 2) return 6;
-  return 5;
+function sizeForStatus(code) {
+  // Bigger triangle for higher alert so the eye lands on them first.
+  if (code >= 4) return 26;
+  if (code === 3) return 22;
+  if (code === 2) return 18;
+  return 15;
 }
 
 function extractVolcanoArray(html) {
@@ -103,13 +104,14 @@ function tooltipHtml(v, st) {
 function addMagmaMarker(v, group) {
   if (!Number.isFinite(v.ga_lat_gapi) || !Number.isFinite(v.ga_lon_gapi)) return;
   const st = statusOf(v.ga_status);
-  L.circleMarker([v.ga_lat_gapi, v.ga_lon_gapi], {
-    radius: radiusForStatus(v.ga_status),
-    fillColor: st.color,
-    fillOpacity: 0.9,
-    color: "#fff",
-    weight: 1.5,
-    opacity: 0.95,
+  L.marker([v.ga_lat_gapi, v.ga_lon_gapi], {
+    icon: triangleIcon({
+      size: sizeForStatus(v.ga_status),
+      fill: st.color,
+      fillOpacity: 0.9,
+      strokeWidth: 1.8,
+    }),
+    riseOnHover: true,
   })
     .bindTooltip(tooltipHtml(v, st), { direction: "top", opacity: 0.95, sticky: true })
     .bindPopup(popupHtml(v, st), { maxWidth: 340 })

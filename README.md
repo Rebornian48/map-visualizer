@@ -11,6 +11,12 @@ Live: <https://rebornian48.my.id/map-visualizer/>
 
 - **Map-first flow** — the map loads immediately; drop a `Timeline.json` in
   from the header when you're ready.
+- **Textbook symbology** untuk semua marker penting: gunung api =
+  **segitiga** (warna aktif/historis/holocene · ukuran = elevasi
+  atau level status), halte bus = **glyph bus**, stasiun rel =
+  **glyph kereta**. Rendering pakai `L.divIcon` dengan SVG inline
+  dari [src/mapIcons.js](src/mapIcons.js). Legend swatch juga
+  ikut simbol yang bersangkutan supaya konsisten.
 - **Layer panel = 5 tombol kategori** di top-right — _Basemap_,
   _Wilayah_, _Transportasi_, _Cuaca_, _Bencana Alam_. Klik salah
   satu → panel konten yang relevan muncul; hanya satu terbuka pada

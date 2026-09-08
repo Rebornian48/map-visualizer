@@ -25,6 +25,19 @@ at the top.
   whitelist per host (`?h=data|www|api`), because BMKG endpoints
   don't send CORS headers. Dev bypasses via three vite proxies
   (`/bmkg-cdn`, `/bmkg-www`, `/bmkg-api`).
+- **Textbook symbology untuk marker.** Overlay bencana dan transit
+  sekarang render dengan pictogram yang cocok dengan konvensi peta
+  buku pelajaran alih-alih lingkaran generik:
+  - Gunung api (GVP + MAGMA) — **segitiga**, ukuran sesuai elevasi /
+    level status, warna sesuai activity / alert level.
+  - Halte / stop bus (Trans Semarang, Metro Trans Jabar, Bus Listrik
+    Medan, Trans Koetaradja, Transpakuan, Mitra Darat, Transjakarta
+    GTFS) — **glyph bus** kecil (14 px).
+  - Stasiun KRL/LRT/MRT — **glyph kereta** kecil (16 px).
+  Semua ikon dihasilkan lewat `L.divIcon` dengan SVG inline yang
+  di-share di [src/mapIcons.js](src/mapIcons.js); caller cukup pilih
+  ukuran + warna. Legend Gunung Api (GVP) dan MAGMA juga ikut
+  triangle swatch supaya konsisten dengan simbol di peta.
 - **Ringkasan Isi Peta di InfoPage.** Halaman `/info` sekarang
   diawali dengan card per kategori tombol layer (Basemap / Wilayah /
   Transportasi / Cuaca / Bencana Alam) yang menampilkan semua

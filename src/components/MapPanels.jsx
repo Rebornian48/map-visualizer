@@ -168,6 +168,19 @@ function CircleSwatch({ color, size }) {
   }} />
 }
 
+function TriangleSwatch({ color, size = 12 }) {
+  const s = size + 2
+  return (
+    <svg width={s} height={s} viewBox="0 0 24 24" style={{ flexShrink: 0, display: 'block' }}>
+      <polygon points="12,3 22,20 2,20" fill={color} fillOpacity="0.85" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function TriangleSizeSwatch({ color, size }) {
+  return <TriangleSwatch color={color} size={size} />
+}
+
 function CapSwatch({ color }) {
   return <span style={{
     width: 14, height: 10, background: color, opacity: 0.35,
@@ -297,7 +310,7 @@ export function MagmaLegend({ uiPanel, activeKeys, meta }) {
       </div>
       {MAGMA_ROWS.map(r => (
         <LegendRow key={r.color}
-          swatch={<Dot color={r.color} />}
+          swatch={<TriangleSwatch color={r.color} size={12} />}
           label={r.label}
           right={counts ? counts[r.statusCode] ?? 0 : undefined} />
       ))}
@@ -317,12 +330,12 @@ export function VolcanoLegend({ uiPanel, activeKeys }) {
     <div style={{ ...uiPanel, ...legendCardStyle }}>
       <div style={legendTitleStyle}>Gunung Api (GVP)</div>
       {VOLCANO_ROWS.map(r => (
-        <LegendRow key={r.color} swatch={<Dot color={r.color} />} label={r.label} />
+        <LegendRow key={r.color} swatch={<TriangleSwatch color={r.color} size={12} />} label={r.label} />
       ))}
       <div style={{ ...legendRowStyle, gap: 6, marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
-        <CircleSwatch color="#8d6e63" size={7} />
-        <CircleSwatch color="#8d6e63" size={11} />
-        <CircleSwatch color="#8d6e63" size={14} />
+        <TriangleSizeSwatch color="#8d6e63" size={9} />
+        <TriangleSizeSwatch color="#8d6e63" size={13} />
+        <TriangleSizeSwatch color="#8d6e63" size={17} />
         <span style={{ marginLeft: 4, opacity: 0.85 }}>ukuran = elevasi</span>
       </div>
     </div>
