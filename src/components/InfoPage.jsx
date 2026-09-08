@@ -321,6 +321,180 @@ const OVERLAY_SUMMARY = [
   ] },
 ]
 
+// ============================ SIMBOLOGI ============================
+// Reusable inline-SVG previews so the info page shows the exact same
+// glyphs the map uses. Kept in this file (not shared with mapIcons.js)
+// because those functions return L.divIcon instances, not React nodes.
+
+function SymTriangle({ color = '#e53935', size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={svgBlock}>
+      <polygon points="12,3 22,20 2,20" fill={color} fillOpacity="0.85" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  )
+}
+function SymPlane({ color = '#1e88e5', size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={svgBlock}>
+      <g transform="rotate(-30 12 12)">
+        <path d="M2 12l20-8-8 20-3-8-9-4z" fill={color} stroke="#fff" strokeWidth="1.2" strokeLinejoin="round" />
+      </g>
+    </svg>
+  )
+}
+function SymBus({ color = '#00ccaa', size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={svgBlock}>
+      <rect x="4" y="3" width="16" height="14" rx="2" fill={color} stroke="#fff" strokeWidth="1.2" />
+      <rect x="6" y="5" width="3.5" height="3" fill="#fff" opacity="0.9" />
+      <rect x="10.25" y="5" width="3.5" height="3" fill="#fff" opacity="0.9" />
+      <rect x="14.5" y="5" width="3.5" height="3" fill="#fff" opacity="0.9" />
+      <circle cx="8" cy="18" r="1.6" fill="#222" stroke="#fff" strokeWidth="0.5" />
+      <circle cx="16" cy="18" r="1.6" fill="#222" stroke="#fff" strokeWidth="0.5" />
+    </svg>
+  )
+}
+function SymTrain({ color = '#ffcc00', size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={svgBlock}>
+      <rect x="6" y="3" width="12" height="15" rx="3" fill={color} stroke="#333" strokeWidth="1" />
+      <rect x="8" y="5" width="8" height="5" fill="#fff" opacity="0.92" />
+      <line x1="6" y1="13" x2="18" y2="13" stroke="#333" strokeWidth="0.9" />
+      <circle cx="9" cy="18" r="1.3" fill="#222" />
+      <circle cx="15" cy="18" r="1.3" fill="#222" />
+    </svg>
+  )
+}
+function SymCircle({ color, size = 22, fillOpacity = 0.6 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={svgBlock}>
+      <circle cx="12" cy="12" r="8" fill={color} fillOpacity={fillOpacity} stroke="#fff" strokeWidth="1.5" />
+    </svg>
+  )
+}
+function SymEmoji({ char, size = 22 }) {
+  return <span style={{ fontSize: size, lineHeight: 1, display: 'block', textAlign: 'center', width: size, height: size }}>{char}</span>
+}
+function SymLine({ color, size = 22, weight = 3, dashed = false }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={svgBlock}>
+      <line x1="2" y1="12" x2="22" y2="12" stroke={color} strokeWidth={weight}
+        strokeLinecap="round" strokeDasharray={dashed ? '3 3' : undefined} />
+    </svg>
+  )
+}
+function SymFill({ color, size = 22, fillOpacity = 0.25, weight = 1.5 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={svgBlock}>
+      <rect x="3" y="5" width="18" height="14" rx="2" fill={color} fillOpacity={fillOpacity} stroke={color} strokeWidth={weight} />
+    </svg>
+  )
+}
+
+const svgBlock = { display: 'block' }
+
+const SYMBOL_GROUPS = [
+  {
+    title: 'Titik (marker)',
+    rows: [
+      { sym: <SymTriangle color="#e53935" />, name: 'Gunung api — aktif',      note: 'Segitiga merah. Ukuran skala elevasi (GVP) / level status (MAGMA).' },
+      { sym: <SymTriangle color="#fb8c00" />, name: 'Gunung api — historis',    note: 'Segitiga oranye (erupsi tercatat 1500–1899).' },
+      { sym: <SymTriangle color="#8d6e63" />, name: 'Gunung api — holocene',   note: 'Segitiga coklat (erupsi pra-1500, tidak aktif).' },
+      { sym: <SymPlane color="#1565c0" />,    name: 'Bandara internasional',   note: 'Pesawat biru tua (ukuran ~22 px).' },
+      { sym: <SymPlane color="#1e88e5" />,    name: 'Bandara sipil / airfield', note: 'Pesawat biru (ukuran ~18 px).' },
+      { sym: <SymPlane color="#c62828" />,    name: 'Aerodrome militer',       note: 'Pesawat merah.' },
+      { sym: <SymPlane color="#ec407a" />,    name: 'Heliport',                note: 'Pesawat pink (~14 px).' },
+      { sym: <SymPlane color="#00acc1" />,    name: 'Seaplane base',           note: 'Pesawat teal.' },
+      { sym: <SymBus color="#00ccaa" />,      name: 'Halte / stop bus',        note: 'Glyph bus kecil (14 px), warna sesuai operator.' },
+      { sym: <SymTrain color="#ffcc00" />,    name: 'Stasiun KRL/LRT/MRT',     note: 'Glyph kereta kuning (16 px).' },
+      { sym: <SymCircle color="#e53935" />,   name: 'Gempa dangkal',           note: 'Lingkaran merah (< 70 km). Radius skala magnitude.' },
+      { sym: <SymCircle color="#fb8c00" />,   name: 'Gempa menengah',          note: 'Lingkaran oranye (70–300 km).' },
+      { sym: <SymCircle color="#1e88e5" />,   name: 'Gempa dalam',             note: 'Lingkaran biru (> 300 km).' },
+      { sym: <SymEmoji char="☀️" />,          name: 'Cuaca — cerah',           note: 'Emoji per kondisi dari kode BMKG (cerah / berawan / hujan / petir).' },
+    ],
+  },
+  {
+    title: 'Garis (line)',
+    rows: [
+      { sym: <SymLine color="#ff9800" weight={2} />,  name: 'Batas lempeng (PB2002)', note: 'Garis oranye — patahan/rift/transform.' },
+      { sym: <SymLine color="#d32f2f" weight={3} />,  name: 'Zona subduksi',          note: 'Garis merah tebal — trench (mis. Sunda Trench).' },
+      { sym: <SymLine color="#3388ff" weight={3} />,  name: 'Rel KRL / LRT / MRT',    note: 'Garis warna sesuai operator (biru KAI, merah LRT, dst.).' },
+      { sym: <SymLine color="#ff3366" weight={3} />,  name: 'Trayek bus',             note: 'Garis warna sesuai koridor operator.' },
+      { sym: <SymLine color="#ff3366" weight={1.5} />, name: 'Batas Provinsi / Kab-Kota', note: 'Garis merah tipis (GeoJSON boundary).' },
+    ],
+  },
+  {
+    title: 'Poligon (area)',
+    rows: [
+      { sym: <SymFill color="#7b1fa2" fillOpacity={0.35} />, name: 'Peringatan dini — Extreme',  note: 'CAP BMKG severity paling tinggi.' },
+      { sym: <SymFill color="#e53935" fillOpacity={0.30} />, name: 'Peringatan dini — Severe',   note: 'Merah.' },
+      { sym: <SymFill color="#fb8c00" fillOpacity={0.28} />, name: 'Peringatan dini — Moderate', note: 'Oranye.' },
+      { sym: <SymFill color="#fdd835" fillOpacity={0.28} />, name: 'Peringatan dini — Minor',    note: 'Kuning.' },
+      { sym: <SymFill color="#b71c1c" fillOpacity={0.30} />, name: 'SIGMET — Volcanic Ash',      note: 'Peringatan abu vulkanik untuk penerbangan.' },
+      { sym: <SymFill color="#7b1fa2" fillOpacity={0.28} />, name: 'SIGMET — Tropical Cyclone',  note: 'Peringatan siklon tropis.' },
+      { sym: <SymFill color="#8d6e63" fillOpacity={0.20} weight={1} />, name: 'Orogen (PB2002)', note: 'Zona pegunungan aktif (Bird 2003).' },
+      { sym: <SymFill color="#1e88e5" fillOpacity={0.06} weight={2} />, name: 'FIR (Flight Information Region)', note: 'Batas biru tipis; fill minim supaya tak menutupi CTR/TMA.' },
+      { sym: <SymFill color="#fb8c00" fillOpacity={0.22} weight={1.5} />, name: 'TMA (Terminal Maneuvering Area)', note: 'Oranye, di atas FIR (pane z=412).' },
+      { sym: <SymFill color="#d84315" fillOpacity={0.25} weight={2} />, name: 'CTR (Control Zone)', note: 'Merah bata, layer paling atas (pane z=422) — sekitar bandara.' },
+      { sym: <SymFill color="#e53935" fillOpacity={0.25} />, name: 'Restricted / Prohibited',    note: 'Airspace larangan.' },
+    ],
+  },
+]
+
+function SymbolRow({ sym, name, note }) {
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '32px 1fr', gap: 12, alignItems: 'center',
+      padding: '8px 0', borderTop: '1px solid var(--border)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{sym}</div>
+      <div>
+        <div style={{ fontSize: '0.88rem', color: 'var(--text)', fontWeight: 500 }}>{name}</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: 2, lineHeight: 1.45 }}>{note}</div>
+      </div>
+    </div>
+  )
+}
+
+function SymbolCard({ title, rows }) {
+  return (
+    <div style={{
+      background: 'var(--surface-2)', border: '1px solid var(--border)',
+      borderRadius: 10, padding: '4px 14px 12px',
+    }}>
+      <div style={{
+        fontFamily: "'DM Mono', monospace", fontSize: '0.72rem',
+        textTransform: 'uppercase', letterSpacing: '0.1em',
+        color: 'var(--accent)', margin: '10px 0 2px',
+      }}>{title}</div>
+      {rows.map((r, i) => <SymbolRow key={i} {...r} />)}
+    </div>
+  )
+}
+
+function SimbologiSection() {
+  return (
+    <section>
+      <h3 style={h3Style}>Simbologi Peta</h3>
+      <p style={pStyle}>
+        Simbol yang dipakai di peta mengikuti konvensi peta buku pelajaran
+        Indonesia (BSE) sedapat mungkin — segitiga untuk gunung, pesawat untuk
+        bandara, glyph bus/kereta untuk transit — supaya cepat dikenali tanpa
+        harus membaca legenda tiap kali.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {SYMBOL_GROUPS.map(g => <SymbolCard key={g.title} {...g} />)}
+      </div>
+      <p style={{ ...pMuted, marginTop: 10 }}>
+        Warna dan ukuran adalah petunjuk semantik: warna gunung menandai
+        aktivitas terakhir, warna gempa menandai kedalaman, ukuran skala
+        magnitude / elevasi / level alert. Detail lengkap tiap layer ada di
+        legend kiri-bawah saat overlay-nya aktif.
+      </p>
+    </section>
+  )
+}
+
 function OverlaySummary() {
   return (
     <section>
@@ -404,6 +578,7 @@ export default function InfoPage({ onBack }) {
           </p>
         </section>
         <OverlaySummary />
+        <SimbologiSection />
         <OpentransumSection />
         <BmkgSection />
         <SigmetSection />

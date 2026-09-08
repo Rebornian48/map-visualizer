@@ -49,6 +49,17 @@ at the top.
   (412), `airspaceCtr` (422). openaip.js routing polygon ke pane
   sesuai `type` — jadi CTR selalu render paling atas tanpa peduli
   urutan toggle.
+- **Simbologi Peta di InfoPage.** Section baru sesudah Ringkasan Isi
+  Peta yang mendokumentasikan setiap glyph yang dipakai di peta —
+  dikelompokkan Titik (marker) / Garis (line) / Poligon (area).
+  Tiap baris menampilkan simbol SVG persis seperti di peta, nama,
+  dan keterangan. Total 30 simbol: gunung api (aktif/historis/holocene),
+  bandara (internasional/sipil/militer/heliport/seaplane), halte
+  bus, stasiun rel, gempa (dangkal/menengah/dalam), cuaca emoji,
+  batas lempeng, zona subduksi, trayek bus, rel, batas administratif,
+  CAP severity (4 level), SIGMET hazard (VA/TC), orogen, FIR/TMA/CTR,
+  Restricted/Prohibited. Berfungsi sebagai "kamus simbol" — mengikuti
+  konvensi peta buku pelajaran Indonesia sedapat mungkin.
 - **Ringkasan Isi Peta di InfoPage.** Halaman `/info` sekarang
   diawali dengan card per kategori tombol layer (Basemap / Wilayah /
   Transportasi / Cuaca / Bencana Alam) yang menampilkan semua
