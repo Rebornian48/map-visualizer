@@ -30,6 +30,9 @@ at the top.
   buku pelajaran alih-alih lingkaran generik:
   - Gunung api (GVP + MAGMA) — **segitiga**, ukuran sesuai elevasi /
     level status, warna sesuai activity / alert level.
+  - Bandara (OpenAIP) — **glyph pesawat**, ukuran sesuai tipe
+    (internasional 22 px, sipil/militer 18 px, heliport / ULM /
+    seaplane / private 14 px), warna sesuai kategori tipe.
   - Halte / stop bus (Trans Semarang, Metro Trans Jabar, Bus Listrik
     Medan, Trans Koetaradja, Transpakuan, Mitra Darat, Transjakarta
     GTFS) — **glyph bus** kecil (14 px).
@@ -38,6 +41,14 @@ at the top.
   di-share di [src/mapIcons.js](src/mapIcons.js); caller cukup pilih
   ukuran + warna. Legend Gunung Api (GVP) dan MAGMA juga ikut
   triangle swatch supaya konsisten dengan simbol di peta.
+- **Airspace z-order: CTR/TMA di atas FIR.** FIR Indonesia besar
+  (Jakarta + Ujung Pandang) — sebelumnya menutupi CTR & TMA Papua
+  yang ada di dalamnya sehingga tooltip/popup mereka tak bisa diklik.
+  Sekarang dibuat tiga custom Leaflet pane di map init
+  (useMapController): `airspaceFir` (zIndex 402), `airspaceTma`
+  (412), `airspaceCtr` (422). openaip.js routing polygon ke pane
+  sesuai `type` — jadi CTR selalu render paling atas tanpa peduli
+  urutan toggle.
 - **Ringkasan Isi Peta di InfoPage.** Halaman `/info` sekarang
   diawali dengan card per kategori tombol layer (Basemap / Wilayah /
   Transportasi / Cuaca / Bencana Alam) yang menampilkan semua
