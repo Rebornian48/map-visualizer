@@ -1,5 +1,6 @@
 import React from 'react'
 import { MONTH_NAMES } from './mapView.helpers'
+import { MBG_RAMP } from '../mbg'
 
 function fmt(v) {
   return typeof v === 'number' ? v.toLocaleString('en-US') : v
@@ -356,6 +357,32 @@ export function BmkgLegend({ uiPanel, activeKeys }) {
   )
 }
 
+export function MbgLegend({ uiPanel, activeKeys, meta }) {
+  if (!activeKeys.has('mbg_keracunan')) return null
+  const info = meta?.get('mbg_keracunan')
+  return (
+    <div style={{ ...uiPanel, ...legendCardStyle, minWidth: 210 }}>
+      <div style={{ ...legendTitleStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span>Keracunan MBG · korban</span>
+        {info?.total != null && (
+          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Σ {info.total}</span>
+        )}
+      </div>
+      {MBG_RAMP.map(r => (
+        <LegendRow key={r.color}
+          swatch={<Dot color={r.color} />}
+          label={`${r.label} orang`} />
+      ))}
+      {info?.first && info?.last && (
+        <div style={{
+          marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border)',
+          fontSize: '0.68rem', color: 'var(--text-dim)',
+        }}>{info.first} → {info.last} · {info.bergejala?.toLocaleString('id-ID')} bergejala{info.meninggal ? `, ${info.meninggal} meninggal` : ''}</div>
+      )}
+    </div>
+  )
+}
+
 export function LegendStack({ uiPanel, activeKeys, meta }) {
   return (
     <div style={{
@@ -368,6 +395,7 @@ export function LegendStack({ uiPanel, activeKeys, meta }) {
       <MagmaLegend uiPanel={uiPanel} activeKeys={activeKeys} meta={meta} />
       <SigmetLegend uiPanel={uiPanel} activeKeys={activeKeys} meta={meta} />
       <BmkgLegend uiPanel={uiPanel} activeKeys={activeKeys} />
+      <MbgLegend uiPanel={uiPanel} activeKeys={activeKeys} meta={meta} />
     </div>
   )
 }

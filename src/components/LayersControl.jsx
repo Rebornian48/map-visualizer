@@ -20,7 +20,7 @@ const TRANSPORT_GROUPS = (() => {
 
 const TRANSPORT_GROUP_NAMES  = ['Bus (JSON)', 'Bus (GTFS)', 'Rel']
 const CUACA_GROUP_NAMES      = ['BMKG · Peringatan Dini', 'BMKG · Cuaca']
-const BENCANA_GROUP_NAMES    = ['BMKG · Gempa', 'Vulkano', 'Tektonik', 'Aviasi']
+const BENCANA_GROUP_NAMES    = ['BMKG · Gempa', 'Vulkano', 'Tektonik', 'Aviasi', 'Insiden · MBG']
 const AERONAUTIKA_GROUP_NAMES = ['Aeronautika · OpenAIP']
 const MARITIM_GROUP_NAMES     = ['Maritim · SeaRates']
 
