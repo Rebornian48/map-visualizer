@@ -41,6 +41,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/awc-api/, ""),
       },
+      "/rebornian-assets": {
+        target: "https://rebornian48.my.id",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/rebornian-assets/, "/assets"),
+      },
     },
   },
 });
