@@ -61,16 +61,21 @@ function initMap(container, setCursor) {
   return { map, baseLayers, layers }
 }
 
-function boundaryFeatureHandlers(layer, mapInst, getSelected, setSelected) {
+// getLayer is a lazy accessor for the parent L.geoJSON: onEachFeature runs
+// synchronously during the L.geoJSON constructor, so a direct `layer`
+// reference here would hit TDZ ("Cannot access 'layer' before initialization").
+// The returned handlers are only invoked on user events, by which time
+// getLayer() safely resolves.
+function boundaryFeatureHandlers(getLayer, mapInst, getSelected, setSelected) {
   return {
     mouseover: (e) => {
       if (e.target !== getSelected()) e.target.setStyle(BOUNDARY_HOVER_STYLE)
       e.target.bringToFront()
     },
-    mouseout: (e) => { if (e.target !== getSelected()) layer.resetStyle(e.target) },
+    mouseout: (e) => { if (e.target !== getSelected()) getLayer().resetStyle(e.target) },
     click: (e) => {
       const sel = getSelected()
-      if (sel && sel !== e.target) layer.resetStyle(sel)
+      if (sel && sel !== e.target) getLayer().resetStyle(sel)
       setSelected(e.target)
       e.target.setStyle(BOUNDARY_SELECTED_STYLE)
       e.target.bringToFront()
@@ -83,6 +88,8 @@ function boundaryFeatureHandlers(layer, mapInst, getSelected, setSelected) {
 
 function attachBoundaryLayer(geojson, kind, mapInst) {
   let selectedLyr = null
+  let layerRef = null
+  const getLayer = () => layerRef
   const layer = L.geoJSON(geojson, {
     style: BOUNDARY_STYLE,
     interactive: true,
@@ -93,9 +100,10 @@ function attachBoundaryLayer(geojson, kind, mapInst) {
           sticky: true, direction: 'top', opacity: 0.95, className: 'boundary-tooltip',
         })
       }
-      lyr.on(boundaryFeatureHandlers(layer, mapInst, () => selectedLyr, (v) => { selectedLyr = v }))
+      lyr.on(boundaryFeatureHandlers(getLayer, mapInst, () => selectedLyr, (v) => { selectedLyr = v }))
     },
   })
+  layerRef = layer
   layer.addTo(mapInst)
   const mapClickHandler = () => {
     if (selectedLyr) { layer.resetStyle(selectedLyr); selectedLyr = null }
