@@ -10,6 +10,14 @@ import { boundaryLabelHtml } from './mapView.helpers';
 
 const NOOP_CLEANUP = () => { /* no cleanup required for this branch */ };
 
+const TRANSPORT_REFRESH_MS = new Map([
+  ['bmkg_gempa_auto',    2 * 60 * 1000],
+  ['bmkg_gempa_terkini', 2 * 60 * 1000],
+  ['bmkg_gempa_rasa',    2 * 60 * 1000],
+  ['bmkg_cap_nowcast',   5 * 60 * 1000],
+  ['bmkg_cuaca_kota',   30 * 60 * 1000],
+]);
+
 const BOUNDARY_STYLE = {
   color: '#ff3366', weight: 1, opacity: 0.7, fillOpacity: 0.05, fillColor: '#ff3366',
 }
@@ -232,7 +240,40 @@ function useBoundaryEffect(boundary, mapInstance, boundaryLayerRef, boundaryCach
   }, [boundary])
 }
 
-function makeTransportToggle(mapInstance, transportLayersRef, setTransportActive, setTransportLoading, setTransportError, setTransportMeta) {
+function scheduleTransportRefresh(key, src, mapInstance, transportLayersRef, transportIntervalsRef, setTransportMeta) {
+  const ms = TRANSPORT_REFRESH_MS.get(key)
+  if (!ms) return
+  const id = setInterval(async () => {
+    const map = mapInstance.current
+    const oldLayer = transportLayersRef.current.get(key)
+    if (!map || !oldLayer) return
+    try {
+      const newLayer = await buildTransportLayer(src)
+      if (!mapInstance.current) return
+      // Guard against toggle-off during fetch.
+      if (transportLayersRef.current.get(key) !== oldLayer) return
+      if (map.hasLayer(oldLayer)) map.removeLayer(oldLayer)
+      newLayer.addTo(map)
+      transportLayersRef.current.set(key, newLayer)
+      if (newLayer && newLayer._meta) {
+        setTransportMeta(prev => new Map(prev).set(key, newLayer._meta))
+      }
+    } catch (err) {
+      console.warn(`Auto-refresh failed [${key}]:`, err)
+    }
+  }, ms)
+  transportIntervalsRef.current.set(key, id)
+}
+
+function clearTransportRefresh(key, transportIntervalsRef) {
+  const id = transportIntervalsRef.current.get(key)
+  if (id != null) {
+    clearInterval(id)
+    transportIntervalsRef.current.delete(key)
+  }
+}
+
+function makeTransportToggle(mapInstance, transportLayersRef, transportIntervalsRef, setTransportActive, setTransportLoading, setTransportError, setTransportMeta) {
   return (key) => {
     const map = mapInstance.current
     if (!map) return
@@ -240,6 +281,7 @@ function makeTransportToggle(mapInstance, transportLayersRef, setTransportActive
     if (!src) return
     const existing = transportLayersRef.current.get(key)
     if (existing) {
+      clearTransportRefresh(key, transportIntervalsRef)
       if (map.hasLayer(existing)) map.removeLayer(existing)
       transportLayersRef.current.delete(key)
       setTransportActive(prev => { const n = new Set(prev); n.delete(key); return n })
@@ -257,6 +299,7 @@ function makeTransportToggle(mapInstance, transportLayersRef, setTransportActive
         if (layer && layer._meta) {
           setTransportMeta(prev => new Map(prev).set(key, layer._meta))
         }
+        scheduleTransportRefresh(key, src, mapInstance, transportLayersRef, transportIntervalsRef, setTransportMeta)
       })
       .catch(err => {
         console.error(`Transport load failed [${key}]:`, err)
@@ -327,6 +370,7 @@ function useMapRefs() {
     boundaryCacheRef: useRef(new Map()),
     baseLayersRef: useRef(new Map()),
     transportLayersRef: useRef(new Map()),
+    transportIntervalsRef: useRef(new Map()),
     currentPointsRef: useRef([]),
   }
 }
@@ -390,11 +434,19 @@ export function useMapController(yearData) {
   }, [yearData])
 
   const onToggleTransport = useCallback(
-    makeTransportToggle(refs.mapInstance, refs.transportLayersRef,
+    makeTransportToggle(refs.mapInstance, refs.transportLayersRef, refs.transportIntervalsRef,
                         set.setTransportActive, set.setTransportLoading, set.setTransportError,
                         set.setTransportMeta),
     [],
   )
+
+  useEffect(() => {
+    const intervalsRef = refs.transportIntervalsRef
+    return () => {
+      for (const id of intervalsRef.current.values()) clearInterval(id)
+      intervalsRef.current.clear()
+    }
+  }, [])
 
   const renderData = useCallback((year, month) => {
     const map = refs.mapInstance.current
