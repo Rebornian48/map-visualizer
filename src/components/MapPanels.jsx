@@ -361,23 +361,23 @@ export function MbgLegend({ uiPanel, activeKeys, meta }) {
   if (!activeKeys.has('mbg_keracunan')) return null
   const info = meta?.get('mbg_keracunan')
   return (
-    <div style={{ ...uiPanel, ...legendCardStyle, minWidth: 210 }}>
+    <div style={{ ...uiPanel, ...legendCardStyle, minWidth: 220 }}>
       <div style={{ ...legendTitleStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span>Keracunan MBG · korban</span>
-        {info?.total != null && (
-          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Σ {info.total}</span>
+        <span>Keracunan MBG · korban / kab-kota</span>
+        {info?.kabkota != null && (
+          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Σ {info.kabkota}</span>
         )}
       </div>
       {MBG_RAMP.map(r => (
         <LegendRow key={r.color}
-          swatch={<Dot color={r.color} />}
+          swatch={<CapSwatch color={r.color} />}
           label={`${r.label} orang`} />
       ))}
       {info?.first && info?.last && (
         <div style={{
           marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border)',
           fontSize: '0.68rem', color: 'var(--text-dim)',
-        }}>{info.first} → {info.last} · {info.bergejala?.toLocaleString('id-ID')} bergejala{info.meninggal ? `, ${info.meninggal} meninggal` : ''}</div>
+        }}>{info.first} → {info.last} · {info.total} insiden · {info.bergejala?.toLocaleString('id-ID')} bergejala{info.meninggal ? `, ${info.meninggal} meninggal` : ''}</div>
       )}
       <div style={{ marginTop: 6 }}>
         <a href={`${import.meta.env.BASE_URL}keracunan-mbg`}

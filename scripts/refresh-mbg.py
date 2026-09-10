@@ -14,15 +14,23 @@ from bs4 import BeautifulSoup
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-REPO = Path(__file__).resolve().parent.parent
-OUT  = REPO / "public" / "mbg" / "incidents.json"
+REPO      = Path(__file__).resolve().parent.parent
+OUT       = REPO / "public" / "mbg" / "incidents.json"
+OUT_GEO   = REPO / "public" / "mbg" / "incidents.geojson"
+# Polygon simplification tolerance in degrees (~110km per degree at equator).
+# 0.005 keeps kabupaten shapes readable at country zoom while cutting most
+# points; result stays under a few MB.
+SIMPLIFY_TOL = 0.005
 KABKOTA_URL = "https://rebornian48.my.id/assets/json/kabkota.json"
 WIKI_API = ("https://id.wikipedia.org/w/api.php?action=parse"
             "&page=Daftar_kasus_keracunan_massal_makan_siang_gratis"
             "&prop=text|sections&format=json&disablelimitreport=1")
 
 def fetch(url):
-    with urllib.request.urlopen(url, timeout=60) as r:
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "map-visualizer-mbg-refresh/1.0 (github.com/Rebornian48/map-visualizer)",
+    })
+    with urllib.request.urlopen(req, timeout=60) as r:
         return r.read()
 
 # --- 1. fetch MBG section HTML ----------------------------------------------
@@ -217,3 +225,140 @@ out = {
 OUT.parent.mkdir(parents=True, exist_ok=True)
 OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
 print(f"wrote {OUT}  ({OUT.stat().st_size:,} bytes)")
+
+# --- 5. polygon choropleth: incidents.geojson -------------------------------
+#
+# Aggregate primary incidents per (kabupaten, provinsi), then take the
+# matching polygon from kabkota.json, simplify, and attach aggregate
+# properties. Only affected kabupaten are shipped, so this stays small.
+
+def rdp_indices(pts, tol):
+    """Ramer-Douglas-Peucker: return sorted list of point indices to keep."""
+    n = len(pts)
+    if n < 3: return list(range(n))
+    keep = [False] * n
+    keep[0] = True; keep[-1] = True
+    stack = [(0, n - 1)]
+    tol2 = tol * tol
+    while stack:
+        i, j = stack.pop()
+        if j - i < 2: continue
+        x1, y1 = pts[i]; x2, y2 = pts[j]
+        dx, dy = x2 - x1, y2 - y1
+        denom = dx*dx + dy*dy
+        best_d2, best_k = -1.0, -1
+        for k in range(i + 1, j):
+            x0, y0 = pts[k]
+            if denom == 0:
+                ddx, ddy = x0 - x1, y0 - y1
+                d2 = ddx*ddx + ddy*ddy
+            else:
+                # squared perpendicular distance
+                num = dx*(y1 - y0) - (x1 - x0)*dy
+                d2 = (num*num) / denom
+            if d2 > best_d2:
+                best_d2, best_k = d2, k
+        if best_d2 > tol2:
+            keep[best_k] = True
+            stack.append((i, best_k))
+            stack.append((best_k, j))
+    return [k for k in range(n) if keep[k]]
+
+def simplify_ring(ring, tol):
+    if len(ring) < 5: return ring
+    idx = rdp_indices(ring, tol)
+    # Ensure closure
+    if idx[-1] != len(ring) - 1: idx.append(len(ring) - 1)
+    return [ring[i] for i in idx]
+
+def simplify_geom(geom, tol):
+    if geom["type"] == "Polygon":
+        return {"type":"Polygon",
+                "coordinates":[[[round(x,4),round(y,4)] for x,y in simplify_ring(r, tol)] for r in geom["coordinates"]]}
+    if geom["type"] == "MultiPolygon":
+        out = []
+        for poly in geom["coordinates"]:
+            out.append([[[round(x,4),round(y,4)] for x,y in simplify_ring(r, tol)] for r in poly])
+        return {"type":"MultiPolygon","coordinates": out}
+    return geom
+
+# Aggregate by (norm kab, norm prov) using the same keys we matched with.
+agg = {}   # key -> {"kab":, "prov":, "kejadian":n, "bergejala":n, "meninggal":n, "top": [(loc, n), ...]}
+for row in rows_geo:
+    kn = KAB_ALIAS.get(norm(row["kab"]), norm(row["kab"]))
+    pn = norm_prov(row["prov"])
+    key = (kn, pn)
+    a = agg.get(key)
+    if not a:
+        a = {"kab": row["kab"], "prov": row["prov"], "kejadian": 0,
+             "bergejala": 0, "meninggal": 0, "top": []}
+        agg[key] = a
+    a["kejadian"] += 1
+    a["bergejala"] += row["n"]
+    a["meninggal"] += row.get("dead", 0)
+    a["top"].append((row["loc"], row["n"], row["d"]))
+
+for a in agg.values():
+    a["top"].sort(key=lambda t: -t[1])
+    a["top"] = a["top"][:3]  # keep top 3 by victim count
+
+# Extract matching polygons from kabkota.
+feats = []
+matched_poly = 0
+for f in kabkota["features"]:
+    p = f["properties"]
+    key = (norm(p.get("KAB_KOTA","")), norm(p.get("PROVINSI","")))
+    a = agg.get(key)
+    if not a: continue
+    geom = simplify_geom(f["geometry"], SIMPLIFY_TOL)
+    feats.append({
+        "type": "Feature",
+        "geometry": geom,
+        "properties": {
+            "kab": a["kab"],
+            "prov": a["prov"],
+            "n": a["bergejala"],
+            "kj": a["kejadian"],
+            "dd": a["meninggal"],
+            "top": [{"loc": t[0], "n": t[1], "d": t[2]} for t in a["top"]],
+        },
+    })
+    matched_poly += 1
+
+# Fallback matcher for keys the boundary file didn't reach directly.
+missing = [k for k in agg if not any(
+    (norm(f["properties"].get("KAB_KOTA","")), norm(f["properties"].get("PROVINSI","")))
+    == k for f in kabkota["features"]
+)]
+if missing:
+    for f in kabkota["features"]:
+        p = f["properties"]
+        kn = norm(p.get("KAB_KOTA",""))
+        for mk in missing:
+            if mk[0] == kn:
+                a = agg[mk]
+                geom = simplify_geom(f["geometry"], SIMPLIFY_TOL)
+                feats.append({
+                    "type": "Feature",
+                    "geometry": geom,
+                    "properties": {
+                        "kab": a["kab"], "prov": a["prov"],
+                        "n": a["bergejala"], "kj": a["kejadian"], "dd": a["meninggal"],
+                        "top": [{"loc": t[0], "n": t[1], "d": t[2]} for t in a["top"]],
+                    },
+                })
+                matched_poly += 1
+                break
+
+fc = {
+    "type": "FeatureCollection",
+    "generated": date.today().isoformat(),
+    "first_date": out["first_date"],
+    "last_date":  out["last_date"],
+    "total_incidents": out["total_incidents"],
+    "total_bergejala": out["total_bergejala"],
+    "total_meninggal": out["total_meninggal"],
+    "features": feats,
+}
+OUT_GEO.write_text(json.dumps(fc, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+print(f"wrote {OUT_GEO}  ({OUT_GEO.stat().st_size:,} bytes, {matched_poly} polygons)")
