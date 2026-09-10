@@ -297,6 +297,66 @@ function OpenAipSection() {
   )
 }
 
+function MbgSection() {
+  return (
+    <section>
+      <h3 style={h3Style}>Insiden Keracunan MBG — Wikipedia (agregat kab/kota)</h3>
+      <p style={pStyle}>
+        Choropleth kabupaten/kota untuk dugaan kasus keracunan program{' '}
+        <strong>Makan Bergizi Gratis (MBG)</strong>. Sumber tabel:{' '}
+        <ExternalLink href="https://id.wikipedia.org/wiki/Daftar_kasus_keracunan_massal_makan_siang_gratis">
+          Daftar kasus keracunan massal makan siang gratis
+        </ExternalLink>{' '}
+        (Wikipedia bahasa Indonesia), bagian <em>Makan Bergizi Gratis</em>.
+        Diambil via MediaWiki API, di-parse dengan handling rowspan yang
+        benar (satu insiden bisa mencakup beberapa sekolah — jumlah korban
+        tidak boleh dobel-hitung), lalu dijodohkan ke centroid + polygon
+        kabupaten dari <code>kabkota.json</code>.
+      </p>
+      <p style={pStyle}>
+        Layer render polygon batas administrasi kab/kota yang punya
+        insiden, dengan arsiran warm ramp berdasarkan <strong>total
+        korban bergejala</strong> di kabupaten tersebut: peach pucat
+        (≤50) → oranye → merah → maroon (&gt;2.000). Popup menampilkan
+        nama kabupaten, provinsi, jumlah kejadian di sana, total korban,
+        dan tiga insiden terbesar (nama lokasi + tanggal + korban).
+        Polygon di-simplify Ramer-Douglas-Peucker ~500 m supaya file
+        turun dari 33 MB (kabkota.json penuh) ke ~650 KB tanpa
+        mengorbankan bentuk kabupaten pada zoom nasional.
+      </p>
+      <p style={pStyle}>
+        <strong>Dashboard interaktif:</strong>{' '}
+        <ExternalLink href={`${import.meta.env.BASE_URL}keracunan-mbg`}>
+          /keracunan-mbg
+        </ExternalLink>{' '}
+        — halaman terpisah dengan timeline bulanan (bar chart) +
+        breakdown per provinsi + 10 insiden terparah. Cross-filter dua
+        arah: klik bulan → provinsi ter-filter; klik provinsi → timeline
+        ter-filter. Dashboard dan layer peta share satu sumber data
+        (<code>public/mbg/incidents.json</code>).
+      </p>
+      <p style={pStyle}>
+        Refresh manual (jalankan setelah tabel Wikipedia update):{' '}
+        <code>python scripts/refresh-mbg.py</code>. Script fetch section
+        Makan Bergizi Gratis lewat MediaWiki API, download{' '}
+        <code>kabkota.json</code>, dan menulis dua file:{' '}
+        <code>incidents.json</code> (per-insiden, dipakai dashboard) dan{' '}
+        <code>incidents.geojson</code> (per-kab/kota, dipakai peta).
+      </p>
+      <p style={pMuted}>
+        Data <em>as-is</em> dari Wikipedia — akurasi dan kelengkapannya
+        bergantung pada kontribusi editor. Untuk data resmi, rujuk ke
+        laporan Badan Gizi Nasional dan Kementerian Kesehatan. Angka
+        korban dan lokasi bisa berbeda dengan sumber primer. Konten
+        artikel Wikipedia dilisensikan{' '}
+        <ExternalLink href="https://creativecommons.org/licenses/by-sa/4.0/">
+          CC BY-SA 4.0
+        </ExternalLink>.
+      </p>
+    </section>
+  )
+}
+
 function SearatesSection() {
   return (
     <section>
@@ -350,10 +410,12 @@ function SearatesSection() {
 const OVERLAY_SUMMARY = [
   { section: 'Basemap', items: ['OpenStreetMap · Esri Satellite · OpenTopoMap (3 opsi)'] },
   { section: 'Wilayah', items: ['Provinsi (batas GeoJSON)', 'Kab/Kota (batas GeoJSON)'] },
-  { section: 'Transportasi Umum', items: [
+  { section: 'Transportasi', items: [
     'Bus JSON — 6 jaringan (Trans Semarang, Metro Trans Jabar, Bus Listrik Medan, Trans Koetaradja, Transpakuan, Mitra Darat)',
     'Bus GTFS — Transjakarta (BRT + Mikrotrans)',
     'Rel — KRL, LRT & MRT (garis + stasiun)',
+    'Aeronautika — 286 bandara + FIR/CTR/TMA dari OpenAIP',
+    'Maritim — pelabuhan Indonesia dari SeaRates World Sea Ports',
   ] },
   { section: 'Cuaca', items: [
     'Peringatan Dini Cuaca — CAP nowcast BMKG (severity polygon, live)',
@@ -364,13 +426,7 @@ const OVERLAY_SUMMARY = [
     'Tektonik PB2002 — 241 batas lempeng, 54 lempeng, 13 orogen',
     'Vulkano — 1.214 gunung Holocene (Smithsonian GVP) + 69 status live (MAGMA · PVMBG)',
     'Aviasi — SIGMET aktif worldwide dari NOAA AWC (VA, TS, TC, TURB, ICE, MTW, DS)',
-  ] },
-  { section: 'Aeronautika', items: [
-    'Bandara Indonesia — 286 aerodrome dari OpenAIP (runway, frekuensi, tipe)',
-    'FIR & Airspace — 2 FIR (Jakarta, Ujung Pandang) + 3 CTR + 3 TMA Papua (OpenAIP; coverage terbatas)',
-  ] },
-  { section: 'Maritim', items: [
-    'Pelabuhan Indonesia — SeaRates World Sea Ports (seed 15 pelabuhan utama; refresh manual pakai api_key untuk katalog nasional lengkap)',
+    'Insiden · Keracunan MBG — arsiran kab/kota, agregat dari tabel Wikipedia (~400+ insiden)',
   ] },
 ]
 
@@ -505,6 +561,11 @@ const SYMBOL_GROUPS = [
       { sym: <SymFill color="#fb8c00" fillOpacity={0.22} weight={1.5} />, name: 'TMA (Terminal Maneuvering Area)', note: 'Oranye, di atas FIR (pane z=412).' },
       { sym: <SymFill color="#d84315" fillOpacity={0.25} weight={2} />, name: 'CTR (Control Zone)', note: 'Merah bata, layer paling atas (pane z=422) — sekitar bandara.' },
       { sym: <SymFill color="#e53935" fillOpacity={0.25} />, name: 'Restricted / Prohibited',    note: 'Airspace larangan.' },
+      { sym: <SymFill color="#fdbb84" fillOpacity={0.72} weight={0.6} />, name: 'MBG kab/kota — ≤ 200 korban',  note: 'Choropleth kab/kota terdampak keracunan MBG (ramp warm; peach = sedikit).' },
+      { sym: <SymFill color="#fc8d59" fillOpacity={0.72} weight={0.6} />, name: 'MBG kab/kota — 201–500',       note: 'Oranye.' },
+      { sym: <SymFill color="#e34a33" fillOpacity={0.72} weight={0.6} />, name: 'MBG kab/kota — 501–1.000',     note: 'Merah.' },
+      { sym: <SymFill color="#b30000" fillOpacity={0.72} weight={0.6} />, name: 'MBG kab/kota — 1.001–2.000',   note: 'Merah tua.' },
+      { sym: <SymFill color="#7f0000" fillOpacity={0.72} weight={0.6} />, name: 'MBG kab/kota — > 2.000',       note: 'Maroon gelap (paling parah).' },
     ],
   },
 ]
@@ -569,7 +630,7 @@ function OverlaySummary() {
       <h3 style={h3Style}>Ringkasan Isi Peta</h3>
       <p style={pStyle}>
         Peta ini menggabungkan overlay dari berbagai sumber terbuka. Panel
-        di kanan-atas dibagi ke enam tombol berdasarkan kategori:
+        di kanan-atas dibagi ke lima tombol berdasarkan kategori:
       </p>
       <div style={{
         display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4,
@@ -655,6 +716,7 @@ export default function InfoPage({ onBack }) {
         <TectonicSection />
         <OpenAipSection />
         <SearatesSection />
+        <MbgSection />
       </main>
     </div>
   )

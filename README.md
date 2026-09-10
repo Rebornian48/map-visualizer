@@ -17,11 +17,12 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   **glyph bus**, stasiun rel = **glyph kereta**. Rendering pakai
   `L.divIcon` dengan SVG inline dari [src/mapIcons.js](src/mapIcons.js).
   Legend swatch juga ikut simbol yang bersangkutan supaya konsisten.
-- **Layer panel = 6 tombol kategori** di top-right — _Basemap_,
-  _Wilayah_, _Transportasi_, _Cuaca_, _Bencana Alam_, _Aeronautika_.
-  Klik salah satu → panel konten yang relevan muncul; hanya satu
-  terbuka pada satu waktu. Group baru dengan nama yang cocok (di
-  `SECTIONS` di
+- **Layer panel = 5 tombol kategori** di top-right — _Basemap_,
+  _Wilayah_, _Transportasi_, _Cuaca_, _Bencana Alam_. Klik salah
+  satu → panel konten yang relevan muncul; hanya satu terbuka pada
+  satu waktu. Aeronautika (OpenAIP) dan Maritim (SeaRates) hidup di
+  dalam _Transportasi_ sebagai group tersendiri. Group baru dengan
+  nama yang cocok (di `SECTIONS` di
   [src/components/LayersControl.jsx](src/components/LayersControl.jsx))
   otomatis mendarat di kategori yang benar.
 - **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap
@@ -81,8 +82,8 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   nama, negara, wilayah/subwilayah, tipe, landform, elevasi, batuan
   utama, setting tektonik, tahun erupsi terakhir, bukti, foto GVP,
   ringkasan geologis, dan deep-link ke halaman `volcano.si.edu`.
-- **Aeronautika (OpenAIP)** — tab `Aeronautika` (tombol pesawat di
-  top-right) dengan dua toggle:
+- **Aeronautika (OpenAIP)** — grup `Aeronautika · OpenAIP` di bawah
+  _Transportasi_ dengan dua toggle:
   - **Bandara Indonesia** — 286 aerodrome dari OpenAIP (civil,
     militer, internasional, heliport, seaplane base) lengkap dengan
     runway (designator, panjang, permukaan) dan frekuensi ATS
@@ -95,6 +96,23 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   `OPENAIP_KEY=… node scripts/refresh-openaip.mjs` tiap AIRAC cycle.
   OpenAIP di-populate komunitas — coverage Indonesia terbatas (CTR/TMA
   di luar Papua, PRD areas, navaid, dan waypoint belum terisi).
+- **Insiden Keracunan MBG (Wikipedia)** — grup `Insiden · MBG` di
+  bawah _Bencana Alam_. Choropleth kabupaten/kota untuk dugaan kasus
+  keracunan program Makan Bergizi Gratis: polygon batas administrasi
+  di-arsir warm ramp (peach ≤50 → maroon &gt;2.000) berdasar total
+  korban di kabupaten itu. Sumber tabel: Wikipedia bahasa Indonesia
+  [_Daftar kasus keracunan massal makan siang gratis_](https://id.wikipedia.org/wiki/Daftar_kasus_keracunan_massal_makan_siang_gratis)
+  section Makan Bergizi Gratis, di-parse dengan handling rowspan
+  (jumlah korban tidak dobel-hitung) lewat MediaWiki API, matched
+  ke polygon `kabkota.json`, disimplify RDP ~500m jadi ~650 KB. Popup
+  menampilkan kabupaten, jumlah kejadian, total korban, dan tiga
+  insiden terbesar. Dashboard interaktif terpisah di
+  [/map-visualizer/keracunan-mbg](https://rebornian48.my.id/map-visualizer/keracunan-mbg)
+  — timeline bulanan + breakdown provinsi + top 10, dengan
+  cross-filter dua arah. Refresh manual dengan
+  `python scripts/refresh-mbg.py` (hasilkan dua file:
+  `public/mbg/incidents.json` untuk dashboard,
+  `public/mbg/incidents.geojson` untuk peta).
 - **Tektonik (PB2002)** — grup `Tektonik` di layer control dengan
   tiga toggle: batas lempeng (garis; zona subduksi ditandai merah
   tebal), poligon lempeng (54 lempeng dengan warna stabil per kode),

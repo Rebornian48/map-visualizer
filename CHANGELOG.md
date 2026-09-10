@@ -8,6 +8,78 @@ at the top.
 
 ### Added
 
+- **Insiden Keracunan MBG — choropleth kab/kota + dashboard interaktif.**
+  Grup baru `Insiden · MBG` di bawah _Bencana Alam_ (toggle
+  _Keracunan MBG_). Data-nya dari tabel Wikipedia bahasa Indonesia
+  [_Daftar kasus keracunan massal makan siang gratis_](https://id.wikipedia.org/wiki/Daftar_kasus_keracunan_massal_makan_siang_gratis)
+  section _Makan Bergizi Gratis_ — di-fetch via MediaWiki API,
+  di-parse dengan handling rowspan yang benar (satu insiden bisa
+  span beberapa sekolah; jumlah korban tidak boleh dobel-hitung),
+  lalu dijodohkan ke polygon `kabkota.json`.
+  Layer render polygon batas administrasi kabupaten/kota yang punya
+  insiden dengan arsiran warm ramp berdasarkan total korban di
+  kabupaten itu (peach ≤50 → maroon &gt;2.000). Popup menampilkan
+  kabupaten, jumlah kejadian, total korban, dan tiga insiden
+  terbesar (nama lokasi + tanggal + jumlah).
+  Polygon di-simplify Ramer-Douglas-Peucker ~500m, jadi file turun
+  dari 33 MB (kabkota.json penuh) ke ~650 KB.
+  Dashboard interaktif terpisah di
+  [/keracunan-mbg](https://rebornian48.my.id/map-visualizer/keracunan-mbg)
+  — timeline bulanan (bar chart, warna warm ramp) + breakdown per
+  provinsi (horizontal bars) + top 10 insiden terparah, dengan
+  cross-filter dua arah (klik bulan → provinsi ter-filter; klik
+  provinsi → timeline ter-filter). Design Fraunces serif + Public
+  Sans, dark/light theme-aware. Dashboard dan layer peta share satu
+  sumber data (`public/mbg/incidents.json` + `.geojson`, dua-duanya
+  dihasilkan oleh `scripts/refresh-mbg.py`).
+- **Auto-refresh BMKG layers (setInterval).** Layer BMKG yang di-toggle
+  aktif sekarang otomatis re-fetch tiap N menit: Gempa (autogempa,
+  terkini, dirasakan) tiap 2 menit, CAP Peringatan Dini Cuaca tiap
+  5 menit, Prakiraan Cuaca Kota Besar tiap 30 menit. Interval
+  di-attach saat toggle-on dan di-clear saat toggle-off; guard supaya
+  tidak race kalau user matikan layer selagi fetch jalan. Kegagalan
+  refresh cuma `console.warn` — layer lama tetap tampil, jadi hiccup
+  jaringan sesaat tidak menghapus data yang sudah ada.
+
+### Changed
+
+- **Panel Layers: gabungkan Aeronautika + Maritim ke Transportasi.**
+  Toolbar Layers turun dari tujuh tombol jadi lima
+  (_Basemap_, _Wilayah_, _Transportasi_, _Cuaca_, _Bencana Alam_).
+  Aeronautika (OpenAIP) dan Maritim (SeaRates) tetap ada — pindah
+  jadi group tersendiri di dalam panel _Transportasi_. Semua key
+  layer dan state toggle tidak berubah, cuma pengelompokan UI-nya
+  yang digabung.
+- **MBG layer: centroid dot → polygon choropleth kab/kota.**
+  Iterasi pertama layer MBG render satu `circleMarker` per lokasi
+  di centroid kabupaten — banyak dot tumpuk di kota yang sama, dan
+  peta terbaca "dot di Jawa" alih-alih peta severity administratif.
+  Sekarang render polygon batas kabupaten yang punya insiden dengan
+  arsiran warm ramp (lihat entri _Insiden Keracunan MBG_ di atas).
+
+### Fixed
+
+- **Boundary layers Provinsi/Kab-Kota gagal load — CORS.** Endpoint
+  `rebornian48.my.id/assets/json/{provinsi,kabkota}.json` mengembalikan
+  200 OK tapi tanpa header `Access-Control-Allow-Origin`, sehingga
+  browser memblokir respons (`Failed to fetch`). Overlay lain aman
+  karena diproksi via `proxy.php` yang menyisipkan CORS; dua JSON ini
+  bypass proxy dan hit static origin langsung.
+  Dev sekarang lewat Vite proxy baru `/rebornian-assets`. Prod
+  diperbaiki dengan menambah `Access-Control-Allow-Origin: *` di
+  `.htaccess` untuk `/assets/json/` (perubahan sisi server).
+- **TDZ di `attachBoundaryLayer` saat boundary GeoJSON akhirnya
+  ter-load.** Bug lama yang tersembunyi karena fetch selalu gagal
+  duluan di CORS: `L.geoJSON({onEachFeature: ...})` memanggil
+  callback sinkron selama konstruktor jalan, dan callback-nya baca
+  `const layer` yang lagi di-assign — hit Temporal Dead Zone (`Cannot
+  access 'h' before initialization` di bundle prod). Diperbaiki
+  dengan meng-inject getter `getLayer` alih-alih referensi langsung
+  ke `layer`; getter di-resolve nanti saat user hover/click, jauh
+  setelah `L.geoJSON()` selesai return.
+
+### Added — earlier this window
+
 - **Maritim overlay — Pelabuhan Indonesia (SeaRates World Sea Ports).**
   New _Maritim_ section (anchor icon) exposes Indonesian sea ports as
   anchor markers. Data lives at `public/searates/ports.json` and comes
