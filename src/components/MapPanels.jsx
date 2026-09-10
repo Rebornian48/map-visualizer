@@ -379,6 +379,13 @@ export function MbgLegend({ uiPanel, activeKeys, meta }) {
           fontSize: '0.68rem', color: 'var(--text-dim)',
         }}>{info.first} → {info.last} · {info.bergejala?.toLocaleString('id-ID')} bergejala{info.meninggal ? `, ${info.meninggal} meninggal` : ''}</div>
       )}
+      <div style={{ marginTop: 6 }}>
+        <a href={`${import.meta.env.BASE_URL}keracunan-mbg`}
+           target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--accent)', fontSize: '0.72rem', textDecoration: 'none' }}>
+          Lihat detail dashboard →
+        </a>
+      </div>
     </div>
   )
 }
