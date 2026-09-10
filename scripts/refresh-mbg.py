@@ -136,11 +136,32 @@ print("fetch kabkota.json …")
 kabkota = json.loads(fetch(KABKOTA_URL))
 
 def norm(s):
+    """Normalise a kabupaten/kota name to '<kind>:<bare-name>'.
+
+    Kabupaten X and Kota X are DIFFERENT administrative units (different
+    polygons, different populations), and several cities share the name
+    with the surrounding regency — Bandung, Malang, Bogor, Bekasi,
+    Tangerang, Cirebon, Sukabumi, Tasikmalaya, Pekalongan, Tegal,
+    Magelang, Semarang, Salatiga, Yogyakarta, Kediri, Blitar, Madiun,
+    Mojokerto, Probolinggo, Pasuruan, Batu — so we MUST keep the kind
+    prefix. Falls back to 'kab:x' when no explicit prefix appears
+    (the boundary file uses bare 'Jeneponto' for the regency, etc.).
+    """
     if not s: return ""
     s = re.sub(r"\s+", " ", s.lower()).strip()
-    for pfx in ["kabupaten ", "kota administrasi ", "kota "]:
-        if s.startswith(pfx): s = s[len(pfx):]
-    return re.sub(r"[^a-z0-9 ]", "", s).strip()
+    kind = "kab"
+    if s.startswith("kota administrasi "):
+        s, kind = s[len("kota administrasi "):], "kota"
+    elif s.startswith("kota "):
+        s, kind = s[len("kota "):], "kota"
+    elif s.startswith("kabupaten "):
+        s, kind = s[len("kabupaten "):], "kab"
+    elif s.startswith("kab. "):
+        s, kind = s[len("kab. "):], "kab"
+    elif s.startswith("kab "):
+        s, kind = s[len("kab "):], "kab"
+    bare = re.sub(r"[^a-z0-9 ]", "", s).strip()
+    return f"{kind}:{bare}"
 
 centroids, by_kab = {}, {}
 for f in kabkota["features"]:
@@ -178,11 +199,22 @@ PROV_ALIAS = {
     "papua tengah":"papua tengah","papua pegunungan":"papua pegunungan",
     "papua selatan":"papua selatan",
 }
+# Wiki-spelling → boundary-spelling. Keys AND values are post-`norm()`,
+# so they carry the "kab:" / "kota:" prefix.
 KAB_ALIAS = {
-    "timur tengah utara": "timor tengah utara",
-    "pangkajene dan kepulauan": "pangkajene kepulauan",
-    "kapupaten jeneponto": "jeneponto",
-    "baubau": "bau bau",
+    "kab:timur tengah utara": "kab:timor tengah utara",     # wiki typo
+    "kab:pangkajene dan kepulauan": "kab:pangkajene kepulauan",
+    "kab:kapupaten jeneponto": "kab:jeneponto",             # wiki typo (Kap→Kab)
+    "kota:baubau": "kota:bau bau",
+    # DKI Jakarta: wiki writes bare "Jakarta X" (defaults to kab:), but the
+    # boundary file has "Kota Administrasi Jakarta X" (kota:). No kabupaten
+    # by these names exists in DKI (there's only Kepulauan Seribu), so map
+    # them to the kota entries.
+    "kab:jakarta selatan": "kota:jakarta selatan",
+    "kab:jakarta utara":   "kota:jakarta utara",
+    "kab:jakarta timur":   "kota:jakarta timur",
+    "kab:jakarta barat":   "kota:jakarta barat",
+    "kab:jakarta pusat":   "kota:jakarta pusat",
 }
 def norm_prov(s):
     n = norm(s); return PROV_ALIAS.get(n, n)
