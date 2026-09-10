@@ -8,6 +8,27 @@ at the top.
 
 ### Added
 
+- **Gereja Katolik · Keuskupan — choropleth kabupaten (Wikipedia).**
+  Toggle baru `Keuskupan Katolik` di grup `Gereja Katolik` di bawah
+  _Wilayah_ (di bawah radio boundary Provinsi/Kab/Kota). Warna arsiran
+  menandai **provinsi gerejawi** (10 hue: Medan, Palembang, Jakarta,
+  Semarang, Ende, Kupang, Pontianak, Samarinda, Makassar, Merauke) —
+  bukan per keuskupan, supaya struktur hierarki (metropolit + sufragan)
+  terbaca sekali pandang. Total 514 kabupaten/kota → 38 keuskupan
+  teritorial (Ordinariat Militer TNI/Polri tidak masuk peta karena
+  tidak punya batas geografis).
+  Sumber: [Daftar keuskupan di Indonesia](https://id.wikipedia.org/wiki/Daftar_keuskupan_di_Indonesia)
+  untuk metadata (uskup, tahun berdiri, katedral, provinsi gerejawi,
+  status) + halaman masing-masing keuskupan untuk daftar kabupaten
+  tepat (roster di-embed di `scripts/refresh-keuskupan.py`, bukan hasil
+  scrape, karena Wikipedia menuliskan cakupan wilayah dalam prosa
+  seperti "Jawa Tengah bagian barat" yang tidak machine-readable).
+  Popup menampilkan nama kab/kota + provinsi sipil, nama keuskupan,
+  status (Metropolit/Sufragan), tahun berdiri, uskup diosesan aktif
+  (atau tanda _Lowong_ dengan tanggal), dan katedral.
+  Polygon di-simplify Ramer-Douglas-Peucker ~1,1 km jadi ~1 MB.
+  Section detail baru di halaman _Tentang data_. Refresh manual:
+  `python scripts/refresh-keuskupan.py`.
 - **Insiden Keracunan MBG — choropleth kab/kota + dashboard interaktif.**
   Grup baru `Insiden · MBG` di bawah _Bencana Alam_ (toggle
   _Keracunan MBG_). Data-nya dari tabel Wikipedia bahasa Indonesia

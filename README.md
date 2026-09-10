@@ -96,6 +96,22 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   `OPENAIP_KEY=… node scripts/refresh-openaip.mjs` tiap AIRAC cycle.
   OpenAIP di-populate komunitas — coverage Indonesia terbatas (CTR/TMA
   di luar Papua, PRD areas, navaid, dan waypoint belum terisi).
+- **Gereja Katolik · Keuskupan (Wikipedia)** — toggle
+  `Keuskupan Katolik` di grup `Gereja Katolik` di bawah _Wilayah_
+  (di bawah radio boundary Provinsi/Kab/Kota). Choropleth 514
+  kabupaten/kota Indonesia diwarnai per **provinsi gerejawi** (10
+  hue: Medan, Palembang, Jakarta, Semarang, Ende, Kupang, Pontianak,
+  Samarinda, Makassar, Merauke) — supaya struktur metropolit +
+  sufragan terbaca sekali pandang. Cakupan 38 keuskupan teritorial
+  (Ordinariat Militer tidak masuk peta karena tidak punya batas
+  geografis). Popup menampilkan kab/kota + provinsi sipil, nama
+  keuskupan, status (Metropolit/Sufragan), tahun berdiri, uskup
+  diosesan aktif + tanggal penunjukan (atau _Lowong_), dan katedral.
+  Sumber: [Daftar keuskupan di Indonesia](https://id.wikipedia.org/wiki/Daftar_keuskupan_di_Indonesia)
+  + halaman masing-masing keuskupan. Polygon RDP ~1,1 km → ~1 MB.
+  Refresh manual: `python scripts/refresh-keuskupan.py` (roster
+  di-embed di script, bukan hasil scrape, karena Wikipedia
+  menuliskan cakupan wilayah dalam prosa).
 - **Insiden Keracunan MBG (Wikipedia)** — grup `Insiden · MBG` di
   bawah _Bencana Alam_. Choropleth kabupaten/kota untuk dugaan kasus
   keracunan program Makan Bergizi Gratis: polygon batas administrasi

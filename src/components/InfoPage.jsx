@@ -357,6 +357,73 @@ function MbgSection() {
   )
 }
 
+function KeuskupanSection() {
+  return (
+    <section>
+      <h3 style={h3Style}>Gereja Katolik — Keuskupan (batas gerejawi kab/kota)</h3>
+      <p style={pStyle}>
+        Choropleth kabupaten/kota berdasar keuskupan (diocese) Gereja
+        Katolik. Sumber:{' '}
+        <ExternalLink href="https://id.wikipedia.org/wiki/Daftar_keuskupan_di_Indonesia">
+          Daftar keuskupan di Indonesia
+        </ExternalLink>{' '}
+        (Wikipedia bahasa Indonesia) untuk daftar 38 keuskupan teritorial +
+        metadata (uskup, tahun berdiri, katedral, provinsi gerejawi), lalu
+        halaman masing-masing keuskupan untuk daftar kabupaten tepat. Data
+        dijodohkan ke polygon <code>kabkota.json</code>: <strong>514
+        kabupaten/kota, 38 keuskupan, 10 provinsi gerejawi</strong> (Medan,
+        Palembang, Jakarta, Semarang, Ende, Kupang, Pontianak, Samarinda,
+        Makassar, Merauke). Ordinariat Militer tidak masuk peta karena tidak
+        punya batas geografis (mencakup lingkungan TNI &amp; Polri seluruh
+        Indonesia).
+      </p>
+      <p style={pStyle}>
+        Warna arsiran menandai <strong>provinsi gerejawi</strong> (10 hue
+        distinct dari palet ColorBrewer, satu warna per provinsi
+        metropolitan) — bukan satu warna per keuskupan, agar
+        struktur hierarki gerejawi terbaca sekali pandang: keuskupan sufragan
+        yang satu provinsi gerejawi dengan metropolitannya akan mengambil
+        warna yang sama. Popup menampilkan: nama kab/kota + provinsi sipil,
+        nama keuskupan, status (Metropolit / Sufragan), tahun berdiri, nama
+        uskup diosesan aktif (atau tanda <em>Lowong</em> jika kursi kosong)
+        dengan tanggal penunjukan, dan katedral. Polygon di-simplify
+        Ramer-Douglas-Peucker ~1,1 km untuk menekan file ke ~1 MB — visual
+        loss tidak terlihat pada zoom nasional.
+      </p>
+      <p style={pStyle}>
+        Catatan pemetaan: beberapa kabupaten split antar keuskupan
+        (Kabupaten Mappi di Papua Selatan sebagian ke KA Merauke sebagian ke
+        Keuskupan Agats; Mamberamo Raya di Papua sebagian ke Jayapura
+        sebagian ke Timika). Layer ini memilih keuskupan mayoritas untuk
+        setiap kabupaten karena polygon terkecil di kabkota.json adalah
+        kabupaten, bukan distrik. Kelurahan Pondok Labu (Cilandak, Jakarta
+        Selatan) yang secara gerejawi masuk Keuskupan Bogor juga
+        diagregasikan ke KAJ karena alasan sama.
+      </p>
+      <p style={pStyle}>
+        Refresh manual (jalankan setelah pergantian uskup atau pembentukan
+        keuskupan baru — misalnya Keuskupan Labuan Bajo yang baru berdiri
+        21 Juni 2024): <code>python scripts/refresh-keuskupan.py</code>.
+        Daftar keuskupan + kabupaten di-embed langsung di dalam script
+        (bukan hasil scrape) karena Wikipedia menuliskan cakupan wilayah
+        dalam prosa (mis. "Jawa Tengah bagian barat") yang tidak
+        machine-readable.
+      </p>
+      <p style={pMuted}>
+        Data <em>as-is</em> — akurasi bergantung pada edisi Wikipedia saat
+        script dijalankan. Untuk data resmi rujuk ke Konferensi Waligereja
+        Indonesia (<ExternalLink href="https://kawali.org/">
+          kawali.org
+        </ExternalLink>) dan situs masing-masing keuskupan. Konten
+        Wikipedia dilisensikan{' '}
+        <ExternalLink href="https://creativecommons.org/licenses/by-sa/4.0/">
+          CC BY-SA 4.0
+        </ExternalLink>.
+      </p>
+    </section>
+  )
+}
+
 function SearatesSection() {
   return (
     <section>
@@ -409,7 +476,11 @@ function SearatesSection() {
 
 const OVERLAY_SUMMARY = [
   { section: 'Basemap', items: ['OpenStreetMap · Esri Satellite · OpenTopoMap (3 opsi)'] },
-  { section: 'Wilayah', items: ['Provinsi (batas GeoJSON)', 'Kab/Kota (batas GeoJSON)'] },
+  { section: 'Wilayah', items: [
+    'Provinsi (batas GeoJSON)',
+    'Kab/Kota (batas GeoJSON)',
+    'Gereja Katolik · Keuskupan — choropleth kabupaten, warna per 10 provinsi gerejawi (Wikipedia)',
+  ] },
   { section: 'Transportasi', items: [
     'Bus JSON — 6 jaringan (Trans Semarang, Metro Trans Jabar, Bus Listrik Medan, Trans Koetaradja, Transpakuan, Mitra Darat)',
     'Bus GTFS — Transjakarta (BRT + Mikrotrans)',
@@ -717,6 +788,7 @@ export default function InfoPage({ onBack }) {
         <OpenAipSection />
         <SearatesSection />
         <MbgSection />
+        <KeuskupanSection />
       </main>
     </div>
   )

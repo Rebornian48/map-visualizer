@@ -25,6 +25,7 @@ const TRANSPORT_GROUP_NAMES  = [
 ]
 const CUACA_GROUP_NAMES      = ['BMKG · Peringatan Dini', 'BMKG · Cuaca']
 const BENCANA_GROUP_NAMES    = ['BMKG · Gempa', 'Vulkano', 'Tektonik', 'Aviasi', 'Insiden · MBG']
+const WILAYAH_GROUP_NAMES    = ['Gereja Katolik']
 
 // SVG icon components — kept small so 4 fit in a row at top-right.
 function IconBasemap() {
@@ -82,7 +83,7 @@ function IconCuaca() {
 }
 const SECTIONS = [
   { key: 'basemap',   title: 'Basemap',      kind: 'basemap',  Icon: IconBasemap },
-  { key: 'wilayah',   title: 'Wilayah',      kind: 'wilayah',  Icon: IconWilayah },
+  { key: 'wilayah',   title: 'Wilayah',      kind: 'wilayah',  Icon: IconWilayah, groups: WILAYAH_GROUP_NAMES },
   { key: 'transport', title: 'Transportasi', kind: 'groups',   Icon: IconTransport, groups: TRANSPORT_GROUP_NAMES },
   { key: 'cuaca',     title: 'Cuaca',        kind: 'groups',   Icon: IconCuaca,     groups: CUACA_GROUP_NAMES },
   { key: 'bencana',   title: 'Bencana Alam', kind: 'groups',   Icon: IconBencana,   groups: BENCANA_GROUP_NAMES },
@@ -202,10 +203,19 @@ function SectionBody({ section, props }) {
   }
   if (section.kind === 'wilayah') {
     return (
-      <BoundarySection
-        boundary={props.boundary}
-        onBoundary={props.onBoundary}
-        boundaryLoading={props.boundaryLoading} />
+      <>
+        <BoundarySection
+          boundary={props.boundary}
+          onBoundary={props.onBoundary}
+          boundaryLoading={props.boundaryLoading} />
+        <div style={{ height: 1, background: 'var(--border)', margin: '10px 0' }} />
+        <TransportGroups
+          groups={section.groups}
+          transportActive={props.transportActive}
+          transportLoading={props.transportLoading}
+          transportError={props.transportError}
+          onToggleTransport={props.onToggleTransport} />
+      </>
     )
   }
   return (
