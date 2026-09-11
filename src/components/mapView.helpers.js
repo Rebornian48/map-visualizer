@@ -9,8 +9,10 @@ export const SPEEDS = [1, 2, 5, 10]
 const BOUNDARY_BASE = `${import.meta.env.BASE_URL || '/'}boundaries`
 
 export const BOUNDARY_SOURCES = new Map([
-  ['provinsi', `${BOUNDARY_BASE}/provinsi.json`],
-  ['kabkota',  `${BOUNDARY_BASE}/kabkota.json`],
+  ['provinsi',  `${BOUNDARY_BASE}/provinsi.json`],
+  ['kabkota',   `${BOUNDARY_BASE}/kabkota.json`],
+  ['kecamatan', `${BOUNDARY_BASE}/kecamatan.json`],
+  ['desa',      `${BOUNDARY_BASE}/desa.json`],
 ])
 
 export const BASEMAPS = new Map([
@@ -36,8 +38,10 @@ export const escapeHtml = (s) => {
   return div.innerHTML;
 };
 
-const PROVINCE_KEYS = ['WADMPR', 'PROVINSI', 'Propinsi', 'NAME_1', 'nama_provinsi', 'province']
-const KABKOTA_KEYS  = ['KAB_KOTA', 'KABKOT', 'WADMKK', 'NAME_2', 'kabupaten']
+const PROVINCE_KEYS   = ['WADMPR', 'PROVINSI', 'Propinsi', 'NAME_1', 'nama_provinsi', 'province']
+const KABKOTA_KEYS    = ['WADMKK', 'KAB_KOTA', 'KABKOT', 'NAME_2', 'kabupaten']
+const KECAMATAN_KEYS  = ['WADMKC', 'KECAMATAN', 'NAME_3']
+const DESA_KEYS       = ['WADMKD', 'KELDESA', 'KELURAHAN', 'NAME_4']
 
 function pickProp(props, keys) {
   if (!props) return ''
@@ -67,20 +71,26 @@ function serializeHtml(nodes) {
   return wrap.innerHTML
 }
 
+function stackedLabel(main, secondaries) {
+  if (!main && secondaries.every(s => !s)) return ''
+  const nodes = []
+  if (main) nodes.push(strongText(main))
+  for (const s of secondaries) {
+    if (!s) continue
+    if (nodes.length) nodes.push(document.createElement('br'))
+    nodes.push(dimText(s))
+  }
+  return serializeHtml(nodes)
+}
+
 export function boundaryLabelHtml(kind, props) {
-  if (kind === 'provinsi') {
-    const name = pickProp(props, PROVINCE_KEYS)
-    return name ? serializeHtml([strongText(name)]) : ''
-  }
-  if (kind === 'kabkota') {
-    const kab  = pickProp(props, KABKOTA_KEYS)
-    const prov = pickProp(props, PROVINCE_KEYS)
-    if (!kab && !prov) return ''
-    const nodes = []
-    if (kab)  nodes.push(strongText(kab))
-    if (kab && prov) nodes.push(document.createElement('br'))
-    if (prov) nodes.push(dimText(prov))
-    return serializeHtml(nodes)
-  }
+  const prov = pickProp(props, PROVINCE_KEYS)
+  const kab  = pickProp(props, KABKOTA_KEYS)
+  const kec  = pickProp(props, KECAMATAN_KEYS)
+  const desa = pickProp(props, DESA_KEYS)
+  if (kind === 'provinsi')  return stackedLabel(prov, [])
+  if (kind === 'kabkota')   return stackedLabel(kab,  [prov])
+  if (kind === 'kecamatan') return stackedLabel(kec,  [`${kab || ''}${kab && prov ? ' · ' : ''}${prov || ''}`])
+  if (kind === 'desa')      return stackedLabel(desa, [kec, `${kab || ''}${kab && prov ? ' · ' : ''}${prov || ''}`])
   return ''
 }

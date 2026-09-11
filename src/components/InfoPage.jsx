@@ -87,48 +87,72 @@ function BigBoundarySection() {
     <section>
       <h3 style={h3Style}>Batas Wilayah — BIG (Badan Informasi Geospasial)</h3>
       <p style={pStyle}>
-        Overlay <strong>Provinsi</strong> dan <strong>Kab/Kota</strong> di
-        panel <em>Wilayah</em> diambil dari service ArcGIS REST publik{' '}
-        <strong>Badan Informasi Geospasial</strong>, edisi Juni 2026:
+        Overlay <strong>Provinsi</strong>, <strong>Kab/Kota</strong>,{' '}
+        <strong>Kecamatan</strong>, <strong>Kelurahan/Desa</strong>, dan{' '}
+        <strong>Batas Laut</strong> di panel <em>Wilayah</em> semuanya
+        diambil dari service ArcGIS REST publik{' '}
+        <strong>Badan Informasi Geospasial</strong>, edisi Juni 2026,
+        dari lima MapServer berbeda di{' '}
+        <ExternalLink href="https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH">
+          geoservices.big.go.id/rbi/rest/services/BATASWILAYAH
+        </ExternalLink>:
       </p>
-      <p style={{ ...pMuted, fontFamily: "'DM Mono', monospace" }}>
-        <ExternalLink href="https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KABKOTA_AR/MapServer">
-          geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KABKOTA_AR
-        </ExternalLink>
+      <ul style={{ ...pStyle, paddingLeft: '1.25em', margin: '0.5em 0',
+                    fontFamily: "'DM Mono', monospace", fontSize: '0.8rem' }}>
+        <li>BATAS_KABKOTA_AR &nbsp;· 541 kab/kota (~3 MB)</li>
+        <li>BATAS_KECAMATAN_AR · 7.432 kecamatan (~8 MB)</li>
+        <li>BATAS_DESAKEL_AR &nbsp;· 84.503 kelurahan/desa (~30 MB)</li>
+        <li>BatasNegaraLaut &nbsp;&nbsp;· 4 sublayer polyline (~400 KB total)</li>
+      </ul>
+      <p style={pStyle}>
+        Layer <strong>Provinsi</strong> (38) dihasilkan dengan dissolve
+        kab/kota per <code>WADMPR</code>; BIG tidak menyediakan endpoint
+        provinsi murni (layer 12 di service <code>BATAS_WILAYAH</code>{' '}
+        sebenarnya berisi baris kab/kota juga). Empat provinsi Papua
+        baru (Papua Barat Daya, Papua Pegunungan, Papua Selatan, Papua
+        Tengah) dan kab/kota barunya sudah masuk sesuai UU pemekaran
+        2022.
       </p>
       <p style={pStyle}>
-        <strong>Cakupan:</strong> 541 kabupaten/kota (naik dari 514 edisi
-        sebelumnya) — mencakup 4 provinsi baru di Papua (Papua Barat Daya,
-        Papua Pegunungan, Papua Selatan, Papua Tengah) dan kabupaten/kota
-        barunya sesuai UU pemekaran 2022. Layer Provinsi (38) dihasilkan
-        dengan dissolve kab/kota per <code>WADMPR</code>; BIG tidak
-        menyediakan endpoint provinsi murni (layer 12 di service{' '}
-        <code>BATAS_WILAYAH</code> sebenarnya berisi baris kab/kota juga).
+        <strong>Batas Laut</strong> — empat zona UNCLOS sebagai
+        polyline, disajikan sebagai checkbox independen (boleh overlay
+        bersama-sama): <strong>Laut Teritorial</strong> (12 nm, biru
+        solid), <strong>Zona Tambahan</strong> (24 nm, cyan dashed),{' '}
+        <strong>Landas Kontinen</strong> (magenta dash-dot), dan{' '}
+        <strong>ZEE</strong> (200 nm, oranye dashed). Warna
+        cool → warm mengikuti urutan seaward.
       </p>
       <p style={pStyle}>
         <strong>Pipeline refresh</strong>{' '}
-        (<code>scripts/refresh-boundaries.py</code>): paginasi 200 fitur per
-        request (server BIG 500 di atas itu), minta simplifikasi server-side
-        <code> maxAllowableOffset=0.002</code> (~220 m), lalu di klien{' '}
-        <em>shapely</em>:
+        (<code>scripts/refresh-boundaries.py</code> dan{' '}
+        <code>refresh-laut.py</code>): paginasi (server BIG 500 di atas
+        payload besar), server-side{' '}
+        <code>maxAllowableOffset</code> untuk menekan payload, lalu di
+        klien <em>shapely</em>:
       </p>
       <ul style={{ ...pStyle, paddingLeft: '1.25em', margin: '0.5em 0' }}>
-        <li>Kab/Kota RDP ~555 m, koordinat 4 dp (~11 m) → <code>~3 MB</code></li>
-        <li>Provinsi RDP ~2,2 km, drop islet slivers &lt; 6 km²,
-          drop interior-ring holes dari mismatch antar-tetangga → <code>~250 KB</code></li>
+        <li>Kab/Kota RDP ~555 m → <code>~3 MB</code></li>
+        <li>Provinsi RDP ~2,2 km + islet + hole filter → <code>~250 KB</code></li>
+        <li>Kecamatan RDP ~333 m → <code>~8 MB</code></li>
+        <li>Kelurahan/Desa server_offset 0,005° + RDP 0,002° → <code>~30 MB</code></li>
+        <li>Batas Laut — polylines raw dari BIG (fitur sedikit, sudah
+          coarse) → <code>~400 KB total</code></li>
       </ul>
       <p style={pStyle}>
-        Snapshot di-vendor ke <code>public/boundaries/&#123;provinsi,kabkota&#125;.json</code>{' '}
-        supaya build self-contained (tidak fetch ke BIG saat runtime).
-        Field yang di-preserve: <code>WADMPR</code>, <code>WADMKK</code>,{' '}
-        <code>KDPBPS</code> (kode BPS provinsi), <code>KDBBPS</code> (kode BPS
-        kab/kota).
+        Snapshot di-vendor ke <code>public/boundaries/</code> supaya
+        build self-contained (tidak fetch ke BIG saat runtime). Field
+        yang di-preserve mengikuti hierarki BIG: <code>WADMPR</code>,{' '}
+        <code>WADMKK</code>, <code>WADMKC</code>, <code>WADMKD</code>,
+        plus kode BPS lima level (<code>KDPBPS</code>, <code>KDBBPS</code>,{' '}
+        <code>KDCBPS</code>, <code>KDEBPS</code>). Popup label
+        bertingkat sesuai level yang dipilih (mis. desa menampilkan{' '}
+        <em>Desa / Kecamatan / Kab · Provinsi</em>).
       </p>
       <p style={pMuted}>
         Data adalah milik <strong>Badan Informasi Geospasial</strong>
         {' '}(copyrightText service). Sitasi wajib: BIG, <em>Geodatabase data
-        batas wilayah administrasi nasional edisi Juni 2026</em>. Untuk
-        keperluan resmi rujuk ke{' '}
+        batas wilayah administrasi nasional edisi Juni 2026</em> dan{' '}
+        <em>Batas Negara Laut</em>. Untuk keperluan resmi rujuk ke{' '}
         <ExternalLink href="https://www.big.go.id/">big.go.id</ExternalLink>.
       </p>
     </section>
@@ -532,6 +556,9 @@ const OVERLAY_SUMMARY = [
   { section: 'Wilayah', items: [
     'Provinsi — 38 provinsi (BIG edisi Juni 2026, dissolve dari kab/kota)',
     'Kab/Kota — 541 kabupaten/kota termasuk 4 provinsi Papua baru (BIG edisi Juni 2026)',
+    'Kecamatan — 7.432 kecamatan (BIG edisi Juni 2026)',
+    'Kelurahan/Desa — 84.503 kelurahan/desa (BIG edisi Juni 2026)',
+    'Batas Laut · BIG — 4 zona UNCLOS (Laut Teritorial, Zona Tambahan, Landas Kontinen, ZEE)',
     'Gereja Katolik · Keuskupan — choropleth kabupaten, warna per 10 provinsi gerejawi (Wikipedia)',
   ] },
   { section: 'Transportasi', items: [

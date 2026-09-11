@@ -6,7 +6,58 @@ at the top.
 
 ## Unreleased
 
+### Added
+
+- **Batas Kecamatan (7.432) & Kelurahan/Desa (84.503) dari BIG.**
+  Radio boundary di panel _Wilayah_ sekarang punya lima opsi:
+  _No boundary_ · _Provinsi_ · _Kab/Kota_ · _Kecamatan_ · _Kelurahan/Desa_.
+  Sumber: BIG service `BATAS_KECAMATAN_AR` (Juni 2026) dan
+  `BATAS_DESAKEL_AR` (Juni 2026). Snapshot vendored ke
+  `public/boundaries/{kecamatan,desa}.json`.
+  - Kecamatan RDP ~333 m (~8 MB, 7.432 fitur).
+  - Kelurahan/Desa RDP + server-simplify agresif (server_offset 0.005°
+    ~555 m + client tol 0.002°) → mempertahankan seluruh 84.503 fitur
+    tapi bundle tetap manageable. Beberapa desa urban <200 m akan
+    tereliminasi ke titik oleh simplify.
+  - Popup label bertingkat: `Desa / Kecamatan / Kab · Provinsi`
+    (ikut hierarki BIG). Field yang dipakai: `WADMPR`/`WADMKK`/
+    `WADMKC`/`WADMKD` + kode BPS lima level.
+  - Radio-only: memilih level berikutnya melepas yang sebelumnya —
+    render kecamatan/desa se-Indonesia tetap heavy, jadi dipisah dari
+    Keuskupan choropleth yang punya scope berbeda.
+  - Refresh manual per level: `python scripts/refresh-boundaries.py
+    kecamatan desa` (~15 menit untuk desa karena 85 halaman × 1.000
+    fitur).
+
+- **Batas Laut (4 zona UNCLOS) dari BIG.**
+  Grup baru `Batas Laut · BIG` di panel _Wilayah_ dengan empat toggle
+  independen (bisa overlay bersama):
+  - **Laut Teritorial** (12 nm, garis biru solid) — 21 segmen
+  - **Zona Tambahan** (24 nm, cyan dashed) — 10 segmen
+  - **Landas Kontinen** (magenta dash-dot) — 31 segmen
+  - **ZEE — Zona Ekonomi Eksklusif** (200 nm, oranye dashed) — 24
+    segmen
+  Warna cool → warm mengikuti urutan seaward supaya bisa diurut sekilas
+  tanpa legend. Sumber: BIG service `BatasNegaraLaut` (4 sublayer
+  polyline). Snapshot ke `public/boundaries/laut/*.json` (total ~400
+  KB). Popup menampilkan `BTSNGR` (batas negara mitra, kalau ada) dan
+  `UUPP` (dasar hukum penetapan). Refresh manual:
+  `python scripts/refresh-laut.py`.
+
 ### Changed
+
+- **`scripts/refresh-boundaries.py` sekarang multi-target.** Skema
+  fetch/simplify difaktorkan jadi helper yang dipanggil per level.
+  CLI:
+  ```
+  python scripts/refresh-boundaries.py                    # default: kabkota + provinsi
+  python scripts/refresh-boundaries.py kabkota kecamatan  # subset
+  python scripts/refresh-boundaries.py desa               # slow ~15 min
+  python scripts/refresh-boundaries.py all                # semua
+  ```
+  Tambahan robustness: fallback ke `buffer(0)` kalau `shapely.make_valid`
+  raise `IllegalArgumentException` di ring collapse (terjadi di sebagian
+  kecamatan sesudah server-side simplify).
 
 - **Batas administrasi Provinsi/Kab-Kota → snapshot BIG (edisi Juni 2026).**
   Overlay `Provinsi` dan `Kab/Kota` di panel _Wilayah_ sekarang dilayani

@@ -27,9 +27,12 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   otomatis mendarat di kategori yang benar.
 - **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap
   (Basemap tab).
-- **Indonesia boundary overlays** — toggle Provinsi (38) / Kab/Kota
-  (541 termasuk 4 provinsi Papua baru), mutually exclusive (Wilayah tab).
-  Sumber: **BIG** (Badan Informasi Geospasial) edisi Juni 2026.
+- **Indonesia boundary overlays** — empat radio level mutually exclusive
+  di panel _Wilayah_: Provinsi (38) / Kab/Kota (541) / Kecamatan (7.432) /
+  Kelurahan/Desa (84.503). Plus grup terpisah **Batas Laut** dengan
+  4 zona UNCLOS (Laut Teritorial · Zona Tambahan · Landas Kontinen ·
+  ZEE) sebagai checkbox independen. Sumber: **BIG** (Badan Informasi
+  Geospasial) edisi Juni 2026.
 - **Transportasi umum (Opentransum)** — overlay opsional yang bisa
   di-toggle satu per satu dari layer control: enam jaringan bus JSON
   (Trans Semarang, Metro Trans Jabar, Bus Listrik Medan, Trans
@@ -205,26 +208,43 @@ The workflow currently deploys to
 
 ## Boundary overlays
 
-Batas administrasi Provinsi & Kabupaten/Kota di-vendor sebagai snapshot
-GeoJSON di [public/boundaries/](public/boundaries), sumber
-**BIG (Badan Informasi Geospasial)** edisi Juni 2026 via ArcGIS REST
-service
-[`BATASWILAYAH/BATAS_KABKOTA_AR`](https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KABKOTA_AR/MapServer).
+Batas administrasi (empat level darat + empat zona laut) di-vendor
+sebagai snapshot GeoJSON di [public/boundaries/](public/boundaries),
+sumber **BIG (Badan Informasi Geospasial)** edisi Juni 2026 via
+ArcGIS REST publik BIG di
+`geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/`.
 
-- `provinsi.json` — 38 provinsi (hasil dissolve kab/kota per `WADMPR`,
+Darat (radio, mutually exclusive di panel _Wilayah_ · grup Boundary):
+
+- `provinsi.json`  — 38 provinsi (dissolve kab/kota per `WADMPR`,
   RDP ~2,2 km, drop islet slivers < 6 km², drop interior-ring holes)
-- `kabkota.json` — 541 kabupaten/kota (RDP ~555 m, 4dp precision)
+- `kabkota.json`   — 541 kabupaten/kota (RDP ~555 m)
+- `kecamatan.json` — 7.432 kecamatan (RDP ~333 m)
+- `desa.json`      — 84.503 kelurahan/desa (server_offset 0,005° +
+  client RDP 0,002°; beberapa desa urban <200 m collapse ke titik)
+
+Laut (checkbox, boleh overlay bersama · grup Batas Laut):
+
+- `laut/teritorial.json`     — Laut Teritorial (12 nm) · 21 segmen
+- `laut/zona-tambahan.json`  — Zona Tambahan (24 nm) · 10 segmen
+- `laut/landas-kontinen.json` — Landas Kontinen · 31 segmen
+- `laut/zee.json`            — ZEE (200 nm) · 24 segmen
 
 Refresh manual — jalankan tiap kali BIG rilis edisi baru atau ada
 pemekaran wilayah:
 
 ```bash
-python scripts/refresh-boundaries.py
+python scripts/refresh-boundaries.py            # kabkota + provinsi (~1 menit)
+python scripts/refresh-boundaries.py kecamatan  # ~2 menit
+python scripts/refresh-boundaries.py desa       # ~15 menit (85 halaman × 1.000 fitur)
+python scripts/refresh-boundaries.py all        # semua level darat
+python scripts/refresh-laut.py                  # 4 zona maritim (~5 detik)
 ```
 
-Script paginasi 200 fitur per request (server BIG 500 di atas itu),
-minta simplifikasi server-side `maxAllowableOffset=0.002`, lalu
-simplify/clean di klien dengan shapely. Tidak butuh API key.
+Script paginasi (200-1000 fitur per request; server BIG 500 di atas
+itu untuk desa/kecamatan), minta simplifikasi server-side
+`maxAllowableOffset`, lalu simplify/clean di klien dengan shapely.
+Tidak butuh API key.
 
 ## Data attribution
 

@@ -4,9 +4,11 @@ import { TRANSPORT_SOURCES } from '../transport'
 const BASEMAP_NAMES = ['OpenStreetMap', 'Satellite', 'Topographic']
 
 const BOUNDARY_OPTIONS = [
-  { key: 'none', label: 'No boundary' },
-  { key: 'provinsi', label: 'Provinsi' },
-  { key: 'kabkota', label: 'Kab/Kota' },
+  { key: 'none',      label: 'No boundary' },
+  { key: 'provinsi',  label: 'Provinsi' },
+  { key: 'kabkota',   label: 'Kab/Kota' },
+  { key: 'kecamatan', label: 'Kecamatan' },
+  { key: 'desa',      label: 'Kelurahan/Desa' },
 ]
 
 const TRANSPORT_GROUPS = (() => {
@@ -25,7 +27,7 @@ const TRANSPORT_GROUP_NAMES  = [
 ]
 const CUACA_GROUP_NAMES      = ['BMKG · Peringatan Dini', 'BMKG · Cuaca']
 const BENCANA_GROUP_NAMES    = ['BMKG · Gempa', 'Vulkano', 'Tektonik', 'Aviasi', 'Insiden · MBG']
-const WILAYAH_GROUP_NAMES    = ['Gereja Katolik']
+const WILAYAH_GROUP_NAMES    = ['Batas Laut · BIG', 'Gereja Katolik']
 
 // SVG icon components — kept small so 4 fit in a row at top-right.
 function IconBasemap() {
