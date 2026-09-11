@@ -27,8 +27,9 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   otomatis mendarat di kategori yang benar.
 - **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap
   (Basemap tab).
-- **Indonesia boundary overlays** — toggle Provinsi / Kab/Kota
-  (GeoJSON), mutually exclusive (Wilayah tab).
+- **Indonesia boundary overlays** — toggle Provinsi (38) / Kab/Kota
+  (541 termasuk 4 provinsi Papua baru), mutually exclusive (Wilayah tab).
+  Sumber: **BIG** (Badan Informasi Geospasial) edisi Juni 2026.
 - **Transportasi umum (Opentransum)** — overlay opsional yang bisa
   di-toggle satu per satu dari layer control: enam jaringan bus JSON
   (Trans Semarang, Metro Trans Jabar, Bus Listrik Medan, Trans
@@ -204,26 +205,42 @@ The workflow currently deploys to
 
 ## Boundary overlays
 
-The Provinsi/Kab-Kota toggles fetch GeoJSON from:
+Batas administrasi Provinsi & Kabupaten/Kota di-vendor sebagai snapshot
+GeoJSON di [public/boundaries/](public/boundaries), sumber
+**BIG (Badan Informasi Geospasial)** edisi Juni 2026 via ArcGIS REST
+service
+[`BATASWILAYAH/BATAS_KABKOTA_AR`](https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KABKOTA_AR/MapServer).
 
-- `https://rebornian48.my.id/assets/json/provinsi.json`
-- `https://rebornian48.my.id/assets/json/kabkota.json`
+- `provinsi.json` — 38 provinsi (hasil dissolve kab/kota per `WADMPR`,
+  RDP ~2,2 km, drop islet slivers < 6 km², drop interior-ring holes)
+- `kabkota.json` — 541 kabupaten/kota (RDP ~555 m, 4dp precision)
 
-Those endpoints must return an `Access-Control-Allow-Origin` header for
-the fetch to succeed from another origin (including during local dev).
-For Apache/Hostinger, add this to `.htaccess` where the JSON lives:
+Refresh manual — jalankan tiap kali BIG rilis edisi baru atau ada
+pemekaran wilayah:
 
-```apache
-<FilesMatch "\.(json|geojson)$">
-  Header set Access-Control-Allow-Origin "*"
-</FilesMatch>
+```bash
+python scripts/refresh-boundaries.py
 ```
+
+Script paginasi 200 fitur per request (server BIG 500 di atas itu),
+minta simplifikasi server-side `maxAllowableOffset=0.002`, lalu
+simplify/clean di klien dengan shapely. Tidak butuh API key.
 
 ## Data attribution
 
-### Boundary GeoJSON
+### Boundary GeoJSON (BIG)
 
-Provinsi & Kab/Kota outlines hosted at `rebornian48.my.id/assets/json/`.
+Data batas wilayah administrasi Provinsi & Kabupaten/Kota adalah **milik
+[Badan Informasi Geospasial (BIG)](https://www.big.go.id/)**, edisi
+Juni 2026, diambil dari service ArcGIS REST publik mereka:
+
+```
+https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KABKOTA_AR/MapServer/0
+```
+
+Snapshot GeoJSON di-vendor ke `public/boundaries/{provinsi,kabkota}.json`
+supaya build self-contained. Data disajikan _as-is_; untuk keperluan
+resmi rujuk ke portal BIG.
 
 ### Opentransum (transportasi umum)
 

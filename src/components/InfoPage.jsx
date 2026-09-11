@@ -82,6 +82,59 @@ function DatasetList({ items }) {
   )
 }
 
+function BigBoundarySection() {
+  return (
+    <section>
+      <h3 style={h3Style}>Batas Wilayah — BIG (Badan Informasi Geospasial)</h3>
+      <p style={pStyle}>
+        Overlay <strong>Provinsi</strong> dan <strong>Kab/Kota</strong> di
+        panel <em>Wilayah</em> diambil dari service ArcGIS REST publik{' '}
+        <strong>Badan Informasi Geospasial</strong>, edisi Juni 2026:
+      </p>
+      <p style={{ ...pMuted, fontFamily: "'DM Mono', monospace" }}>
+        <ExternalLink href="https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KABKOTA_AR/MapServer">
+          geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KABKOTA_AR
+        </ExternalLink>
+      </p>
+      <p style={pStyle}>
+        <strong>Cakupan:</strong> 541 kabupaten/kota (naik dari 514 edisi
+        sebelumnya) — mencakup 4 provinsi baru di Papua (Papua Barat Daya,
+        Papua Pegunungan, Papua Selatan, Papua Tengah) dan kabupaten/kota
+        barunya sesuai UU pemekaran 2022. Layer Provinsi (38) dihasilkan
+        dengan dissolve kab/kota per <code>WADMPR</code>; BIG tidak
+        menyediakan endpoint provinsi murni (layer 12 di service{' '}
+        <code>BATAS_WILAYAH</code> sebenarnya berisi baris kab/kota juga).
+      </p>
+      <p style={pStyle}>
+        <strong>Pipeline refresh</strong>{' '}
+        (<code>scripts/refresh-boundaries.py</code>): paginasi 200 fitur per
+        request (server BIG 500 di atas itu), minta simplifikasi server-side
+        <code> maxAllowableOffset=0.002</code> (~220 m), lalu di klien{' '}
+        <em>shapely</em>:
+      </p>
+      <ul style={{ ...pStyle, paddingLeft: '1.25em', margin: '0.5em 0' }}>
+        <li>Kab/Kota RDP ~555 m, koordinat 4 dp (~11 m) → <code>~3 MB</code></li>
+        <li>Provinsi RDP ~2,2 km, drop islet slivers &lt; 6 km²,
+          drop interior-ring holes dari mismatch antar-tetangga → <code>~250 KB</code></li>
+      </ul>
+      <p style={pStyle}>
+        Snapshot di-vendor ke <code>public/boundaries/&#123;provinsi,kabkota&#125;.json</code>{' '}
+        supaya build self-contained (tidak fetch ke BIG saat runtime).
+        Field yang di-preserve: <code>WADMPR</code>, <code>WADMKK</code>,{' '}
+        <code>KDPBPS</code> (kode BPS provinsi), <code>KDBBPS</code> (kode BPS
+        kab/kota).
+      </p>
+      <p style={pMuted}>
+        Data adalah milik <strong>Badan Informasi Geospasial</strong>
+        {' '}(copyrightText service). Sitasi wajib: BIG, <em>Geodatabase data
+        batas wilayah administrasi nasional edisi Juni 2026</em>. Untuk
+        keperluan resmi rujuk ke{' '}
+        <ExternalLink href="https://www.big.go.id/">big.go.id</ExternalLink>.
+      </p>
+    </section>
+  )
+}
+
 function OpentransumSection() {
   return (
     <section>
@@ -477,8 +530,8 @@ function SearatesSection() {
 const OVERLAY_SUMMARY = [
   { section: 'Basemap', items: ['OpenStreetMap · Esri Satellite · OpenTopoMap (3 opsi)'] },
   { section: 'Wilayah', items: [
-    'Provinsi (batas GeoJSON)',
-    'Kab/Kota (batas GeoJSON)',
+    'Provinsi — 38 provinsi (BIG edisi Juni 2026, dissolve dari kab/kota)',
+    'Kab/Kota — 541 kabupaten/kota termasuk 4 provinsi Papua baru (BIG edisi Juni 2026)',
     'Gereja Katolik · Keuskupan — choropleth kabupaten, warna per 10 provinsi gerejawi (Wikipedia)',
   ] },
   { section: 'Transportasi', items: [
@@ -779,6 +832,7 @@ export default function InfoPage({ onBack }) {
         </section>
         <OverlaySummary />
         <SimbologiSection />
+        <BigBoundarySection />
         <OpentransumSection />
         <BmkgSection />
         <SigmetSection />

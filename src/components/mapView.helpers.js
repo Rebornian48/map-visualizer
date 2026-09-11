@@ -3,12 +3,10 @@ import { ACTIVITY_COLORS } from '../parser'
 export const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 export const SPEEDS = [1, 2, 5, 10]
 
-// Dev: use Vite proxy so browsers don't hit the CORS-less origin directly.
-// Prod: hit the origin directly; requires Access-Control-Allow-Origin on
-// rebornian48.my.id (added via .htaccess in /assets/json/).
-const BOUNDARY_BASE = import.meta.env.DEV
-  ? '/rebornian-assets/json'
-  : 'https://rebornian48.my.id/assets/json'
+// Boundary polygons are vendored to /public/boundaries/ from BIG's
+// BATASWILAYAH MapServer (edisi Juni 2026). See scripts/refresh-boundaries.py
+// for the refresh procedure.
+const BOUNDARY_BASE = `${import.meta.env.BASE_URL || '/'}boundaries`
 
 export const BOUNDARY_SOURCES = new Map([
   ['provinsi', `${BOUNDARY_BASE}/provinsi.json`],

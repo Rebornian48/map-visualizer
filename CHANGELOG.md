@@ -6,6 +6,31 @@ at the top.
 
 ## Unreleased
 
+### Changed
+
+- **Batas administrasi Provinsi/Kab-Kota → snapshot BIG (edisi Juni 2026).**
+  Overlay `Provinsi` dan `Kab/Kota` di panel _Wilayah_ sekarang dilayani
+  dari file vendored di `public/boundaries/` (`provinsi.json` ~250 KB,
+  `kabkota.json` ~3 MB) bukan dari `rebornian48.my.id/assets/json/`.
+  Sumber: **Badan Informasi Geospasial (BIG)** — service ArcGIS REST
+  [`BATASWILAYAH/BATAS_KABKOTA_AR`](https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KABKOTA_AR/MapServer)
+  edisi Juni 2026. Efeknya:
+  - **541 kabupaten/kota** (naik dari 514) — mencakup 4 provinsi baru
+    di Papua (Papua Barat Daya, Papua Pegunungan, Papua Selatan, Papua
+    Tengah) dan kab/kota barunya. Roster mengikuti UU pemekaran 2022.
+  - **38 provinsi** hasil dissolve kabkota by `WADMPR` (BIG tidak
+    menyediakan endpoint provinsi terpisah; layer 12 di service
+    `BATAS_WILAYAH` sebenarnya berisi baris kabkota juga, jadi
+    dissolve manual adalah satu-satunya cara).
+  - Tidak lagi bergantung pada Access-Control-Allow-Origin dari
+    Hostinger — self-contained di build.
+  - Refresh manual: `python scripts/refresh-boundaries.py`. Script
+    pagi­nasi 200 fitur per request (server BIG 500 di atas ini),
+    minta simplifikasi server-side `maxAllowableOffset=0.002` (~220m),
+    lalu di klien: RDP ~555m untuk kabkota + ~2,2km untuk provinsi,
+    filter islet slivers < 6 km², dan drop interior-ring holes yang
+    muncul dari mismatch server-simplify antar-tetangga.
+
 ### Added
 
 - **Gereja Katolik · Keuskupan — choropleth kabupaten (Wikipedia).**
