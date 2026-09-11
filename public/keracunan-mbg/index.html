@@ -369,18 +369,26 @@
   }
 
   /* ---------- Floating theme toggle ---------- */
+  /* Pill design copied from src/components/ThemeToggle.jsx so both pages
+     look identical: 52×28 track, 20×20 thumb that slides right in light. */
   .theme-toggle {
     position: fixed; top: 16px; right: 16px; z-index: 200;
-    width: 36px; height: 36px; border-radius: 8px;
-    background: var(--surface-solid); color: var(--text);
-    border: 1px solid var(--border); box-shadow: var(--shadow);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-family: inherit;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    width: 52px; height: 28px; border-radius: 14px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 3px;
+    cursor: pointer; user-select: none;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
-  .theme-toggle svg { width: 18px; height: 18px; }
-  [data-theme="light"] .theme-toggle svg circle { fill: currentColor; }
+  .theme-toggle .thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .theme-toggle .glyph::before { content: '🌙'; }
+  [data-theme="light"] .theme-toggle .thumb { transform: translateX(23px); }
+  [data-theme="light"] .theme-toggle .glyph::before { content: '☀️'; }
 </style>
 </head>
 <body>
@@ -399,12 +407,10 @@
     }
   })();
 </script>
-<button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="4"/>
-    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-  </svg>
-</button>
+<div id="themeToggle" class="theme-toggle" role="button" tabindex="0"
+     title="Toggle dark/light mode" aria-label="Toggle dark/light mode">
+  <div class="thumb"><span class="glyph"></span></div>
+</div>
 <div class="page">
   <a class="backlink" href="/map-visualizer/">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -503,12 +509,34 @@
   // Theme toggle mirrors the main app's behaviour: writes to the same
   // localStorage key so a later visit to /map-visualizer/ inherits the
   // choice (and vice versa).
-  document.getElementById('themeToggle').addEventListener('click', () => {
-    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = cur === 'dark' ? 'light' : 'dark';
+  function setTheme(next) {
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('tl-theme', next); } catch (_) {}
+    try {
+      const cur = localStorage.getItem('tl-theme');
+      if (cur !== next) localStorage.setItem('tl-theme', next);
+    } catch (_) {}
+    const t = document.getElementById('themeToggle');
+    if (t) t.setAttribute('data-theme-value', next);
+  }
+  const themeToggleEl = document.getElementById('themeToggle');
+  themeToggleEl.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    setTheme(cur === 'dark' ? 'light' : 'dark');
   });
+  themeToggleEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); themeToggleEl.click(); }
+  });
+  // Cross-tab sync: `storage` fires here when the React app (or another
+  // dashboard tab) writes tl-theme, so open tabs stay in lockstep.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== 'tl-theme' || !e.newValue) return;
+    if (document.documentElement.getAttribute('data-theme') !== e.newValue) {
+      setTheme(e.newValue);
+    }
+  });
+  // Initial sync of the toggle's visual state to whatever the theme-init
+  // IIFE set at the top of the body.
+  setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
 </script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js" crossorigin="anonymous"></script>

@@ -1,4 +1,5 @@
 import React from 'react'
+import ThemeToggle from './ThemeToggle'
 
 const sectionLabel = {
   fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.12em',
@@ -810,7 +811,7 @@ function OverlaySummary() {
   )
 }
 
-function Header({ onBack }) {
+function Header({ onBack, theme, onToggleTheme }) {
   return (
     <header style={{
       display: 'flex', alignItems: 'center', gap: 12,
@@ -832,11 +833,16 @@ function Header({ onBack }) {
       <h1 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--text)' }}>
         Sumber Data
       </h1>
+      {onToggleTheme && (
+        <div style={{ marginLeft: 'auto' }}>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
+      )}
     </header>
   )
 }
 
-export default function InfoPage({ onBack }) {
+export default function InfoPage({ onBack, theme, onToggleTheme }) {
   // body has `overflow: hidden` globally (map needs a fixed viewport), so
   // make this page's own container the scroll surface.
   return (
@@ -845,7 +851,7 @@ export default function InfoPage({ onBack }) {
       background: 'var(--map-bg)',
       fontFamily: "'Outfit', sans-serif", color: 'var(--text)',
     }}>
-      <Header onBack={onBack} />
+      <Header onBack={onBack} theme={theme} onToggleTheme={onToggleTheme} />
       <main style={{
         maxWidth: 780, margin: '0 auto', padding: '28px 28px 60px',
         display: 'flex', flexDirection: 'column', gap: 30,

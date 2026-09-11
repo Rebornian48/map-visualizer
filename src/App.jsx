@@ -23,6 +23,20 @@ export default function App() {
 
   useEffect(() => { applyTheme(theme) }, [theme])
 
+  // Cross-tab / cross-page theme sync. `storage` fires in every OTHER tab
+  // that shares this origin when tl-theme changes — so a toggle in the
+  // standalone /keracunan-mbg/ dashboard (or in another map tab) is
+  // picked up here without a reload. Only respond when the value really
+  // changed to skip redundant renders.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== 'tl-theme' || !e.newValue) return
+      setTheme(prev => (prev === e.newValue ? prev : e.newValue))
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   useEffect(() => {
     const onPop = () => setPathname(window.location.pathname)
     window.addEventListener('popstate', onPop)
@@ -85,7 +99,13 @@ export default function App() {
   }, [])
 
   if (isInfoPath(pathname)) {
-    return <InfoPage onBack={() => navigate(BASE)} />
+    return (
+      <InfoPage
+        onBack={() => navigate(BASE)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    )
   }
 
   return (
