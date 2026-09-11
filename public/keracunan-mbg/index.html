@@ -7,40 +7,77 @@
 <meta name="description" content="Dashboard interaktif kasus keracunan program Makan Bergizi Gratis di seluruh Indonesia — timeline bulanan + breakdown provinsi + tabel semua insiden, dari data Wikipedia.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
 <style>
-  :root {
-    --paper: #f5f2eb; --paper-2: #ede8dd; --ink: #1a1614; --dim: #6c655c;
-    --rule: #d8d3c9; --tile: #ffffff; --tile-edge: #e6e0d4;
-    --accent: #2d5f57;
-    --warn-0: #f2d8a8; --warn-1: #f6b26b; --warn-2: #e2683a;
-    --warn-3: #b52619; --warn-4: #6d0f0a; --dead: #201d1c;
-    --shadow: 0 1px 0 rgba(20,16,14,0.04);
-    color-scheme: light dark;
+  /* Palette + font-stack are inherited from the main map-visualizer app
+     so a viewer moving between /map-visualizer/ and this dashboard sees a
+     single visual language. Legacy dashboard token names (--paper,
+     --ink, --tile, --warn-*, --rule…) are aliased to the main palette to
+     keep the existing rules untouched. */
+  /* First-paint default (specificity equal to the [data-theme] blocks —
+     kept BEFORE them so a matching data-theme rule wins the cascade). */
+  :root { --bg: #0a0a0f; --text: #e8e8f0; --accent: #f36; }
+  [data-theme="dark"] {
+    --bg: #0a0a0f;
+    --surface: rgb(18 18 26 / 85%);
+    --surface-solid: #12121a;
+    --surface-2: #1a1a28;
+    --border: #2a2a3a;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --accent: #f36;
+    --accent-glow: rgb(255 51 102 / 40%);
+    --shadow: 0 4px 24px rgb(0 0 0 / 50%);
+    /* Heat ramp for chart bars — magenta gradient tuned for dark bg.
+       Lowest tier is lifted well above --bg so a small bar still reads
+       against the panel. */
+    --warn-0: #7a3f60;
+    --warn-1: #a83870;
+    --warn-2: #d43a7a;
+    --warn-3: #ff4a88;
+    --warn-4: #ff87ae;
+    --dead: #ffe0ec;
+    /* Legacy aliases → new palette */
+    --paper: var(--bg);
+    --paper-2: var(--surface-2);
+    --ink: var(--text);
+    --dim: var(--text-dim);
+    --rule: var(--border);
+    --tile: var(--surface-solid);
+    --tile-edge: var(--border);
+    color-scheme: dark;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --paper: #14100e; --paper-2: #1c1815; --ink: #f0ece5; --dim: #8e857a;
-      --rule: #2b2521; --tile: #1e1a17; --tile-edge: #2b2521;
-      --accent: #6ba59b;
-      --warn-0: #8b6a3c; --warn-1: #d99457; --warn-2: #dd6a3a;
-      --warn-3: #c0362a; --warn-4: #8a1a12; --dead: #efe9e0;
-      --shadow: none;
-    }
-  }
-  :root[data-theme="dark"] {
-    --paper: #14100e; --paper-2: #1c1815; --ink: #f0ece5; --dim: #8e857a;
-    --rule: #2b2521; --tile: #1e1a17; --tile-edge: #2b2521;
-    --accent: #6ba59b;
-    --warn-0: #8b6a3c; --warn-1: #d99457; --warn-2: #dd6a3a;
-    --warn-3: #c0362a; --warn-4: #8a1a12; --dead: #efe9e0;
-    --shadow: none;
+  [data-theme="light"] {
+    --bg: #f0f1f5;
+    --surface: rgb(255 255 255 / 85%);
+    --surface-solid: #fff;
+    --surface-2: #e8e9f0;
+    --border: #d0d1da;
+    --text: #1a1a2e;
+    --text-dim: #6b6b80;
+    --accent: #e6204e;
+    --accent-glow: rgb(230 32 78 / 25%);
+    --shadow: 0 4px 24px rgb(0 0 0 / 10%);
+    --warn-0: #ffddc4;
+    --warn-1: #ffa26e;
+    --warn-2: #ec5f45;
+    --warn-3: #cf1e46;
+    --warn-4: #7d0d2b;
+    --dead: #1a1a2e;
+    --paper: var(--bg);
+    --paper-2: var(--surface-2);
+    --ink: var(--text);
+    --dim: var(--text-dim);
+    --rule: var(--border);
+    --tile: var(--surface-solid);
+    --tile-edge: var(--border);
+    color-scheme: light;
   }
 
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
-    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
     font-size: 15px; line-height: 1.55;
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
@@ -58,14 +95,12 @@
 
   header { margin-bottom: 32px; }
   .eyebrow {
-    font-family: 'Fraunces', Georgia, serif; font-weight: 600;
-    font-variation-settings: "opsz" 24;
+    font-family: 'Outfit', system-ui, sans-serif; font-weight: 600;
     font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
     color: var(--dim); margin: 0 0 10px;
   }
   h1 {
-    font-family: 'Fraunces', Georgia, serif; font-weight: 800;
-    font-variation-settings: "opsz" 144;
+    font-family: 'Outfit', system-ui, sans-serif; font-weight: 800;
     font-size: clamp(38px, 5.4vw, 56px); line-height: 1.02;
     letter-spacing: -0.015em; text-wrap: balance; margin: 0 0 14px;
   }
@@ -129,15 +164,14 @@
     color: var(--dim); font-weight: 600;
   }
   .tile .value {
-    font-family: 'Fraunces', Georgia, serif; font-weight: 600;
-    font-variation-settings: "opsz" 144;
+    font-family: 'Outfit', system-ui, sans-serif; font-weight: 600;
     font-size: 30px; line-height: 1.05; letter-spacing: -0.02em; margin-top: 6px;
   }
   .tile .unit {
-    color: var(--dim); font-family: 'Public Sans', sans-serif;
+    color: var(--dim); font-family: 'Outfit', sans-serif;
     font-size: 12px; font-weight: 500; margin-left: 5px; letter-spacing: 0;
   }
-  .tile.warn .value { color: var(--warn-3); }
+  .tile.warn .value { color: var(--accent); }
   .tile.dead .value { color: var(--dead); }
   @media (max-width: 980px) {
     .totals { grid-template-columns: repeat(3, 1fr); }
@@ -159,8 +193,7 @@
     border-bottom: 1px solid var(--rule);
   }
   .sect-head h2 {
-    font-family: 'Fraunces', Georgia, serif; font-weight: 600;
-    font-variation-settings: "opsz" 72;
+    font-family: 'Outfit', system-ui, sans-serif; font-weight: 600;
     font-size: 22px; letter-spacing: -0.01em; margin: 0;
   }
   .sect-head .caption { font-size: 13px; color: var(--dim); }
@@ -334,9 +367,44 @@
   .prov-row:focus-visible .name {
     outline: 2px solid var(--accent); outline-offset: 2px;
   }
+
+  /* ---------- Floating theme toggle ---------- */
+  .theme-toggle {
+    position: fixed; top: 16px; right: 16px; z-index: 200;
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--surface-solid); color: var(--text);
+    border: 1px solid var(--border); box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .theme-toggle svg { width: 18px; height: 18px; }
+  [data-theme="light"] .theme-toggle svg circle { fill: currentColor; }
 </style>
 </head>
 <body>
+<script>
+  // Honor the theme the user picked in /map-visualizer/ (same localStorage
+  // key). Matching palettes are applied via [data-theme] on <html>.
+  (function () {
+    try {
+      const stored = localStorage.getItem('tl-theme');
+      const theme = stored === 'light' || stored === 'dark'
+        ? stored
+        : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (_) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+<button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4"/>
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+  </svg>
+</button>
 <div class="page">
   <a class="backlink" href="/map-visualizer/">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -395,8 +463,8 @@
 
     <section id="prov-sect">
       <div class="sect-head">
-        <h2>Breakdown per provinsi</h2>
-        <span class="caption">klik untuk memfilter</span>
+        <h2 id="provTitle">Breakdown per provinsi</h2>
+        <span class="caption" id="provCaption">klik untuk memfilter</span>
       </div>
       <div class="chart"><div class="prov-grid" id="provGrid"></div></div>
     </section>
@@ -431,6 +499,17 @@
 
 <div id="tt" role="tooltip"></div>
 
+<script>
+  // Theme toggle mirrors the main app's behaviour: writes to the same
+  // localStorage key so a later visit to /map-visualizer/ inherits the
+  // choice (and vice versa).
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('tl-theme', next); } catch (_) {}
+  });
+</script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js" crossorigin="anonymous"></script>
 <script>
@@ -577,6 +656,16 @@
     }
     return [...m.values()].sort((a,b) => b.bergejala - a.bergejala);
   }
+  function aggByKab(list) {
+    const m = new Map();
+    for (const r of list) {
+      const key = r.kab;
+      const k = m.get(key) || { kab:r.kab, prov:r.prov, kejadian:0, bergejala:0, meninggal:0 };
+      k.kejadian++; k.bergejala += r.n; k.meninggal += (r.dead || 0);
+      m.set(key, k);
+    }
+    return [...m.values()].sort((a,b) => b.bergejala - a.bergejala);
+  }
 
   // ---- Totals (5 tiles) ----
   const totalsRow = document.getElementById('totalsRow');
@@ -711,38 +800,73 @@
     };
   }
 
-  // ---- Provinsi bars ----
-  const provGrid = document.getElementById('provGrid');
+  // ---- Provinsi / Kab bars (drill-down) ----
+  // With no provinsi filter → breakdown per provinsi (all 34+).
+  // Provinsi selected  → breakdown drills down to per kab/kota within
+  // that provinsi. Section h2 + caption update to reflect the current
+  // level so the reader always sees what the bars represent.
+  const provGrid    = document.getElementById('provGrid');
+  const provTitle   = document.getElementById('provTitle');
+  const provCaption = document.getElementById('provCaption');
+
   function renderProv() {
-    // Provinsi breakdown ignores the provinsi filter (would collapse to one
-    // row) but respects month / kabupaten.
+    const drilled = !!state.prov;
+
+    // Timeline-style: at both levels, ignore the axis we're grouping on
+    // (else it'd collapse to a single row) but respect the other filters.
     let list = incidents;
     if (state.month) list = list.filter(r => keyOfMonth(r.d) === state.month);
-    if (state.kab)   list = list.filter(r => r.kab === state.kab);
-    const provs = aggByProv(list);
-    const max = Math.max(1, ...provs.map(p => p.bergejala));
-    provGrid.innerHTML = provs.map(p => {
-      const w = (p.bergejala / max) * 100;
-      const isActive = p.prov === state.prov;
-      const isDim = state.prov && !isActive;
+    if (drilled) {
+      // Kab-level view: prov filter is the drilldown scope; kab is the row
+      // axis so don't filter by it (the click-highlight handles that).
+      list = list.filter(r => r.prov === state.prov);
+    } else if (state.kab) {
+      // Provinsi-level view: kab is a secondary filter still.
+      list = list.filter(r => r.kab === state.kab);
+    }
+
+    const rows = drilled ? aggByKab(list) : aggByProv(list);
+    const max = Math.max(1, ...rows.map(r => r.bergejala));
+
+    provTitle.textContent = drilled
+      ? `Breakdown per kabupaten / kota · ${shortProv(state.prov)}`
+      : 'Breakdown per provinsi';
+    provCaption.textContent = drilled
+      ? 'klik kembali provinsi di filter untuk kembali'
+      : 'klik untuk memfilter';
+
+    provGrid.innerHTML = rows.map(r => {
+      const w = (r.bergejala / max) * 100;
+      const rowKey = drilled ? r.kab : r.prov;
+      const activeKey = drilled ? state.kab : state.prov;
+      const isActive = rowKey === activeKey && activeKey !== '';
+      const isDim = activeKey && !isActive;
       const cls = ['prov-row', isActive ? 'active' : '', isDim ? 'dim' : ''].filter(Boolean).join(' ');
+      const dataAttr = drilled
+        ? `data-kab="${escapeAttr(r.kab)}"`
+        : `data-prov="${escapeAttr(r.prov)}"`;
+      const label = drilled ? r.kab : shortProv(r.prov);
       return `
-        <div class="${cls}" data-prov="${escapeAttr(p.prov)}" tabindex="0">
-          <div class="name">${escapeHtml(shortProv(p.prov))}</div>
+        <div class="${cls}" ${dataAttr} tabindex="0">
+          <div class="name">${escapeHtml(label)}</div>
           <div class="bar-track"><div class="bar-fill"
-            style="width:${w.toFixed(2)}%;background:${provColor(p.bergejala)}"></div></div>
-          <div class="count">${fmt.format(p.bergejala)}<span class="kj">· ${p.kejadian} kj</span></div>
+            style="width:${w.toFixed(2)}%;background:${provColor(r.bergejala)}"></div></div>
+          <div class="count">${fmt.format(r.bergejala)}<span class="kj">· ${r.kejadian} kj</span></div>
         </div>`;
-    }).join('') || `<div class="dt-empty">Tidak ada data provinsi untuk filter ini.</div>`;
+    }).join('') || `<div class="dt-empty">Tidak ada data untuk filter ini.</div>`;
 
     provGrid.querySelectorAll('.prov-row').forEach(row => {
-      const prov = row.getAttribute('data-prov');
-      const rec = provs.find(x => x.prov === prov);
-      row.addEventListener('mousemove', e => showTooltip(e, tooltipProv(rec)));
+      const rowKey = drilled ? row.getAttribute('data-kab') : row.getAttribute('data-prov');
+      const rec    = rows.find(x => (drilled ? x.kab : x.prov) === rowKey);
+      row.addEventListener('mousemove', e => showTooltip(e, tooltipRec(drilled, rec)));
       row.addEventListener('mouseleave', hideTooltip);
       row.addEventListener('click', () => {
-        state.prov = (state.prov === prov) ? '' : prov;
-        state.kab = '';   // provinsi change resets kab filter
+        if (drilled) {
+          state.kab = (state.kab === rowKey) ? '' : rowKey;
+        } else {
+          state.prov = (state.prov === rowKey) ? '' : rowKey;
+          state.kab  = '';  // provinsi change resets kab filter
+        }
         rerender();
       });
       row.addEventListener('keydown', e => {
@@ -750,9 +874,9 @@
       });
     });
   }
-  function tooltipProv(rec) {
+  function tooltipRec(drilled, rec) {
     return {
-      title: shortProv(rec.prov),
+      title: drilled ? `${rec.kab} · ${shortProv(rec.prov)}` : shortProv(rec.prov),
       rows: [
         ['Kejadian', fmt.format(rec.kejadian)],
         ['Bergejala', `${fmt.format(rec.bergejala)} orang`],
