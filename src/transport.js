@@ -11,6 +11,7 @@ import { SEARATES_SOURCES, SEARATES_BUILDERS } from "./searates";
 import { MBG_SOURCES, MBG_BUILDERS } from "./mbg";
 import { KEUSKUPAN_SOURCES, KEUSKUPAN_BUILDERS } from "./keuskupan";
 import { LAUT_SOURCES, LAUT_BUILDERS } from "./laut";
+import { SARPRAS_SOURCES, SARPRAS_BUILDERS } from "./sarpras";
 
 function srcUrl(filename) {
   if (import.meta.env.DEV) return `/otsum-cdn/transport-data/${filename}`;
@@ -30,7 +31,7 @@ const TRANSIT_SOURCES = [
   { key: 'rails_stations',   label: 'Stasiun KRL/LRT/MRT',       group: 'Rel',        kind: 'railStations',  url: srcUrl('rails.kml') },
 ];
 
-export const TRANSPORT_SOURCES = [...TRANSIT_SOURCES, ...BMKG_SOURCES, ...TECTONIC_SOURCES, ...VOLCANO_SOURCES, ...MAGMA_SOURCES, ...SIGMET_SOURCES, ...OPENAIP_SOURCES, ...SEARATES_SOURCES, ...MBG_SOURCES, ...KEUSKUPAN_SOURCES, ...LAUT_SOURCES];
+export const TRANSPORT_SOURCES = [...TRANSIT_SOURCES, ...BMKG_SOURCES, ...TECTONIC_SOURCES, ...VOLCANO_SOURCES, ...MAGMA_SOURCES, ...SIGMET_SOURCES, ...OPENAIP_SOURCES, ...SEARATES_SOURCES, ...MBG_SOURCES, ...KEUSKUPAN_SOURCES, ...LAUT_SOURCES, ...SARPRAS_SOURCES];
 
 const RAW_CACHE = new Map();
 
@@ -355,6 +356,7 @@ const BUILDERS = new Map([
   ...MBG_BUILDERS,
   ...KEUSKUPAN_BUILDERS,
   ...LAUT_BUILDERS,
+  ...SARPRAS_BUILDERS,
 ])
 
 export async function buildTransportLayer(source) {

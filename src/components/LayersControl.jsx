@@ -28,6 +28,7 @@ const TRANSPORT_GROUP_NAMES  = [
 const CUACA_GROUP_NAMES      = ['BMKG · Peringatan Dini', 'BMKG · Cuaca']
 const BENCANA_GROUP_NAMES    = ['BMKG · Gempa', 'Vulkano', 'Tektonik', 'Aviasi', 'Insiden · MBG']
 const WILAYAH_GROUP_NAMES    = ['Batas Laut · BIG', 'Gereja Katolik']
+const INFRA_GROUP_NAMES      = ['Transportasi · BIG', 'Energi · BIG', 'Air & Zona · BIG']
 
 // SVG icon components — kept small so 4 fit in a row at top-right.
 function IconBasemap() {
@@ -72,6 +73,18 @@ function IconBencana() {
     </svg>
   )
 }
+function IconInfra() {
+  // Substation/tower silhouette — reads as "infrastructure" at 18px.
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3 L12 21 L18 3" />
+      <path d="M9 3 L12 21 L15 3" />
+      <line x1="7" y1="9"  x2="17" y2="9" />
+      <line x1="8" y1="14" x2="16" y2="14" />
+    </svg>
+  )
+}
 function IconCuaca() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -85,8 +98,9 @@ function IconCuaca() {
 }
 const SECTIONS = [
   { key: 'basemap',   title: 'Basemap',      kind: 'basemap',  Icon: IconBasemap },
-  { key: 'wilayah',   title: 'Wilayah',      kind: 'wilayah',  Icon: IconWilayah, groups: WILAYAH_GROUP_NAMES },
+  { key: 'wilayah',   title: 'Wilayah',      kind: 'wilayah',  Icon: IconWilayah,   groups: WILAYAH_GROUP_NAMES },
   { key: 'transport', title: 'Transportasi', kind: 'groups',   Icon: IconTransport, groups: TRANSPORT_GROUP_NAMES },
+  { key: 'infra',     title: 'Infrastruktur · BIG', kind: 'groups', Icon: IconInfra, groups: INFRA_GROUP_NAMES },
   { key: 'cuaca',     title: 'Cuaca',        kind: 'groups',   Icon: IconCuaca,     groups: CUACA_GROUP_NAMES },
   { key: 'bencana',   title: 'Bencana Alam', kind: 'groups',   Icon: IconBencana,   groups: BENCANA_GROUP_NAMES },
 ]
