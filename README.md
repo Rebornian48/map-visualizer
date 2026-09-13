@@ -17,12 +17,16 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   **glyph bus**, stasiun rel = **glyph kereta**. Rendering pakai
   `L.divIcon` dengan SVG inline dari [src/mapIcons.js](src/mapIcons.js).
   Legend swatch juga ikut simbol yang bersangkutan supaya konsisten.
-- **Layer panel = 5 tombol kategori** di top-right — _Basemap_,
-  _Wilayah_, _Transportasi_, _Cuaca_, _Bencana Alam_. Klik salah
+- **Layer panel = 7 tombol kategori** di top-right — _Basemap_,
+  _Wilayah_, _Transportasi_, _Infrastruktur · BIG_,
+  _SDA & Lingkungan · BIG_, _Cuaca_, _Bencana Alam_. Klik salah
   satu → panel konten yang relevan muncul; hanya satu terbuka pada
   satu waktu. Aeronautika (OpenAIP) dan Maritim (SeaRates) hidup di
-  dalam _Transportasi_ sebagai group tersendiri. Group baru dengan
-  nama yang cocok (di `SECTIONS` di
+  dalam _Transportasi_ sebagai group tersendiri, sarana-prasarana
+  BIG di panel _Infrastruktur_, dan SDA BIG di panel
+  _SDA & Lingkungan_ (kecuali sublayer bertema bencana yang
+  ditumpangkan ke _Bencana Alam_ untuk konsistensi). Group baru
+  dengan nama yang cocok (di `SECTIONS` di
   [src/components/LayersControl.jsx](src/components/LayersControl.jsx))
   otomatis mendarat di kategori yang benar.
 - **Multiple basemaps** — OpenStreetMap, Esri Satellite, and OpenTopoMap
@@ -133,6 +137,65 @@ Live: <https://rebornian48.my.id/map-visualizer/>
   `python scripts/refresh-mbg.py` (hasilkan dua file:
   `public/mbg/incidents.json` untuk dashboard,
   `public/mbg/incidents.geojson` untuk peta).
+- **Sarana & Prasarana BIG (22 sublayer)** — tombol
+  `Infrastruktur · BIG` di layer control (icon menara), berisi tiga
+  grup toggle independen yang dijaring dari _Satupeta_ MapServer
+  `PUBLIK/SARANA_PRASARANA` (edisi 2024-07):
+  - **Transportasi · BIG** — pelabuhan (perikanan / umum /
+    penyeberangan / tersus 1.978), bandara (250), rel & stasiun KA
+    (810 + 772), jalan nasional tol/non-tol (180 + 3.197 ruas), alur
+    pelayaran (106), dan SBNP — Sarana Bantu Navigasi Pelayaran
+    (4.580).
+  - **Energi · BIG** — jaringan listrik (1.189), gardu induk (1.109),
+    pembangkit listrik titik + kawasan (2.961 + 84), terminal BBM
+    (39), terminal LPG (24), kilang minyak (8).
+  - **Air & Zona · BIG** — bendungan eksisting (215), ruang udara
+    (355), DLKr/DLKp pelabuhan (144), KKOP — Keamanan Ops
+    Penerbangan (70).
+  Satu builder generik per slug (dispatch di `geometry.type` supaya
+  file yang sama bisa mengangkut point + line + polygon); palet
+  diatur per kategori supaya overlay saling tumpuk tetap terbaca di
+  light & dark basemap. Snapshot di-vendor ke `public/sarpras/*.json`
+  (~6,9 MB total). Refresh manual: `python scripts/refresh-sarpras.py
+  all` — stdlib only, paginasi `resultOffset`, per-layer field
+  whitelist + `maxAllowableOffset` untuk polyline/polygon supaya
+  bundle tetap manageable.
+- **SDA & Lingkungan BIG (32 sublayer)** — tombol
+  `SDA & Lingkungan · BIG` di layer control (icon daun), berisi lima
+  grup toggle dari MapServer `PUBLIK/SUMBER_DAYA_ALAM_DAN_LINGKUNGAN`
+  (edisi 2024-08). Sublayer bertema **bencana** ditaruh di panel
+  `Bencana Alam` (grup `Bencana · SDA`) supaya konsisten dengan
+  keluarga BMKG/Vulkano/Tektonik yang sudah ada; sisanya di panel
+  `SDA & Lingkungan`.
+  - **Tanah & Geologi · BIG** — lahan gambut (146), geologi formasi
+    (36k), geostruktur (68k lines), bentang alam karst (6.3k),
+    fungsi ekosistem gambut (15k).
+  - **Hidrologi · BIG** — neraca sumber daya air (268 WS), danau
+    (155), embung (2.3k), situ (416).
+  - **Sumber Daya · BIG** — mineral logam (2.5k titik), mineral non
+    logam (4k), batubara (1.7k), panas bumi (357).
+  - **Ekosistem · BIG** — lahan kritis (137k, cap-out server),
+    perikanan budidaya (48k), lahan garam (6.3k), mangrove (205k,
+    79 MB — file terbesar di repo).
+  - **Cagar Budaya & Konservasi · BIG** — kawasan cagar budaya
+    (287), titik cagar budaya (1k), zonasi kawasan konservasi (409),
+    blok kawasan konservasi (192).
+  - **Bencana · SDA** (di panel _Bencana Alam_) — KRB gunung api
+    titik + area (292 + 596), KRB gempa bumi (11k), zona kerentanan
+    gerakan tanah (14k cap-out), KRB tsunami (6), kerentanan
+    likuifaksi (3), patahan aktif (323 lines), kerentanan pesisir
+    (606 lines), rawan karhutla (8k cap-out), rawan banjir (92k
+    cap-out), seismisitas gempa (81k events).
+  Snapshot di-vendor ke `public/sda/*.json` (~263 MB total). Layer
+  raksasa (rawan-banjir 344k, gerakan-tanah 265k, karhutla 176k,
+  mangrove 240k) dikompres dengan `maxAllowableOffset` agresif
+  (0.005–0.01°, ~500 m–1.1 km) + `resultRecordCount` 200 supaya
+  respons tidak putus. Sebagian di-cap-out oleh soft-limit server
+  Esri saat paginasi. Tiga sublayer di-drop karena server-side broken
+  atau tanpa batas: layer 7 (DAS) & 35 (Konservasi Perairan) return
+  HTTP 400 untuk semua query; layer 50 (DDDTLH) paginasi tanpa akhir
+  melewati 408k fitur (kena 100 MB per-file cap GitHub). Refresh
+  manual: `python scripts/refresh-sda.py all` (~5 jam).
 - **Tektonik (PB2002)** — grup `Tektonik` di layer control dengan
   tiga toggle: batas lempeng (garis; zona subduksi ditandai merah
   tebal), poligon lempeng (54 lempeng dengan warna stabil per kode),

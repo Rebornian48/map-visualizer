@@ -26,9 +26,16 @@ const TRANSPORT_GROUP_NAMES  = [
   'Maritim · SeaRates',
 ]
 const CUACA_GROUP_NAMES      = ['BMKG · Peringatan Dini', 'BMKG · Cuaca']
-const BENCANA_GROUP_NAMES    = ['BMKG · Gempa', 'Vulkano', 'Tektonik', 'Aviasi', 'Insiden · MBG']
+const BENCANA_GROUP_NAMES    = ['BMKG · Gempa', 'Vulkano', 'Tektonik', 'Aviasi', 'Insiden · MBG', 'Bencana · SDA']
 const WILAYAH_GROUP_NAMES    = ['Batas Laut · BIG', 'Gereja Katolik']
 const INFRA_GROUP_NAMES      = ['Transportasi · BIG', 'Energi · BIG', 'Air & Zona · BIG']
+const SDA_GROUP_NAMES        = [
+  'Tanah & Geologi · BIG',
+  'Hidrologi · BIG',
+  'Sumber Daya · BIG',
+  'Ekosistem · BIG',
+  'Cagar Budaya & Konservasi · BIG',
+]
 
 // SVG icon components — kept small so 4 fit in a row at top-right.
 function IconBasemap() {
@@ -85,6 +92,17 @@ function IconInfra() {
     </svg>
   )
 }
+function IconSda() {
+  // Leaf + terrain outline — reads as "sumber daya alam & lingkungan".
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3 C 8 6 6 10 6 14 C 6 18 9 21 12 21 C 15 21 18 18 18 14 C 18 10 16 6 12 3 Z" />
+      <path d="M12 21 L12 12" />
+      <path d="M9 15 L12 12 L15 15" />
+    </svg>
+  )
+}
 function IconCuaca() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -101,6 +119,7 @@ const SECTIONS = [
   { key: 'wilayah',   title: 'Wilayah',      kind: 'wilayah',  Icon: IconWilayah,   groups: WILAYAH_GROUP_NAMES },
   { key: 'transport', title: 'Transportasi', kind: 'groups',   Icon: IconTransport, groups: TRANSPORT_GROUP_NAMES },
   { key: 'infra',     title: 'Infrastruktur · BIG', kind: 'groups', Icon: IconInfra, groups: INFRA_GROUP_NAMES },
+  { key: 'sda',       title: 'SDA & Lingkungan · BIG', kind: 'groups', Icon: IconSda, groups: SDA_GROUP_NAMES },
   { key: 'cuaca',     title: 'Cuaca',        kind: 'groups',   Icon: IconCuaca,     groups: CUACA_GROUP_NAMES },
   { key: 'bencana',   title: 'Bencana Alam', kind: 'groups',   Icon: IconBencana,   groups: BENCANA_GROUP_NAMES },
 ]

@@ -8,6 +8,59 @@ at the top.
 
 ### Added
 
+- **SDA & Lingkungan BIG — 32 sublayer dari Satupeta
+  `PUBLIK/SUMBER_DAYA_ALAM_DAN_LINGKUNGAN` (edisi 2024-08).**
+  Tombol layer baru `SDA & Lingkungan · BIG` (icon daun) di sebelah
+  `Infrastruktur · BIG`, plus grup baru `Bencana · SDA` di panel
+  _Bencana Alam_. Kategori & jumlah fitur:
+  - **Tanah & Geologi** — gambut (146), geologi (36k), geostruktur
+    (68k lines), karst (6.3k), ekosistem gambut (15k).
+  - **Hidrologi** — neraca air (268 WS), danau (155), embung (2.3k),
+    situ (416).
+  - **Sumber Daya** — mineral logam (2.5k), non-logam (4k), batubara
+    (1.7k), panas bumi (357).
+  - **Ekosistem** — lahan kritis (137k), perikanan budidaya (48k),
+    lahan garam (6.3k), mangrove (205k — file 79 MB, terbesar di
+    repo).
+  - **Cagar Budaya & Konservasi** — kawasan cagar budaya (287),
+    titik cagar budaya (1k), zonasi kawasan konservasi (409), blok
+    kawasan konservasi (192).
+  - **Bencana · SDA** — KRB gunung api titik/area (292 + 596), KRB
+    gempa bumi (11k), zona kerentanan gerakan tanah (14k), KRB
+    tsunami (6), likuifaksi (3), patahan aktif (323 lines),
+    kerentanan pesisir (606 lines), rawan karhutla (8k), rawan
+    banjir (92k), seismisitas gempa bumi (81k events).
+  Layer raksasa (rawan-banjir 344k, gerakan-tanah 265k, karhutla
+  176k, mangrove 240k) dikompres dengan `maxAllowableOffset` agresif
+  (0.005–0.01°, ~500 m–1.1 km); sebagian kena soft-cap paginasi
+  server Esri. Sublayer yang di-drop karena server-side broken:
+  layer 7 (DAS) & 35 (Konservasi Perairan) return HTTP 400 untuk
+  semua bentuk query; layer 50 (DDDTLH) paginasi tanpa akhir (>408k
+  fitur, akan melampaui 100 MB per-file cap GitHub). Snapshot vendored
+  ke `public/sda/*.json` (~263 MB total; 30 file). Modul frontend
+  `src/sda.js` share pola factory yang sama dengan `src/sarpras.js`:
+  satu builder generik per slug, dispatch di `geometry.type`, palet
+  per kategori. Refresh manual: `python scripts/refresh-sda.py all`
+  (~5 jam untuk semua layer).
+
+- **Sarana & Prasarana BIG — 22 sublayer dari Satupeta
+  `PUBLIK/SARANA_PRASARANA` (edisi 2024-07).** Tombol layer baru
+  `Infrastruktur · BIG` (icon menara) dengan tiga grup toggle
+  independen:
+  - **Transportasi · BIG** — pelabuhan perikanan/umum/penyeberangan
+    /tersus (538 + 527 + 250 + 1.978), bandara (250), rel (810
+    lines), stasiun KA (772), jalan nasional non-tol/tol (3.197 +
+    180 ruas), alur pelayaran (106), SBNP (4.580).
+  - **Energi · BIG** — jaringan listrik (1.189), gardu induk
+    (1.109), pembangkit titik/kawasan (2.961 + 84), terminal BBM
+    (39), terminal LPG (24), kilang minyak (8).
+  - **Air & Zona · BIG** — bendungan eksisting (215), ruang udara
+    (355), DLKr/DLKp pelabuhan (144), KKOP (70).
+  Total ~19.400 fitur di 22 file, ~6,9 MB. Snapshot ke
+  `public/sarpras/*.json`; modul frontend `src/sda.js` yang datang
+  belakangan share pola-nya. Refresh: `python
+  scripts/refresh-sarpras.py all`.
+
 - **Batas Kecamatan (7.432) & Kelurahan/Desa (84.503) dari BIG.**
   Radio boundary di panel _Wilayah_ sekarang punya lima opsi:
   _No boundary_ · _Provinsi_ · _Kab/Kota_ · _Kecamatan_ · _Kelurahan/Desa_.
