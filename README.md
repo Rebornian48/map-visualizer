@@ -150,8 +150,10 @@ Live: <https://rebornian48.my.id/map-visualizer/>
     pembangkit listrik titik + kawasan (2.961 + 84), terminal BBM
     (39), terminal LPG (24), kilang minyak (8).
   - **Air & Zona · BIG** — bendungan eksisting (215), ruang udara
-    (355), DLKr/DLKp pelabuhan (144), KKOP — Keamanan Ops
-    Penerbangan (70).
+    (355) — dipecah jadi 8 sub-toggle terpisah (FIR/UTA/TMA/CTR/ATZ/
+    AFIZ/PDRT/SECTOR) karena nested, dengan custom pane menjaga
+    z-order supaya CTR selalu di atas TMA di atas FIR — DLKr/DLKp
+    pelabuhan (144), KKOP — Keamanan Ops Penerbangan (70).
   Satu builder generik per slug (dispatch di `geometry.type` supaya
   file yang sama bisa mengangkut point + line + polygon); palet
   diatur per kategori supaya overlay saling tumpuk tetap terbaca di
@@ -186,7 +188,11 @@ Live: <https://rebornian48.my.id/map-visualizer/>
     likuifaksi (3), patahan aktif (323 lines), kerentanan pesisir
     (606 lines), rawan karhutla (8k cap-out), rawan banjir (92k
     cap-out), seismisitas gempa (81k events).
-  Snapshot di-vendor ke `public/sda/*.json` (~263 MB total). Layer
+  Sebagian besar sublayer di-color per-kategori (rawan/risiko pakai
+  ramp green→red, jenis pakai palet 12-hue) dengan legenda otomatis
+  yang muncul di kiri-bawah saat overlay aktif — lihat
+  [src/sarpras.js](src/sarpras.js) dan [src/sda.js](src/sda.js) untuk
+  spec `categorize` per slug. Snapshot di-vendor ke `public/sda/*.json` (~263 MB total). Layer
   raksasa (rawan-banjir 344k, gerakan-tanah 265k, karhutla 176k,
   mangrove 240k) dikompres dengan `maxAllowableOffset` agresif
   (0.005–0.01°, ~500 m–1.1 km) + `resultRecordCount` 200 supaya

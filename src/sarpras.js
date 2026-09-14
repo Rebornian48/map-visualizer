@@ -342,6 +342,20 @@ const CFG = {
       ],
       fallback: "#7e57c2",
     },
+    // Categories nest (CTR ⊂ TMA ⊂ FIR), so exposing one toggle drops
+    // every reader into an unreadable stack. ``split`` fans the source
+    // out to one toggle per category and pins each to a Leaflet pane so
+    // the smaller shapes always draw on top of the larger ones,
+    // regardless of the order the user turned them on. Pane names match
+    // the ones useMapController ensures at map init for OpenAIP.
+    split: {
+      subLabel: (val, longLabel) => `Ruang Udara · ${longLabel}`,
+      paneFor: (val) => {
+        if (val === "FIR" || val === "UTA") return "airspaceFir";
+        if (val === "TMA" || val === "SECTOR") return "airspaceTma";
+        return "airspaceCtr";  // CTR / ATZ / AFIZ / PDRT
+      },
+    },
   },
   "dlkr-dlkp-pelabuhan": {
     label: "DLKr/DLKp Pelabuhan", group: "Air & Zona · BIG", color: C.dlkr,
@@ -372,13 +386,25 @@ const CFG = {
 
 // ---------- SOURCES / builders ---------------------------------------------
 
-export const SARPRAS_SOURCES = Object.entries(CFG).map(([slug, c]) => ({
-  key:   `sarpras_${slug}`,
-  label: c.label,
-  group: c.group,
-  kind:  `sarpras:${slug}`,
-  url:   sarprasUrl(slug),
-}));
+// A slug marked with ``split`` expands into one source per category
+// value — the user gets an independent toggle for each nested layer.
+// The others map 1:1 to a single source keyed by the slug.
+export const SARPRAS_SOURCES = Object.entries(CFG).flatMap(([slug, c]) => {
+  if (!c.split) return [{
+    key:   `sarpras_${slug}`,
+    label: c.label,
+    group: c.group,
+    kind:  `sarpras:${slug}`,
+    url:   sarprasUrl(slug),
+  }];
+  return c.categorize.values.map(([val, _color, longLabel]) => ({
+    key:   `sarpras_${slug}__${val}`,
+    label: c.split.subLabel(val, longLabel),
+    group: c.group,
+    kind:  `sarpras:${slug}:${val}`,
+    url:   sarprasUrl(slug),
+  }));
+});
 
 export const SARPRAS_GROUP_NAMES = [
   "Transportasi · BIG",
@@ -386,10 +412,11 @@ export const SARPRAS_GROUP_NAMES = [
   "Air & Zona · BIG",
 ];
 
-// Exposed for the map's legend stack — one entry per categorised slug.
+// Legend entries — one per categorised slug (skip split layers: each
+// sub-toggle is already colour-labelled by its own name).
 export const SARPRAS_CATEGORIES = new Map(
   Object.entries(CFG)
-    .filter(([, c]) => c.categorize)
+    .filter(([, c]) => c.categorize && !c.split)
     .map(([slug, c]) => [
       `sarpras_${slug}`,
       {
@@ -437,10 +464,20 @@ function tooltipHtml(cfg, props, color) {
     <span style="opacity:.75"> — ${escapeHtml(cfg.label)}</span>`;
 }
 
+// Split slugs fan out to 8+ toggles hitting the same URL; memoise the
+// parsed FeatureCollection so a re-toggle doesn't re-fetch and each
+// sub-builder just filters the shared result.
+const GEOJSON_CACHE = new Map();
 async function fetchGeoJson(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
-  return r.json();
+  let promise = GEOJSON_CACHE.get(url);
+  if (!promise) {
+    promise = fetch(url).then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+      return r.json();
+    });
+    GEOJSON_CACHE.set(url, promise);
+  }
+  return promise;
 }
 
 const POINT_ICON = {
@@ -480,19 +517,29 @@ function makeColorFn(cfg) {
 
 // A single feature can be Point / Line / Polygon; Leaflet dispatches
 // on ``geometry.type`` via ``pointToLayer`` and ``style`` callbacks, so
-// one builder handles all three cases per layer.
-function makeBuilder(slug) {
+// one builder handles all three cases per layer. When ``subValue`` is
+// supplied (split layer), the builder pre-filters the FeatureCollection
+// to that category and pins its polygons to the category's pane so
+// nested airspaces layer correctly.
+function makeBuilder(slug, subValue) {
   const cfg = CFG[slug];
   const iconFactory = POINT_ICON[slug];
   const colorFor = makeColorFn(cfg);
+  const pane = subValue && cfg.split ? cfg.split.paneFor(subValue) : undefined;
+  const filterField = subValue ? cfg.categorize.field : null;
 
   return async function build(_key, url) {
-    const fc = await fetchGeoJson(url);
+    const raw = await fetchGeoJson(url);
+    const fc = filterField
+      ? { ...raw, features: (raw.features || []).filter(
+          (f) => (f.properties || {})[filterField] === subValue) }
+      : raw;
     const layer = L.geoJSON(fc, {
       pointToLayer: iconFactory
         ? (f, latlng) => L.marker(latlng, {
             icon: iconFactory(colorFor(f.properties), ICON_SIZE),
             riseOnHover: true,
+            pane,
           })
         : (f, latlng) => L.circleMarker(latlng, {
             radius: 4,
@@ -501,14 +548,15 @@ function makeBuilder(slug) {
             opacity: 0.9,
             fillColor: colorFor(f.properties),
             fillOpacity: 0.85,
+            pane,
           }),
       style: (feat) => {
         const t = feat?.geometry?.type;
         const c = colorFor(feat?.properties);
         if (t === "Polygon" || t === "MultiPolygon") {
-          return { color: c, weight: 1.2, opacity: 0.9, fillColor: c, fillOpacity: 0.2 };
+          return { color: c, weight: 1.2, opacity: 0.9, fillColor: c, fillOpacity: 0.2, pane };
         }
-        return { color: c, weight: 2, opacity: 0.85 };
+        return { color: c, weight: 2, opacity: 0.85, pane };
       },
       onEachFeature: (feature, lyr) => {
         const p = feature.properties || {};
@@ -524,5 +572,9 @@ function makeBuilder(slug) {
 }
 
 export const SARPRAS_BUILDERS = new Map(
-  Object.keys(CFG).map((slug) => [`sarpras:${slug}`, makeBuilder(slug)]),
+  Object.entries(CFG).flatMap(([slug, c]) => {
+    if (!c.split) return [[`sarpras:${slug}`, makeBuilder(slug)]];
+    return c.categorize.values.map(([val]) =>
+      [`sarpras:${slug}:${val}`, makeBuilder(slug, val)]);
+  }),
 );

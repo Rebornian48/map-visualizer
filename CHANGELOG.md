@@ -8,6 +8,48 @@ at the top.
 
 ### Added
 
+- **Warna per-kategori + legenda untuk 34 sublayer BIG.** Field
+  `categorize` per slug di [src/sarpras.js](src/sarpras.js) dan
+  [src/sda.js](src/sda.js) — mapping `field name` + `value → color +
+  label` — mengganti warna tunggal per-layer dengan warna per-fitur.
+  Ramp ordinal (Sangat Rendah → Sangat Tinggi) pakai
+  green-yellow-orange-red-maroon; palet qualitative pakai 12 hue
+  distinct. Icon-based marker (jangkar/pesawat/kereta) sekarang
+  ikut warna kategori.
+  - **Sarpras (12/22)** — pelabuhan-perikanan (6 kelas PPS/PPN/PPP/…),
+    pelabuhan-umum (hierarki 1–4), pelabuhan-penyeberangan (kelas
+    I–III), bandara (Pengumpul/Pengumpan), rel + stasiun-ka (Aktif/
+    Non Aktif), jalan-non-tol (K1/A), SBNP (5 tipe pelampung A–F),
+    jaringan-listrik & pembangkit + gardu-induk (regional PLN / kV /
+    energi primer), ruang-udara (8 jenis FIR/UTA/TMA/…) dengan 8
+    sub-toggle terpisah, KKOP (7 kawasan permukaan).
+  - **SDA (22/32)** — gambut, geostruktur (Kelurusan/Patahan/
+    Lipatan/Rekahan/…), karst (Level 1–4), ekosistem-gambut (Lindung/
+    Budidaya), neraca-air (Surplus/Defisit), danau (jenis
+    Tektonik/Vulkanik/Kaldera/…), krb-gempa/gerakan-tanah/krb-tsunami/
+    likuifaksi/karhutla/rawan-banjir (semua ramp risk 3–5 tingkat),
+    patahan-aktif (Aktif/Potensial/Not identified), kerentanan-
+    pesisir (4 tingkat), seismisitas (Dangkal/Menengah/Dalam),
+    mineral logam/non-logam + batubara + panas-bumi (kelas
+    komoditas/kalori/reservoir), lahan-kritis (5 tingkat), mangrove
+    (Lebat/Sedang/Jarang), cagar-budaya kawasan/titik (Situs/
+    Bangunan/Struktur/Kawasan), zonasi-konservasi (Inti/Rimba/
+    Pemanfaatan/…), blok-konservasi (TWA/TWAL).
+
+  Legenda otomatis muncul di kiri-bawah begitu overlay categorized
+  aktif — satu card per layer dengan swatch warna + label. Stack-nya
+  sekarang scrollable (`maxHeight: 100vh − 200px`) supaya banyak
+  legenda sekaligus tetap kelihatan.
+
+- **Ruang Udara di-split jadi 8 sub-toggle nested.** Karena FIR/UTA
+  berukuran besar dan menutupi TMA/CTR/ATZ di bawahnya, layer
+  `Ruang Udara` sekarang punya 8 checkbox terpisah (satu per jenis
+  FIR/UTA/TMA/CTR/ATZ/AFIZ/PDRT/SECTOR). Custom Leaflet pane
+  (`airspaceFir` z-402 · `airspaceTma` z-412 · `airspaceCtr` z-422 —
+  pane yang sama dengan OpenAIP airspaces) memaksa z-order tidak
+  peduli urutan user toggle. Fetch GeoJSON di-memoize per URL supaya
+  8 sub-builder yang minta file yang sama tidak refetch.
+
 - **SDA & Lingkungan BIG — 32 sublayer dari Satupeta
   `PUBLIK/SUMBER_DAYA_ALAM_DAN_LINGKUNGAN` (edisi 2024-08).**
   Tombol layer baru `SDA & Lingkungan · BIG` (icon daun) di sebelah
