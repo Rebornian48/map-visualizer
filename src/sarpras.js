@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { anchorIcon, planeIcon, trainIcon } from "./mapIcons";
 
 // Static snapshots of 22 sublayers from BIG's Satupeta
 // SARANA_PRASARANA MapServer (edisi 2024-07). Refreshed manually via
@@ -261,11 +262,25 @@ async function fetchGeoJson(url) {
   return r.json();
 }
 
+// Slugs that render as a themed pictogram (anchor / plane / train)
+// instead of the default circle marker — matches the textbook symbology
+// used elsewhere in the app for transit nodes.
+const POINT_ICON = {
+  "pelabuhan-perikanan":     (color, size) => anchorIcon({ size, color }),
+  "pelabuhan-umum":          (color, size) => anchorIcon({ size, color }),
+  "pelabuhan-penyeberangan": (color, size) => anchorIcon({ size, color }),
+  "terminal-khusus":         (color, size) => anchorIcon({ size, color }),
+  "bandara":                 (color, size) => planeIcon({ size, color }),
+  "stasiun-ka":              (color, size) => trainIcon({ size, color }),
+};
+const ICON_SIZE = 18;
+
 // A single feature can be Point / Line / Polygon; Leaflet dispatches
 // on ``geometry.type`` via ``pointToLayer`` and ``style`` callbacks, so
 // one builder handles all three cases per layer.
 function makeBuilder(slug) {
   const cfg = CFG[slug];
+  const iconFactory = POINT_ICON[slug];
   const pointStyle = {
     radius: 4,
     color: "#ffffff",
@@ -290,7 +305,12 @@ function makeBuilder(slug) {
   return async function build(_key, url) {
     const fc = await fetchGeoJson(url);
     const layer = L.geoJSON(fc, {
-      pointToLayer: (_f, latlng) => L.circleMarker(latlng, pointStyle),
+      pointToLayer: iconFactory
+        ? (_f, latlng) => L.marker(latlng, {
+            icon: iconFactory(cfg.color, ICON_SIZE),
+            riseOnHover: true,
+          })
+        : (_f, latlng) => L.circleMarker(latlng, pointStyle),
       style: (feat) => {
         const t = feat?.geometry?.type;
         if (t === "Polygon" || t === "MultiPolygon") return polyStyle;
