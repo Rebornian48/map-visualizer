@@ -1,6 +1,8 @@
 import React from 'react'
 import { MONTH_NAMES } from './mapView.helpers'
 import { MBG_RAMP } from '../mbg'
+import { SARPRAS_CATEGORIES } from '../sarpras'
+import { SDA_CATEGORIES } from '../sda'
 
 function fmt(v) {
   return typeof v === 'number' ? v.toLocaleString('en-US') : v
@@ -390,12 +392,48 @@ export function MbgLegend({ uiPanel, activeKeys, meta }) {
   )
 }
 
+// BIG SDA / SARPRAS categorical layers: one small legend card per
+// active categorised source. Both maps expose the same
+// { title, rows: [{color, label}] } shape, so a single component covers
+// both catalogues.
+function CategoryCard({ uiPanel, entry }) {
+  return (
+    <div style={{ ...uiPanel, ...legendCardStyle }}>
+      <div style={legendTitleStyle}>{entry.title}</div>
+      {entry.rows.map(r => (
+        <LegendRow key={r.label}
+          swatch={<span style={{
+            width: 14, height: 10, background: r.color, opacity: 0.9,
+            border: '1px solid rgba(255,255,255,0.2)', borderRadius: 2, flexShrink: 0,
+          }} />}
+          label={r.label} />
+      ))}
+    </div>
+  )
+}
+
+function BigCategoricalLegends({ uiPanel, activeKeys }) {
+  const entries = []
+  for (const key of activeKeys) {
+    const e = SARPRAS_CATEGORIES.get(key) || SDA_CATEGORIES.get(key)
+    if (e) entries.push([key, e])
+  }
+  if (entries.length === 0) return null
+  return (
+    <>
+      {entries.map(([key, entry]) => (
+        <CategoryCard key={key} uiPanel={uiPanel} entry={entry} />
+      ))}
+    </>
+  )
+}
+
 export function LegendStack({ uiPanel, activeKeys, meta }) {
   return (
     <div style={{
       position: 'absolute', bottom: 60, left: 16, zIndex: 1000,
       display: 'flex', flexDirection: 'column-reverse', gap: 8, alignItems: 'flex-start',
-      maxWidth: 320,
+      maxWidth: 320, maxHeight: 'calc(100vh - 200px)', overflowY: 'auto',
     }}>
       <TectonicLegend uiPanel={uiPanel} activeKeys={activeKeys} />
       <VolcanoLegend uiPanel={uiPanel} activeKeys={activeKeys} />
@@ -403,6 +441,7 @@ export function LegendStack({ uiPanel, activeKeys, meta }) {
       <SigmetLegend uiPanel={uiPanel} activeKeys={activeKeys} meta={meta} />
       <BmkgLegend uiPanel={uiPanel} activeKeys={activeKeys} />
       <MbgLegend uiPanel={uiPanel} activeKeys={activeKeys} meta={meta} />
+      <BigCategoricalLegends uiPanel={uiPanel} activeKeys={activeKeys} />
     </div>
   )
 }

@@ -1,37 +1,31 @@
 import L from "leaflet";
 
-// Static snapshots of 34 sublayers from BIG Satupeta's
+// Static snapshots of 32 sublayers from BIG Satupeta's
 // SUMBER_DAYA_ALAM_DAN_LINGKUNGAN MapServer (edisi 2024-08). Refreshed
-// manually via scripts/refresh-sda.py. See that script for source URLs
-// and the per-layer property whitelist.
+// manually via scripts/refresh-sda.py.
 //
-// Same rendering pattern as ./sarpras.js — one generic builder per
-// slug, dispatch on ``geometry.type`` so a single file can carry
-// points, lines and polygons. Palette groups by theme (tanah, air,
-// bencana, sumber daya, ekosistem, cagar budaya) so overlapping
-// overlays stay legible in both light & dark basemaps.
+// Same rendering pattern as ./sarpras.js: one generic builder per slug,
+// dispatch on ``geometry.type`` so a single file can carry point/line/
+// polygon. Slugs with a ``categorize`` block colour features per property
+// value (severity ramps for KRB/rawan layers, qualitative palettes for
+// jenis/kelas fields); everything else uses the layer's base ``color``.
 
 function sdaUrl(name) {
   const base = import.meta.env.BASE_URL || "/";
   return `${base}sda/${name}.json`;
 }
 
-// ---------- palette + per-slug config -----------------------------------
-
+// ---------- base palette (uncategorised layers) ---------------------------
 const C = {
-  // Tanah & Geologi
   gambut:       "#795548",
   geologi:      "#6d4c41",
   geostruktur:  "#a1887f",
   karst:        "#8d6e63",
   ekoGambut:    "#5d4037",
-  // Hidrologi
-  das:          "#0288d1",
   neracaAir:    "#1976d2",
   danau:        "#01579b",
   embung:       "#0277bd",
   situ:         "#039be5",
-  // Bencana
   krbVulkanoP:  "#d84315",
   krbVulkanoA:  "#e65100",
   krbGempa:     "#c62828",
@@ -43,30 +37,34 @@ const C = {
   karhutla:     "#ff5722",
   rawanBanjir:  "#0288d1",
   seismisitas:  "#7f0000",
-  // Sumber daya mineral
   logam:        "#455a64",
   nonLogam:     "#607d8b",
   batubara:     "#212121",
   panasBumi:    "#ef6c00",
-  // Ekosistem / Vegetasi
   lahanKritis:  "#bf360c",
-  dddtlh:       "#33691e",
   perikanan:    "#00897b",
   lahanGaram:   "#e0e0e0",
   mangrove:     "#2e7d32",
-  // Cagar budaya & konservasi
   cbKawasan:    "#ad1457",
   cbTitik:      "#c2185b",
   zonasi:       "#388e3c",
   blok:         "#43a047",
   // ``das`` and ``perairan`` colors reserved for the two upstream-broken
-  // layers (DAS id 7, Konservasi Perairan id 35); the entries above are
-  // omitted from CFG so no source is exposed to the UI. Reintroduce
-  // once BIG's server stops returning HTTP 400 for those layer queries.
+  // layers (DAS id 7, Konservasi Perairan id 35). Reintroduce once BIG
+  // stops returning HTTP 400 for those queries. DDDTLH (id 50) is also
+  // dropped from the UI because its pagination has no upper bound.
 };
 
-// title = property key used for the tooltip/popup headline
-// fields = [label, key] rows for the popup body
+// Shared severity ramps for ordinal risk fields. Cool → warm so the eye
+// ranks them without checking the legend.
+const RAMP4 = [
+  ["Sangat Rendah", "#a5d6a7"],
+  ["Rendah",        "#ffe082"],
+  ["Menengah",      "#fb8c00"],
+  ["Tinggi",        "#e53935"],
+  ["Sangat Tinggi", "#7f0000"],
+];
+
 const CFG = {
   // --- Tanah & Geologi ------------------------------------------------
   "gambut": {
@@ -75,6 +73,14 @@ const CFG = {
     fields: [["Wilayah pemetaan","wadmpu"], ["Landform","landform"],
              ["Bahan induk","bhnindk"], ["Relief","relief"],
              ["USDA 1","usda1"], ["USDA 2","usda2"], ["USDA 3","usda3"]],
+    categorize: {
+      field: "bhnindk",
+      values: [
+        ["Endapan organik",             "#5d4037", "Endapan organik murni"],
+        ["Endapan organik dan mineral", "#a1887f", "Endapan organik + mineral"],
+      ],
+      fallback: "#795548",
+    },
   },
   "geologi": {
     label: "Geologi (formasi)", group: "Tanah & Geologi · BIG", color: C.geologi,
@@ -84,27 +90,58 @@ const CFG = {
   "geostruktur": {
     label: "Geologi Geostruktur", group: "Tanah & Geologi · BIG", color: C.geostruktur,
     title: "namaobj",
-    fields: [["Kelas struktur","klsstr"], ["Catatan","remark"]],
+    fields: [["Jenis struktur","namaobj"], ["Kelas struktur","klsstr"], ["Catatan","remark"]],
+    categorize: {
+      field: "namaobj",
+      values: [
+        ["Kelurusan",       "#78909c", "Kelurusan"],
+        ["Patahan",         "#c62828", "Patahan / Sesar"],
+        ["Lipatan",         "#8e24aa", "Lipatan"],
+        ["Sumbu Lipatan",   "#7b1fa2", "Sumbu Lipatan"],
+        ["Rekahan",         "#fb8c00", "Rekahan"],
+        ["Scarp",           "#5d4037", "Scarp / gawir"],
+        ["Pematang Pantai", "#00acc1", "Pematang Pantai"],
+        ["Foliasi",         "#43a047", "Foliasi"],
+      ],
+      fallback: "#9e9e9e",
+    },
   },
   "karst": {
     label: "Bentang Alam Karst", group: "Tanah & Geologi · BIG", color: C.karst,
     title: "namobj",
     fields: [["Kelas kawasan","klskbak"], ["SK penetapan","skkbak"],
              ["Dasar hukum","datstr"], ["Referensi","spatial_re"], ["Catatan","remark"]],
+    categorize: {
+      field: "remark",
+      values: [
+        ["Level 1, delineasi sebaran batugamping",                                           "#8d6e63", "Level 1 · sebaran batugamping"],
+        ["Level 2, delineasi KBAK hasil penyelidikan",                                       "#00acc1", "Level 2 · penyelidikan"],
+        ["Level 3, delineasi KBAK hasil verifikasi",                                         "#1e88e5", "Level 3 · verifikasi"],
+        ["Level 3, delineasi KBAK hasil verifikasi, Rekomendasi tidak ditetapkan",           "#5e35b1", "Level 3 · tidak ditetapkan"],
+        ["Level 4, delineasi KBAK yang telah ditetapkan",                                    "#c62828", "Level 4 · ditetapkan"],
+      ],
+      fallback: "#9e9e9e",
+    },
   },
   "ekosistem-gambut": {
     label: "Fungsi Ekosistem Gambut", group: "Tanah & Geologi · BIG", color: C.ekoGambut,
     title: "kode_khg",
     fields: [["Ketebalan gambut","peat_thick"], ["Tanah gambut","tnh_gambut"],
              ["FEG peat","feg_peat"], ["FEG 50k","feg_50k"]],
+    categorize: {
+      field: "feg_50k",
+      values: [
+        ["Fungsi Lindung E.G.",   "#2e7d32", "Fungsi Lindung"],
+        ["Fungsi Budidaya E.G.",  "#ff8f00", "Fungsi Budidaya"],
+      ],
+      fallback: "#5d4037",
+    },
   },
 
   // --- Hidrologi ------------------------------------------------------
   // NOTE: layer id 7 (Daerah Aliran Sungai) is upstream-broken — server
-  // returns HTTP 400 "Failed to execute query" for every request shape
-  // we've tried; kept in scripts/refresh-sda.py so it's fetched again
-  // once BIG restores the endpoint, but omitted here so no broken
-  // checkbox appears in the UI. Same for id 35 (konservasi-perairan).
+  // returns HTTP 400 for every request shape. Kept in refresh-sda.py so
+  // it re-runs once BIG restores the endpoint, but omitted here.
   "neraca-air": {
     label: "Neraca Sumber Daya Air", group: "Hidrologi · BIG", color: C.neracaAir,
     title: "nm_inf",
@@ -113,6 +150,14 @@ const CFG = {
              ["Kebutuhan","kbth_air"], ["Neraca","nrc_air"],
              ["Kelas neraca","kls_nrcair"], ["IPA","ipa"], ["Kelas IPA","kls_ipa"],
              ["Populasi","populasi"], ["Keterangan","keterangan"]],
+    categorize: {
+      field: "kls_nrcair",
+      values: [
+        ["Surplus", "#1976d2", "Surplus air"],
+        ["Defisit", "#c62828", "Defisit air"],
+      ],
+      fallback: "#9e9e9e",
+    },
   },
   "danau": {
     label: "Danau", group: "Hidrologi · BIG", color: C.danau,
@@ -123,6 +168,21 @@ const CFG = {
              ["Provinsi","provinsi"], ["Kab/Kota","kab_kota"],
              ["Kec","kec"], ["Desa/Kel","kel_desa"],
              ["Tahun data","thn_data"], ["Catatan","ket"]],
+    categorize: {
+      field: "jns_danau",
+      values: [
+        ["Danau Tektonik",                "#1e88e5", "Tektonik"],
+        ["Danau Tektonik - Dataran Banjir", "#039be5", "Tektonik / dataran banjir"],
+        ["Danau Sesar-Lingkar Kaldera",   "#5e35b1", "Sesar / lingkar kaldera"],
+        ["Danau Vulkanik",                "#d84315", "Vulkanik"],
+        ["Danau Kaldera",                 "#c62828", "Kaldera"],
+        ["Terbentuk Secara Alami",        "#00897b", "Alami (umum)"],
+        ["Paparan Banjir",                "#00acc1", "Paparan banjir"],
+        ["Cekungan Air Tanah",            "#7cb342", "Cekungan air tanah"],
+        ["Buatan",                        "#8d6e63", "Buatan"],
+      ],
+      fallback: "#01579b",
+    },
   },
   "embung": {
     label: "Embung", group: "Hidrologi · BIG", color: C.embung,
@@ -163,12 +223,32 @@ const CFG = {
     label: "KRB Gempa Bumi", group: "Bencana · SDA", color: C.krbGempa,
     title: "namobj",
     fields: [["Kelas","kelas"], ["KRB ID","krbid"]],
+    categorize: {
+      field: "krbid",
+      values: [
+        ["205", "#a5d6a7", "Sangat Rendah · ≤ IV MMI"],
+        ["204", "#ffca28", "Rendah · V-VI MMI"],
+        ["203", "#fb8c00", "Menengah · VII-VIII MMI"],
+        ["202", "#c62828", "Tinggi · > VIII MMI"],
+      ],
+      fallback: "#9e9e9e",
+    },
   },
   "gerakan-tanah": {
     label: "Zona Kerentanan Gerakan Tanah", group: "Bencana · SDA", color: C.gerakanTanah,
     title: "namobj",
     fields: [["Zona","zona"], ["Kelas gerakan tanah","klsgtn"],
              ["Tahun","tahun"], ["Catatan","remark"]],
+    categorize: {
+      field: "remark",
+      values: [
+        ["Sangat Rendah", "#a5d6a7", "Sangat Rendah"],
+        ["Rendah",        "#ffca28", "Rendah"],
+        ["Menengah",      "#fb8c00", "Menengah"],
+        ["Tinggi",        "#c62828", "Tinggi"],
+      ],
+      fallback: "#9e9e9e",
+    },
   },
   "krb-tsunami": {
     label: "KRB Tsunami", group: "Bencana · SDA", color: C.krbTsunami,
@@ -177,36 +257,92 @@ const CFG = {
              ["Tinggi genangan","tinggi_genangan"],
              ["Provinsi","provinsi"], ["Kab/Kota","kota_kabupaten"],
              ["Kecamatan","kecamatan"]],
+    categorize: {
+      field: "unsur",
+      values: [
+        ["Kawasan Rawan Bencana Tsunami Rendah",   "#ffe082", "Rendah · < 1 m"],
+        ["Kawasan Rawan Bencana Tsunami Menengah", "#fb8c00", "Menengah · 1-3 m"],
+        ["Kawasan Rawan Bencana Tsunami Tinggi",   "#c62828", "Tinggi · > 3 m"],
+      ],
+      fallback: "#1a237e",
+    },
   },
   "likuifaksi": {
     label: "Kerentanan Likuifaksi", group: "Bencana · SDA", color: C.likuifaksi,
     title: "namobj",
     fields: [["Kerentanan","kerentanan"], ["Keterangan","keterangan"]],
+    categorize: {
+      field: "kerentanan",
+      values: [
+        ["1", "#ffe082", "1 — Rendah (jarang)"],
+        ["2", "#fb8c00", "2 — Sedang (tidak merata)"],
+        ["3", "#c62828", "3 — Tinggi (merata)"],
+      ],
+      fallback: "#4a148c",
+    },
   },
   "patahan-aktif": {
     label: "Patahan Aktif Indonesia", group: "Bencana · SDA", color: C.patahan,
     title: "namobj",
     fields: [["Simbol","simobj"], ["Jenis patahan","jenispthn"],
-             ["Panjang (km)","pjgpthn"], ["Lokasi","lokasi"],
-             ["Geologi","geologi"], ["Sejarah gempa","sjrhgempa"], ["Catatan","remark"]],
+             ["Panjang (km)","pjgpthn"], ["Mekanisme","remark"], ["Lokasi","lokasi"],
+             ["Geologi","geologi"], ["Sejarah gempa","sjrhgempa"]],
+    categorize: {
+      field: "jenispthn",
+      values: [
+        ["Aktif",             "#c62828", "Aktif"],
+        ["Potensial Aktif",   "#fb8c00", "Potensial Aktif"],
+        ["Not indentified",   "#9e9e9e", "Belum teridentifikasi"],
+      ],
+      fallback: "#6a1b9a",
+    },
   },
   "kerentanan-pesisir": {
     label: "Kerentanan Pesisir", group: "Bencana · SDA", color: C.pesisir,
     title: "kab_kota",
     fields: [["Provinsi","provinsi"], ["Status","status"],
              ["Produksi","produksi"], ["Catatan","remark"]],
+    categorize: {
+      field: "status",
+      values: [
+        ["RENDAH",        "#a5d6a7", "Rendah"],
+        ["SEDANG",        "#fb8c00", "Sedang"],
+        ["TINGGI",        "#e53935", "Tinggi"],
+        ["SANGAT TINGGI", "#7f0000", "Sangat Tinggi"],
+      ],
+      fallback: "#00838f",
+    },
   },
   "karhutla": {
     label: "Rawan Karhutla", group: "Bencana · SDA", color: C.karhutla,
     title: "namobj",
     fields: [["Kelas rawan","kelas"], ["Provinsi","provinsi"],
              ["Luas","luas"], ["Keterangan","keterangan"]],
+    categorize: {
+      field: "kelas",
+      values: [
+        ["Rendah",        "#a5d6a7", "Rendah"],
+        ["Sedang",        "#fb8c00", "Sedang"],
+        ["Sangat Tinggi", "#c62828", "Sangat Tinggi"],
+      ],
+      fallback: "#ff5722",
+    },
   },
   "rawan-banjir": {
     label: "Rawan Banjir", group: "Bencana · SDA", color: C.rawanBanjir,
     title: "kelas_rawan",
     fields: [["Bentang lahan","bentanglhn"], ["Rawan banjir","r_banjir"],
              ["Kelas rawan","kelas_rawan"], ["Tahun","tahun"]],
+    categorize: {
+      field: "kelas_rawan",
+      values: [
+        ["Tidak Rawan", "#c6ff9c", "Tidak Rawan"],
+        ["Rendah",      "#ffca28", "Rendah"],
+        ["Menengah",    "#fb8c00", "Menengah"],
+        ["Tinggi",      "#c62828", "Tinggi"],
+      ],
+      fallback: "#0288d1",
+    },
   },
   "seismisitas": {
     label: "Seismisitas Gempa Bumi", group: "Bencana · SDA", color: C.seismisitas,
@@ -215,6 +351,15 @@ const CFG = {
              ["Bujur","bujur"], ["Lintang","lintang"],
              ["Kedalaman (km)","kedalaman"], ["Magnitudo","magnitudo"],
              ["Kelas kedalaman","kelaskedalaman"]],
+    categorize: {
+      field: "kelaskedalaman",
+      values: [
+        ["Dangkal",  "#e53935", "Dangkal · < 70 km"],
+        ["Menengah", "#fb8c00", "Menengah · 70-300 km"],
+        ["Dalam",    "#1e88e5", "Dalam · > 300 km"],
+      ],
+      fallback: "#7f0000",
+    },
   },
 
   // --- Sumber daya mineral -------------------------------------------
@@ -224,6 +369,16 @@ const CFG = {
     fields: [["Jenis komoditi","jnskom"], ["Lokasi","lokasilgm"],
              ["Kelas","kellgm"], ["Unsur pemantau","lbunsur"],
              ["Status","statdiklgm"], ["Acuan","acuan"], ["Catatan","remark"]],
+    categorize: {
+      field: "kellgm",
+      values: [
+        ["Logam Besi dan Paduan Besi",   "#455a64", "Besi & paduan besi"],
+        ["Logam Dasar",                  "#8d6e63", "Logam dasar"],
+        ["Logam Mulia",                  "#f9a825", "Logam mulia"],
+        ["Logam Ringan dan Langka",      "#6a1b9a", "Logam ringan & langka"],
+      ],
+      fallback: "#607d8b",
+    },
   },
   "mineral-non-logam": {
     label: "Mineral Non Logam", group: "Sumber Daya · BIG", color: C.nonLogam,
@@ -231,6 +386,16 @@ const CFG = {
     fields: [["Jenis komoditi","jnskombl"], ["Lokasi","lokasibl"],
              ["Kelas","kelkombl"], ["Unsur pemantau","lbunsurbl"],
              ["Status","statdikbl"], ["Acuan","acuan"], ["Catatan","remark"]],
+    categorize: {
+      field: "kelkombl",
+      values: [
+        ["Mineral Industri", "#455a64", "Mineral Industri"],
+        ["Bahan Bangunan",   "#8d6e63", "Bahan Bangunan"],
+        ["Bahan Keramik",    "#00897b", "Bahan Keramik"],
+        ["Batu Mulia",       "#c62828", "Batu Mulia"],
+      ],
+      fallback: "#607d8b",
+    },
   },
   "batubara": {
     label: "Sumber Daya Batubara", group: "Sumber Daya · BIG", color: C.batubara,
@@ -239,6 +404,16 @@ const CFG = {
              ["Hipotetik","hipbb"], ["Total sumber daya","totsdbb"],
              ["Total cadangan","totcadbb"], ["Status","statdikbb"],
              ["Acuan","acuan"], ["Catatan","remark"]],
+    categorize: {
+      field: "klsbb",
+      values: [
+        ["Kalori Rendah",        "#a1887f", "Kalori Rendah"],
+        ["Kalori Sedang",        "#6d4c41", "Kalori Sedang"],
+        ["Kalori Tinggi",        "#3e2723", "Kalori Tinggi"],
+        ["Kalori Sangat Tinggi", "#212121", "Kalori Sangat Tinggi"],
+      ],
+      fallback: "#4e342e",
+    },
   },
   "panas-bumi": {
     label: "Sumber Daya Panas Bumi", group: "Sumber Daya · BIG", color: C.panasBumi,
@@ -247,6 +422,15 @@ const CFG = {
              ["Kelas reservoir","klsrsv"], ["Suhu (°C)","temprsv"],
              ["Mungkin","mgkinpb"], ["Spekulatif","spekpb"],
              ["Tahun data","thndatpb"], ["Catatan","remark"]],
+    categorize: {
+      field: "klsrsv",
+      values: [
+        ["Rendah", "#ffca28", "Reservoir Rendah"],
+        ["Sedang", "#fb8c00", "Reservoir Sedang"],
+        ["Tinggi", "#c62828", "Reservoir Tinggi"],
+      ],
+      fallback: "#ef6c00",
+    },
   },
 
   // --- Ekosistem / Vegetasi ------------------------------------------
@@ -254,12 +438,21 @@ const CFG = {
     label: "Lahan Kritis", group: "Ekosistem · BIG", color: C.lahanKritis,
     title: "namobj",
     fields: [["Kelas kritis","kritis"], ["BPDAS","bpdas"], ["Catatan","remark"]],
+    categorize: {
+      field: "kritis",
+      values: [
+        ["Tidak Kritis",       "#a5d6a7", "Tidak Kritis"],
+        ["Potensial Kritis",   "#ffe082", "Potensial Kritis"],
+        ["Agak Kritis",        "#ffb300", "Agak Kritis"],
+        ["Kritis",             "#e53935", "Kritis"],
+        ["Sangat Kritis",      "#7f0000", "Sangat Kritis"],
+      ],
+      fallback: "#bf360c",
+    },
   },
   // NOTE: layer id 50 (DDDTLH) is dropped from the UI. Its polygon set
-  // is unbounded — a retry paginated past 408.000 features without
-  // stopping, and even at aggressive server_offset the vendored file
-  // would exceed GitHub's 100 MB per-file cap. Kept in the refresh
-  // script so it can be re-enabled once BIG paginates it sensibly.
+  // is unbounded (>408k features on retry) so the vendored file would
+  // exceed GitHub's 100 MB per-file cap.
   "perikanan-budidaya": {
     label: "Potensi Perikanan Budidaya", group: "Ekosistem · BIG", color: C.perikanan,
     title: "namobj",
@@ -283,6 +476,15 @@ const CFG = {
              ["Fungsi fitografi","fgsfrf"], ["Luas mangrove","lsmgr"],
              ["Provinsi","prov"], ["Kab/Kota","kab"],
              ["BPDASHL","bpdashl"], ["Tahun buat","thnbuat"]],
+    categorize: {
+      field: "kttj",
+      values: [
+        ["Mangrove Lebat",  "#1b5e20", "Lebat"],
+        ["Mangrove Sedang", "#43a047", "Sedang"],
+        ["Mangrove Jarang", "#c5e1a5", "Jarang"],
+      ],
+      fallback: "#2e7d32",
+    },
   },
 
   // --- Cagar Budaya & Konservasi ------------------------------------
@@ -295,6 +497,17 @@ const CFG = {
              ["Pengelola","pnglcbdef"],
              ["SK","sk"], ["Tanggal SK","tglsk"],
              ["Luas","luas"], ["Tahun data","thndata"]],
+    categorize: {
+      field: "krtacbdef",
+      values: [
+        ["Situs",     "#ad1457", "Situs"],
+        ["Bangunan",  "#c62828", "Bangunan"],
+        ["Struktur",  "#6a1b9a", "Struktur"],
+        ["Kawasan",   "#00838f", "Kawasan"],
+        ["Lainnya",   "#546e7a", "Lainnya"],
+      ],
+      fallback: "#ad1457",
+    },
   },
   "cagar-budaya-titik": {
     label: "Cagar Budaya (titik)", group: "Cagar Budaya & Konservasi · BIG", color: C.cbTitik,
@@ -304,13 +517,37 @@ const CFG = {
              ["Status","sttpcbdef"], ["Kondisi","kndscbdef"],
              ["Pengelola","pnglcbdef"],
              ["SK","sk"], ["Tanggal SK","tglsk"], ["Tahun data","thndata"]],
+    categorize: {
+      field: "krtacbdef",
+      values: [
+        ["Bangunan",  "#c62828", "Bangunan"],
+        ["Situs",     "#ad1457", "Situs"],
+        ["Struktur",  "#6a1b9a", "Struktur"],
+        ["Kawasan",   "#00838f", "Kawasan"],
+      ],
+      fallback: "#c2185b",
+    },
   },
   "zonasi-konservasi": {
     label: "Zonasi Kawasan Konservasi", group: "Cagar Budaya & Konservasi · BIG", color: C.zonasi,
     title: "nkws",
     fields: [["Provinsi","nprov"], ["UPT","nupt"], ["Fungsi kawasan","fgskws"],
-             ["Kode zona","kodezona"], ["Catatan","catatan"],
-             ["Keterangan","keterangan"], ["Ref","remark"]],
+             ["Kode zona","kodezona"], ["Zona","remark"],
+             ["Catatan","catatan"], ["Keterangan","keterangan"]],
+    categorize: {
+      field: "remark",
+      values: [
+        ["Inti",                       "#1b5e20", "Inti"],
+        ["Rimba",                      "#43a047", "Rimba"],
+        ["Pemanfaatan",                "#ffb300", "Pemanfaatan"],
+        ["Tradisional",                "#6d4c41", "Tradisional"],
+        ["Khusus",                     "#8e24aa", "Khusus"],
+        ["Rehabilitasi",               "#fb8c00", "Rehabilitasi"],
+        ["Religi, Budaya dan Sejarah", "#c62828", "Religi / Budaya / Sejarah"],
+        ["Perlindungan Bahari",        "#0277bd", "Perlindungan Bahari"],
+      ],
+      fallback: "#388e3c",
+    },
   },
   "blok-konservasi": {
     label: "Blok Kawasan Konservasi", group: "Cagar Budaya & Konservasi · BIG", color: C.blok,
@@ -318,9 +555,17 @@ const CFG = {
     fields: [["Provinsi","nprov"], ["UPT","nupt"], ["Fungsi kawasan","fgskws"],
              ["Kode blok","kodeblok"], ["Cakupan","cakupan"],
              ["Catatan","catatan"], ["Keterangan","keterangan"]],
+    categorize: {
+      field: "fgskws",
+      values: [
+        ["TWA",  "#43a047", "TWA — Taman Wisata Alam"],
+        ["TWAL", "#0277bd", "TWAL — Taman Wisata Alam Laut"],
+      ],
+      fallback: "#43a047",
+    },
   },
-  // NOTE: layer id 35 (Kawasan Konservasi Perairan) is also
-  // upstream-broken today — see the DAS note above.
+  // NOTE: layer id 35 (Kawasan Konservasi Perairan) is upstream-broken —
+  // server returns HTTP 400 for every query shape. Same as layer 7 above.
 };
 
 // ---------- SOURCES / builders -----------------------------------------
@@ -341,6 +586,20 @@ export const SDA_GROUP_NAMES = [
   "Ekosistem · BIG",
   "Cagar Budaya & Konservasi · BIG",
 ];
+
+// Exposed for the map's legend stack — one entry per categorised slug.
+export const SDA_CATEGORIES = new Map(
+  Object.entries(CFG)
+    .filter(([, c]) => c.categorize)
+    .map(([slug, c]) => [
+      `sda_${slug}`,
+      {
+        title: c.label,
+        rows: c.categorize.values.map(([_v, color, label]) => ({ color, label }))
+          .concat(c.categorize.combined ? [c.categorize.combined] : []),
+      },
+    ]),
+);
 
 const escapeHtml = (s) => {
   const div = document.createElement("div");
@@ -373,9 +632,9 @@ function popupHtml(cfg, props) {
   </div>`;
 }
 
-function tooltipHtml(cfg, props) {
+function tooltipHtml(cfg, props, color) {
   const title = props[cfg.title] || cfg.label;
-  return `<strong style="color:${cfg.color}">${escapeHtml(title)}</strong>
+  return `<strong style="color:${color}">${escapeHtml(title)}</strong>
     <span style="opacity:.75"> — ${escapeHtml(cfg.label)}</span>`;
 }
 
@@ -385,41 +644,47 @@ async function fetchGeoJson(url) {
   return r.json();
 }
 
+function makeColorFn(cfg) {
+  if (!cfg.categorize) {
+    const c = cfg.color;
+    return () => c;
+  }
+  const { field, values, fallback } = cfg.categorize;
+  const table = new Map(values.map(([v, color]) => [v, color]));
+  return (props) => {
+    const raw = props?.[field];
+    if (raw == null || raw === "") return fallback;
+    const s = String(raw);
+    return table.get(s) || fallback;
+  };
+}
+
 function makeBuilder(slug) {
   const cfg = CFG[slug];
-  const pointStyle = {
-    radius: 3.5,
-    color: "#ffffff",
-    weight: 0.8,
-    opacity: 0.85,
-    fillColor: cfg.color,
-    fillOpacity: 0.85,
-  };
-  const lineStyle = {
-    color: cfg.color,
-    weight: 1.5,
-    opacity: 0.85,
-  };
-  const polyStyle = {
-    color: cfg.color,
-    weight: 0.6,
-    opacity: 0.75,
-    fillColor: cfg.color,
-    fillOpacity: 0.28,
-  };
+  const colorFor = makeColorFn(cfg);
 
   return async function build(_key, url) {
     const fc = await fetchGeoJson(url);
     const layer = L.geoJSON(fc, {
-      pointToLayer: (_f, latlng) => L.circleMarker(latlng, pointStyle),
+      pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+        radius: 3.5,
+        color: "#ffffff",
+        weight: 0.8,
+        opacity: 0.85,
+        fillColor: colorFor(f.properties),
+        fillOpacity: 0.85,
+      }),
       style: (feat) => {
         const t = feat?.geometry?.type;
-        if (t === "Polygon" || t === "MultiPolygon") return polyStyle;
-        return lineStyle;
+        const c = colorFor(feat?.properties);
+        if (t === "Polygon" || t === "MultiPolygon") {
+          return { color: c, weight: 0.6, opacity: 0.75, fillColor: c, fillOpacity: 0.28 };
+        }
+        return { color: c, weight: 1.5, opacity: 0.85 };
       },
       onEachFeature: (feature, lyr) => {
         const p = feature.properties || {};
-        lyr.bindTooltip(tooltipHtml(cfg, p), {
+        lyr.bindTooltip(tooltipHtml(cfg, p, colorFor(p)), {
           sticky: true, direction: "top", opacity: 0.95,
         });
         lyr.bindPopup(popupHtml(cfg, p), { maxWidth: 360 });

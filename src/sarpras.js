@@ -5,54 +5,74 @@ import { anchorIcon, planeIcon, trainIcon } from "./mapIcons";
 // SARANA_PRASARANA MapServer (edisi 2024-07). Refreshed manually via
 // scripts/refresh-sarpras.py. See that script for source URLs and the
 // per-layer property whitelist.
-//
-// Presentation strategy: everything comes back as a GeoJSON
-// FeatureCollection. Points render as circle markers colour-coded by
-// category (transport / energy / water / airspace); polylines and
-// polygons use themed strokes with light fills so they don't obscure
-// the basemap.
 
 function sarprasUrl(name) {
   const base = import.meta.env.BASE_URL || "/";
   return `${base}sarpras/${name}.json`;
 }
 
-// ---------- palette + per-slug config -----------------------------------
-
-// Themed hues, chosen so overlapping layers stay distinguishable on both
-// light OSM tiles and dark satellite imagery.
+// ---------- base palette (used when a layer isn't categorised) ------------
 const C = {
-  fishery:      "#00838f",   // teal (perikanan)
-  seaport:      "#0277bd",   // blue (pelabuhan umum)
-  ferryport:    "#00acc1",   // cyan (penyeberangan)
-  jetty:        "#26a69a",   // green-teal (terminal khusus)
-  airport:      "#1e88e5",   // bright blue (bandara)
-  railLine:     "#ffb300",   // amber
-  railStation:  "#ff6f00",   // deep amber
-  power:        "#c62828",   // red
-  gardu:        "#ad1457",   // pink
-  genPoly:      "#e65100",   // deep orange
-  genPoint:     "#f4511e",   // orange
-  jalanNonTol:  "#5d4037",   // brown
-  jalanTol:     "#d84315",   // burnt orange
-  dam:          "#1565c0",   // deep blue
-  bbm:          "#6d4c41",   // brown
-  lpg:          "#8d6e63",   // light brown
-  kilang:       "#4e342e",   // dark brown
-  alur:         "#00695c",   // dark teal
-  ruangUdara:   "#7e57c2",   // purple
-  dlkr:         "#5e35b1",   // deep indigo
-  kkop:         "#8e24aa",   // magenta
-  sbnp:         "#fbc02d",   // yellow
+  fishery:      "#00838f",
+  seaport:      "#0277bd",
+  ferryport:    "#00acc1",
+  jetty:        "#26a69a",
+  airport:      "#1e88e5",
+  railLine:     "#ffb300",
+  railStation:  "#ff6f00",
+  power:        "#c62828",
+  gardu:        "#ad1457",
+  genPoly:      "#e65100",
+  genPoint:     "#f4511e",
+  jalanNonTol:  "#5d4037",
+  jalanTol:     "#d84315",
+  dam:          "#1565c0",
+  bbm:          "#6d4c41",
+  lpg:          "#8d6e63",
+  kilang:       "#4e342e",
+  alur:         "#00695c",
+  ruangUdara:   "#7e57c2",
+  dlkr:         "#5e35b1",
+  kkop:         "#8e24aa",
+  sbnp:         "#fbc02d",
 };
 
-// Human labels + property field to display as the tooltip title.
-// ``fields`` = ordered list of [label, key] pairs for the popup table.
+// ---------- reusable palettes ---------------------------------------------
+// Ordinal risk/quality ramp (4 tiers). Cool → warm so a glance ranks them.
+const RAMP4 = { verylow: "#66bb6a", low: "#ffca28", mid: "#fb8c00", high: "#e53935" };
+// Qualitative 12-hue palette (ColorBrewer Set3-ish, tuned for both themes).
+const QUAL = [
+  "#1e88e5", "#e53935", "#43a047", "#fb8c00", "#8e24aa", "#00acc1",
+  "#c62828", "#7cb342", "#5e35b1", "#f4511e", "#00897b", "#ec407a",
+];
+
+// ---------- per-slug config -----------------------------------------------
+// ``label``     – human name shown as source in the layer control
+// ``group``     – section (Transportasi / Energi / Air & Zona)
+// ``color``     – default hue (used when no ``categorize`` block)
+// ``title``     – property key used as the tooltip/popup headline
+// ``fields``    – ordered [label, key] rows for the popup body
+// ``categorize``– optional per-feature colour by property value:
+//                 { field, values: [[value, color, label]], fallback, unit }
+//                 The unit string (e.g. "kV") is stripped from `value`
+//                 before comparison so numeric codes still match.
 const CFG = {
   "pelabuhan-perikanan": {
     label: "Pelabuhan Perikanan", group: "Transportasi · BIG", color: C.fishery,
     title: "namobj",
     fields: [["Kelas", "kelas"], ["Pengelola", "pengelola"], ["Status", "status"], ["Catatan", "remark"]],
+    categorize: {
+      field: "kelas",
+      values: [
+        ["Pelabuhan Perikanan Samudera (PPS)",   "#7f0000", "PPS · Samudera"],
+        ["Pelabuhan Perikanan Nusantara (PPN)",  "#c62828", "PPN · Nusantara"],
+        ["Pelabuhan Perikanan Pantai (PPP)",     "#fb8c00", "PPP · Pantai"],
+        ["Pelabuhan Perikanan (PP)",             "#26a69a", "PP · umum"],
+        ["Pelabuhan Perikanan Swasta (PS)",      "#5e35b1", "PS · swasta"],
+        ["Pangkalan Pendaratan Ikan (PPI)",      "#ffca28", "PPI · pendaratan"],
+      ],
+      fallback: "#607d8b",
+    },
   },
   "pelabuhan-umum": {
     label: "Pelabuhan Umum", group: "Transportasi · BIG", color: C.seaport,
@@ -61,6 +81,17 @@ const CFG = {
              ["Hierarki", "hirrki"], ["Jenis kapal", "jns_kpl"],
              ["Alamat", "alamat"], ["Kab/Kota", "wadmkk"], ["Provinsi", "wadmpr"],
              ["Telp", "notelp"], ["Email", "surel"], ["Status ops", "stat_ops"]],
+    categorize: {
+      field: "hirrki",
+      // BIG codes hierarki 1..4 (utama/pengumpul/pengumpan-regional/lokal)
+      values: [
+        ["1", "#c62828", "1 — Utama"],
+        ["2", "#fb8c00", "2 — Pengumpul"],
+        ["3", "#43a047", "3 — Pengumpan Regional"],
+        ["4", "#1e88e5", "4 — Pengumpan Lokal"],
+      ],
+      fallback: "#607d8b",
+    },
   },
   "pelabuhan-penyeberangan": {
     label: "Pelabuhan Penyeberangan", group: "Transportasi · BIG", color: C.ferryport,
@@ -68,6 +99,15 @@ const CFG = {
     fields: [["ADPEL", "admpel"], ["Kelas", "kelas"], ["Jenis kapal", "jns_kpl"],
              ["Alamat", "alamat"], ["Kab/Kota", "wadmkk"], ["Provinsi", "wadmpr"],
              ["Telp", "notelp"], ["Email", "surel"]],
+    categorize: {
+      field: "kelas",
+      values: [
+        ["1", "#c62828", "Kelas I"],
+        ["2", "#fb8c00", "Kelas II"],
+        ["3", "#43a047", "Kelas III"],
+      ],
+      fallback: "#607d8b",
+    },
   },
   "terminal-khusus": {
     label: "Terminal Khusus (Tersus)", group: "Transportasi · BIG", color: C.jetty,
@@ -83,12 +123,28 @@ const CFG = {
              ["Kelas", "klsbmi"], ["Fungsi", "funaip"], ["Hierarki", "hiraip"],
              ["Kategori", "kataip"], ["Pengelola", "kepaip"], ["Jam ops", "jamopr"],
              ["Kab/Kota", "wadmkk"]],
+    categorize: {
+      field: "hiraip",
+      values: [
+        ["1", "#c62828", "Bandara Pengumpul"],
+        ["2", "#1e88e5", "Bandara Pengumpan"],
+      ],
+      fallback: "#607d8b",
+    },
   },
   "rel": {
     label: "Jaringan Rel", group: "Transportasi · BIG", color: C.railLine,
     title: "namobj",
     fields: [["Tipe rel", "tiprel"], ["Kelas", "klsrel"], ["Jumlah rel", "jmlrel"],
              ["Kebar rel", "kebrel"], ["Wilker", "wilker"], ["Catatan", "remark"]],
+    categorize: {
+      field: "remark",
+      values: [
+        ["Aktif",     "#43a047", "Aktif"],
+        ["Non Aktif", "#9e9e9e", "Non Aktif"],
+      ],
+      fallback: "#ffb300",
+    },
   },
   "stasiun-ka": {
     label: "Stasiun KA", group: "Transportasi · BIG", color: C.railStation,
@@ -96,6 +152,14 @@ const CFG = {
     fields: [["Kelas", "klssta"], ["Wilayah", "wilsta"], ["Wilayah ops", "wil_op"],
              ["DOP", "dopsta"], ["Lintas", "linsta"],
              ["Kab/Kota", "wadmkk"], ["Provinsi", "wadmpr"]],
+    categorize: {
+      field: "remark",
+      values: [
+        ["Aktif",     "#ff6f00", "Aktif"],
+        ["Non Aktif", "#9e9e9e", "Non Aktif"],
+      ],
+      fallback: "#ff6f00",
+    },
   },
   "jalan-nasional-non-tol": {
     label: "Jalan Nasional Non Tol", group: "Transportasi · BIG", color: C.jalanNonTol,
@@ -103,6 +167,16 @@ const CFG = {
     fields: [["Kode ruas", "kd_ruas"], ["Fungsi", "fungsi"], ["Tipe", "tipe_jalan"],
              ["Status", "status"], ["Panjang (m)", "pjg_datar"],
              ["KM awal", "km_awal_ru"], ["KM akhir", "km_akhir_r"], ["LHRT", "lhrt"]],
+    categorize: {
+      field: "fungsi",
+      // K1 = Arteri Primer, A = Arteri (huruf), lowercase 'k1' = variant
+      values: [
+        ["K1", "#d84315", "K1 — Arteri Primer"],
+        ["k1", "#d84315", "K1 — Arteri Primer"],
+        ["A",  "#5d4037", "A — Arteri"],
+      ],
+      fallback: "#5d4037",
+    },
   },
   "jalan-nasional-tol": {
     label: "Jalan Nasional Tol", group: "Transportasi · BIG", color: C.jalanTol,
@@ -127,11 +201,35 @@ const CFG = {
              ["Penyelenggara", "nm_penylgr"], ["Tahun ops", "thn_ops"],
              ["Tinggi menara (m)", "t_mnr"], ["Jarak tampak (NM)", "jrk_tmpk"],
              ["Nomor DSI", "nomor_dsi"], ["Catatan", "remark"]],
+    categorize: {
+      field: "tipbuy",
+      values: [
+        ["A", "#e53935", "A — merah (portside)"],
+        ["B", "#43a047", "B — hijau (starboard)"],
+        ["C", "#ffca28", "C — kuning (khusus)"],
+        ["E", "#1e88e5", "E — biru"],
+        ["F", "#9e9e9e", "F — lainnya"],
+      ],
+      fallback: "#fbc02d",
+    },
   },
   "jaringan-listrik": {
     label: "Jaringan Listrik", group: "Energi · BIG", color: C.power,
     title: "namobj",
     fields: [["Panjang jaringan (m)", "pjgjar"], ["Wilayah PLN", "regpln"]],
+    categorize: {
+      field: "regpln",
+      values: [
+        ["Jawa-Bali",     "#c62828", "Jawa-Bali"],
+        ["Sumatera",      "#fb8c00", "Sumatera"],
+        ["Kalimantan",    "#8e24aa", "Kalimantan"],
+        ["Sulawesi",      "#00897b", "Sulawesi"],
+        ["Nusa Tenggara", "#1e88e5", "Nusa Tenggara"],
+        ["Maluku",        "#5e35b1", "Maluku"],
+        ["Papua",         "#43a047", "Papua"],
+      ],
+      fallback: "#9e9e9e",
+    },
   },
   "gardu-induk": {
     label: "Gardu Induk", group: "Energi · BIG", color: C.gardu,
@@ -140,18 +238,61 @@ const CFG = {
              ["Status milik", "statmlk"], ["Status ops", "statopr"],
              ["Wilayah PLN", "regpln"], ["Tahun ops", "thnopr"],
              ["Alamat", "alamat"], ["Catatan", "remark"]],
+    categorize: {
+      field: "teggi",
+      values: [
+        ["500 kV", "#7f0000", "500 kV"],
+        ["275 kV", "#c62828", "275 kV"],
+        ["150 kV", "#fb8c00", "150 kV"],
+        ["70 kV",  "#43a047", "70 kV"],
+        ["30 kV",  "#1e88e5", "30 kV"],
+        ["25 kV",  "#5e35b1", "25 kV"],
+      ],
+      fallback: "#9e9e9e",
+    },
   },
   "pembangkit-poly": {
     label: "Pembangkit Listrik (kawasan)", group: "Energi · BIG", color: C.genPoly,
     title: "namobj",
     fields: [["Energi primer", "enrgprmr"], ["Daya (MW)", "daya"],
              ["Wilayah PLN", "regpln"], ["Alamat", "alamat"], ["Tahun ops", "thnopr"]],
+    categorize: {
+      field: "enrgprmr",
+      values: [
+        ["Air",         "#1e88e5", "Air (PLTA)"],
+        ["Batubara",    "#3e2723", "Batubara (PLTU)"],
+        ["Gas",         "#fb8c00", "Gas (PLTG)"],
+        ["Panas Bumi",  "#e53935", "Panas Bumi (PLTP)"],
+        ["Surya",       "#ffca28", "Surya (PLTS)"],
+        ["MFO",         "#6d4c41", "MFO"],
+        ["HSD",         "#4e342e", "HSD (diesel)"],
+      ],
+      fallback: "#9e9e9e",
+      // Any value containing more than one primary keyword is bucketed to "Campuran".
+      combined: { color: "#8e24aa", label: "Campuran" },
+    },
   },
   "pembangkit": {
     label: "Pembangkit Listrik (titik)", group: "Energi · BIG", color: C.genPoint,
     title: "namobj",
     fields: [["Energi primer", "enrgprmr"], ["Daya (MW)", "daya"],
              ["Wilayah PLN", "regpln"], ["Alamat", "alamat"], ["Tahun ops", "thnopr"]],
+    categorize: {
+      field: "enrgprmr",
+      values: [
+        ["Air",         "#1e88e5", "Air (PLTA / PLTMH)"],
+        ["Batubara",    "#3e2723", "Batubara (PLTU)"],
+        ["Gas",         "#fb8c00", "Gas (PLTG / PLTGU)"],
+        ["Panas Bumi",  "#e53935", "Panas Bumi (PLTP)"],
+        ["Surya",       "#ffca28", "Surya (PLTS)"],
+        ["Biogas",      "#7cb342", "Biogas / Biomassa"],
+        ["MFO",         "#6d4c41", "MFO"],
+        ["HSD",         "#4e342e", "HSD (diesel)"],
+        ["B30",         "#5d4037", "B30 (biodiesel)"],
+      ],
+      fallback: "#9e9e9e",
+      combined: { color: "#8e24aa", label: "Campuran" },
+    },
   },
   "terminal-bbm": {
     label: "Terminal BBM", group: "Energi · BIG", color: C.bbm,
@@ -187,6 +328,20 @@ const CFG = {
              ["Konfigurasi", "konkon"], ["Kelas", "klsrud"],
              ["Batas bawah", "low_limit"], ["Batas atas", "upp_limit"],
              ["Frekuensi", "frekuensi"]],
+    categorize: {
+      field: "jenis",
+      values: [
+        ["FIR",    "#1e88e5", "FIR — Flight Information Region"],
+        ["UTA",    "#3949ab", "UTA — Upper Terminal Area"],
+        ["TMA",    "#fb8c00", "TMA — Terminal Manoeuvring Area"],
+        ["CTR",    "#d84315", "CTR — Control Zone"],
+        ["ATZ",    "#e65100", "ATZ — Aerodrome Traffic Zone"],
+        ["AFIZ",   "#00acc1", "AFIZ — Aerodrome FIZ"],
+        ["PDRT",   "#c62828", "PDRT — Prohibited/Danger/Restricted/TSA"],
+        ["SECTOR", "#546e7a", "SECTOR"],
+      ],
+      fallback: "#7e57c2",
+    },
   },
   "dlkr-dlkp-pelabuhan": {
     label: "DLKr/DLKp Pelabuhan", group: "Air & Zona · BIG", color: C.dlkr,
@@ -199,10 +354,23 @@ const CFG = {
     label: "KKOP — Keamanan Ops Penerbangan", group: "Air & Zona · BIG", color: C.kkop,
     title: "namobj",
     fields: [["Kawasan", "kawasan"]],
+    categorize: {
+      field: "kawasan",
+      values: [
+        ["PERMUKAAN UTAMA/STRIP LANDAS PACU",       "#c62828", "Permukaan Utama / Strip Landas Pacu"],
+        ["KAWASAN ANCANGAN PENDARATAN DAN LEPAS LANDAS", "#fb8c00", "Ancangan Pendaratan & Lepas Landas"],
+        ["KAWASAN KEMUNGKINAN BAHAYA KECELAKAAN",   "#e65100", "Kemungkinan Bahaya Kecelakaan"],
+        ["KAWASAN DI BAWAH PERMUKAAN TRANSISI",     "#8e24aa", "Bawah Permukaan Transisi"],
+        ["KAWASAN DI BAWAH PERMUKAAN HORISONTAL DALAM", "#5e35b1", "Bawah Permukaan Horisontal Dalam"],
+        ["KAWASAN DI BAWAH PERMUKAAN KERUCUT",      "#3949ab", "Bawah Permukaan Kerucut"],
+        ["KAWASAN DI BAWAH PERMUKAAN HORISONTAL LUAR", "#1e88e5", "Bawah Permukaan Horisontal Luar"],
+      ],
+      fallback: "#607d8b",
+    },
   },
 };
 
-// ---------- SOURCES / builders -----------------------------------------
+// ---------- SOURCES / builders ---------------------------------------------
 
 export const SARPRAS_SOURCES = Object.entries(CFG).map(([slug, c]) => ({
   key:   `sarpras_${slug}`,
@@ -218,6 +386,20 @@ export const SARPRAS_GROUP_NAMES = [
   "Air & Zona · BIG",
 ];
 
+// Exposed for the map's legend stack — one entry per categorised slug.
+export const SARPRAS_CATEGORIES = new Map(
+  Object.entries(CFG)
+    .filter(([, c]) => c.categorize)
+    .map(([slug, c]) => [
+      `sarpras_${slug}`,
+      {
+        title: c.label,
+        rows: c.categorize.values.map(([_v, color, label]) => ({ color, label }))
+          .concat(c.categorize.combined ? [c.categorize.combined] : []),
+      },
+    ]),
+);
+
 const escapeHtml = (s) => {
   const div = document.createElement("div");
   div.textContent = String(s ?? "");
@@ -227,7 +409,6 @@ const escapeHtml = (s) => {
 function fmtNum(v) {
   if (v == null || v === "") return "";
   if (typeof v === "number") {
-    // Big numbers get thousands separators, small ones stay as-is.
     if (Number.isInteger(v)) return v.toLocaleString("id-ID");
     return Number(v.toFixed(2)).toLocaleString("id-ID");
   }
@@ -250,9 +431,9 @@ function popupHtml(cfg, props) {
   </div>`;
 }
 
-function tooltipHtml(cfg, props) {
+function tooltipHtml(cfg, props, color) {
   const title = props[cfg.title] || cfg.label;
-  return `<strong style="color:${cfg.color}">${escapeHtml(title)}</strong>
+  return `<strong style="color:${color}">${escapeHtml(title)}</strong>
     <span style="opacity:.75"> — ${escapeHtml(cfg.label)}</span>`;
 }
 
@@ -262,9 +443,6 @@ async function fetchGeoJson(url) {
   return r.json();
 }
 
-// Slugs that render as a themed pictogram (anchor / plane / train)
-// instead of the default circle marker — matches the textbook symbology
-// used elsewhere in the app for transit nodes.
 const POINT_ICON = {
   "pelabuhan-perikanan":     (color, size) => anchorIcon({ size, color }),
   "pelabuhan-umum":          (color, size) => anchorIcon({ size, color }),
@@ -275,50 +453,66 @@ const POINT_ICON = {
 };
 const ICON_SIZE = 18;
 
+// Build a colour-picker for the layer: constant if uncategorised,
+// else look up the property value in the values table (with a
+// "combined" catch-all if a value names more than one keyword).
+function makeColorFn(cfg) {
+  if (!cfg.categorize) {
+    const c = cfg.color;
+    return () => c;
+  }
+  const { field, values, fallback, combined } = cfg.categorize;
+  const table = new Map(values.map(([v, color]) => [v, color]));
+  const keywords = combined ? values.map(([v]) => v) : [];
+  return (props) => {
+    const raw = props?.[field];
+    if (raw == null || raw === "") return fallback;
+    const s = String(raw);
+    if (table.has(s)) return table.get(s);
+    if (combined) {
+      const hits = keywords.filter(k => s.includes(k));
+      if (hits.length >= 2) return combined.color;
+      if (hits.length === 1) return table.get(hits[0]);
+    }
+    return fallback;
+  };
+}
+
 // A single feature can be Point / Line / Polygon; Leaflet dispatches
 // on ``geometry.type`` via ``pointToLayer`` and ``style`` callbacks, so
 // one builder handles all three cases per layer.
 function makeBuilder(slug) {
   const cfg = CFG[slug];
   const iconFactory = POINT_ICON[slug];
-  const pointStyle = {
-    radius: 4,
-    color: "#ffffff",
-    weight: 1,
-    opacity: 0.9,
-    fillColor: cfg.color,
-    fillOpacity: 0.85,
-  };
-  const lineStyle = {
-    color: cfg.color,
-    weight: 2,
-    opacity: 0.85,
-  };
-  const polyStyle = {
-    color: cfg.color,
-    weight: 1.2,
-    opacity: 0.9,
-    fillColor: cfg.color,
-    fillOpacity: 0.2,
-  };
+  const colorFor = makeColorFn(cfg);
 
   return async function build(_key, url) {
     const fc = await fetchGeoJson(url);
     const layer = L.geoJSON(fc, {
       pointToLayer: iconFactory
-        ? (_f, latlng) => L.marker(latlng, {
-            icon: iconFactory(cfg.color, ICON_SIZE),
+        ? (f, latlng) => L.marker(latlng, {
+            icon: iconFactory(colorFor(f.properties), ICON_SIZE),
             riseOnHover: true,
           })
-        : (_f, latlng) => L.circleMarker(latlng, pointStyle),
+        : (f, latlng) => L.circleMarker(latlng, {
+            radius: 4,
+            color: "#ffffff",
+            weight: 1,
+            opacity: 0.9,
+            fillColor: colorFor(f.properties),
+            fillOpacity: 0.85,
+          }),
       style: (feat) => {
         const t = feat?.geometry?.type;
-        if (t === "Polygon" || t === "MultiPolygon") return polyStyle;
-        return lineStyle;
+        const c = colorFor(feat?.properties);
+        if (t === "Polygon" || t === "MultiPolygon") {
+          return { color: c, weight: 1.2, opacity: 0.9, fillColor: c, fillOpacity: 0.2 };
+        }
+        return { color: c, weight: 2, opacity: 0.85 };
       },
       onEachFeature: (feature, lyr) => {
         const p = feature.properties || {};
-        lyr.bindTooltip(tooltipHtml(cfg, p), {
+        lyr.bindTooltip(tooltipHtml(cfg, p, colorFor(p)), {
           sticky: true, direction: "top", opacity: 0.95,
         });
         lyr.bindPopup(popupHtml(cfg, p), { maxWidth: 360 });
