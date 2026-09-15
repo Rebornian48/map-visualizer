@@ -106,7 +106,7 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
     })
 
     mapInstance.current = map
-    if (import.meta.env.DEV) window.__mlMap = map
+    window.__mlMap = map // POC: exposed for debug in dev & prod
     return () => { map.remove(); mapInstance.current = null; loadedLayersRef.current = new Set() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -281,9 +281,14 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setH
     if (def.url) {
       if (!dataCacheRef.current.has(def.url)) {
         setStatus(`Memuat ${def.label}…`)
-        dataCacheRef.current.set(def.url, fetch(def.url).then(r => r.json()))
+        dataCacheRef.current.set(def.url, fetch(def.url).then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`)
+          return r.json()
+        }))
       }
       data = await dataCacheRef.current.get(def.url)
+      // Per-entry preprocess (e.g. filter to one categorize value for split layers)
+      if (def.preprocess) data = def.preprocess(data)
       setStatus('')
     }
     if (!map.getSource(def.sourceId)) {

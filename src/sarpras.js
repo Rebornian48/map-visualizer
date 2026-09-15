@@ -56,7 +56,7 @@ const QUAL = [
 //                 { field, values: [[value, color, label]], fallback, unit }
 //                 The unit string (e.g. "kV") is stripped from `value`
 //                 before comparison so numeric codes still match.
-const CFG = {
+export const SARPRAS_CFG = {
   "pelabuhan-perikanan": {
     label: "Pelabuhan Perikanan", group: "Transportasi · BIG", color: C.fishery,
     title: "namobj",
@@ -389,7 +389,7 @@ const CFG = {
 // A slug marked with ``split`` expands into one source per category
 // value — the user gets an independent toggle for each nested layer.
 // The others map 1:1 to a single source keyed by the slug.
-export const SARPRAS_SOURCES = Object.entries(CFG).flatMap(([slug, c]) => {
+export const SARPRAS_SOURCES = Object.entries(SARPRAS_CFG).flatMap(([slug, c]) => {
   if (!c.split) return [{
     key:   `sarpras_${slug}`,
     label: c.label,
@@ -415,7 +415,7 @@ export const SARPRAS_GROUP_NAMES = [
 // Legend entries — one per categorised slug (skip split layers: each
 // sub-toggle is already colour-labelled by its own name).
 export const SARPRAS_CATEGORIES = new Map(
-  Object.entries(CFG)
+  Object.entries(SARPRAS_CFG)
     .filter(([, c]) => c.categorize && !c.split)
     .map(([slug, c]) => [
       `sarpras_${slug}`,
@@ -522,7 +522,7 @@ function makeColorFn(cfg) {
 // to that category and pins its polygons to the category's pane so
 // nested airspaces layer correctly.
 function makeBuilder(slug, subValue) {
-  const cfg = CFG[slug];
+  const cfg = SARPRAS_CFG[slug];
   const iconFactory = POINT_ICON[slug];
   const colorFor = makeColorFn(cfg);
   const pane = subValue && cfg.split ? cfg.split.paneFor(subValue) : undefined;
@@ -572,7 +572,7 @@ function makeBuilder(slug, subValue) {
 }
 
 export const SARPRAS_BUILDERS = new Map(
-  Object.entries(CFG).flatMap(([slug, c]) => {
+  Object.entries(SARPRAS_CFG).flatMap(([slug, c]) => {
     if (!c.split) return [[`sarpras:${slug}`, makeBuilder(slug)]];
     return c.categorize.values.map(([val]) =>
       [`sarpras:${slug}:${val}`, makeBuilder(slug, val)]);

@@ -4,6 +4,10 @@
 // source is named, which paint/layer specs to add, and optional hover wiring.
 // This keeps GlobeView.jsx generic — adding a new overlay is a new entry here.
 
+import { SARPRAS_CFG } from '../sarpras'
+import { SDA_CFG } from '../sda'
+import { expandCfgToEntries } from './bigLayers'
+
 const BASE = import.meta.env.BASE_URL || '/'
 
 // ── Palette (aligned with the Leaflet-side theme accents) ─────────
@@ -48,6 +52,17 @@ export const LAYER_CATEGORIES = [
   'Keagamaan',
   'Tektonik',
   'Vulkano',
+  // Sarpras BIG
+  'Transportasi · BIG',
+  'Energi · BIG',
+  'Air & Zona · BIG',
+  // SDA BIG
+  'Tanah & Geologi · BIG',
+  'Hidrologi · BIG',
+  'Bencana · SDA',
+  'Sumber Daya · BIG',
+  'Ekosistem · BIG',
+  'Cagar Budaya & Konservasi · BIG',
 ]
 
 // ── Hover wiring helper ──────────────────────────────────────────
@@ -392,4 +407,12 @@ export const LAYER_REGISTRY = [
     ],
     hover: hoverPropReader('vulkano-gvp', 'vulkano-gvp-circle', 'Volcano_Name'),
   },
+
+  // ── Sarpras BIG (22 sublayer) + SDA BIG (32 sublayer) ──────────
+  // Generated from the same CFG objects the Leaflet side uses so the
+  // two viewers stay aligned on labels, colour buckets, and grouping.
+  // "ruang-udara" expands into 8 nested-airspace toggles (FIR/UTA/TMA/
+  // CTR/ATZ/AFIZ/PDRT/SECTOR).
+  ...expandCfgToEntries({ prefix: 'sarpras', cfg: SARPRAS_CFG, dataDir: 'sarpras' }),
+  ...expandCfgToEntries({ prefix: 'sda',     cfg: SDA_CFG,     dataDir: 'sda'     }),
 ]

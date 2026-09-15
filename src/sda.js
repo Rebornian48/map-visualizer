@@ -65,7 +65,7 @@ const RAMP4 = [
   ["Sangat Tinggi", "#7f0000"],
 ];
 
-const CFG = {
+export const SDA_CFG = {
   // --- Tanah & Geologi ------------------------------------------------
   "gambut": {
     label: "Lahan Gambut", group: "Tanah & Geologi · BIG", color: C.gambut,
@@ -570,7 +570,7 @@ const CFG = {
 
 // ---------- SOURCES / builders -----------------------------------------
 
-export const SDA_SOURCES = Object.entries(CFG).map(([slug, c]) => ({
+export const SDA_SOURCES = Object.entries(SDA_CFG).map(([slug, c]) => ({
   key:   `sda_${slug}`,
   label: c.label,
   group: c.group,
@@ -589,7 +589,7 @@ export const SDA_GROUP_NAMES = [
 
 // Exposed for the map's legend stack — one entry per categorised slug.
 export const SDA_CATEGORIES = new Map(
-  Object.entries(CFG)
+  Object.entries(SDA_CFG)
     .filter(([, c]) => c.categorize)
     .map(([slug, c]) => [
       `sda_${slug}`,
@@ -660,7 +660,7 @@ function makeColorFn(cfg) {
 }
 
 function makeBuilder(slug) {
-  const cfg = CFG[slug];
+  const cfg = SDA_CFG[slug];
   const colorFor = makeColorFn(cfg);
 
   return async function build(_key, url) {
@@ -696,5 +696,5 @@ function makeBuilder(slug) {
 }
 
 export const SDA_BUILDERS = new Map(
-  Object.keys(CFG).map((slug) => [`sda:${slug}`, makeBuilder(slug)]),
+  Object.keys(SDA_CFG).map((slug) => [`sda:${slug}`, makeBuilder(slug)]),
 );
