@@ -1,14 +1,17 @@
 import React, { useState, useCallback, useEffect, Suspense } from 'react'
 import LoadingScreen from './components/LoadingScreen'
 import FirstVisitNotice from './components/FirstVisitNotice'
+import GlobeView from './components/GlobeView'
 import { parseTimeline, organizeByYear } from './parser'
 import { getInitialTheme, applyTheme } from './theme'
 
-// GlobeView (MapLibre) is now the default map viewer at "/".
-// MapView (Leaflet) lives at "/legacy" for anyone bookmarked or needing
-// the older render — its layer coverage is intentionally frozen.
+// GlobeView (MapLibre) is the default map viewer at "/", so we import
+// it eagerly — Vite then emits a <link rel="modulepreload"> for the
+// maplibre chunk, letting the ~275 KB gzipped download happen in
+// parallel with react-dom instead of waiting for a Suspense round-trip.
+// MapView (Leaflet) and InfoPage stay lazy — anyone hitting /legacy or
+// /info gets a smaller entry cost and only pays for what they use.
 const InfoPage  = React.lazy(() => import('./components/InfoPage'))
-const GlobeView = React.lazy(() => import('./components/GlobeView'))
 const MapView   = React.lazy(() => import('./components/MapView'))
 
 const BASE = import.meta.env.BASE_URL || '/'
@@ -139,18 +142,18 @@ export default function App() {
     )
   }
 
-  // "/" (and "/globe" for back-compat) — MapLibre GlobeView.
+  // "/" (and "/globe" for back-compat) — MapLibre GlobeView. Eager
+  // import above means no Suspense boundary is needed here; the map
+  // chunk is preloaded alongside the entry bundle.
   return (
     <>
-      <Suspense fallback={<LoadingScreen text="Loading globe…" pct={50} />}>
-        <GlobeView
-          theme={theme}
-          yearData={yearData}
-          onFile={handleFile}
-          onOpenInfo={() => navigate(INFO_PATH)}
-          onOpenLegacy={() => navigate(LEGACY_PATH)}
-        />
-      </Suspense>
+      <GlobeView
+        theme={theme}
+        yearData={yearData}
+        onFile={handleFile}
+        onOpenInfo={() => navigate(INFO_PATH)}
+        onOpenLegacy={() => navigate(LEGACY_PATH)}
+      />
       {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
     </>
   )

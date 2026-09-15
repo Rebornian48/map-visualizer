@@ -4,8 +4,12 @@
 // source is named, which paint/layer specs to add, and optional hover wiring.
 // This keeps GlobeView.jsx generic — adding a new overlay is a new entry here.
 
-import { SARPRAS_CFG } from '../sarpras'
-import { SDA_CFG } from '../sda'
+// Import CFG directly from the Leaflet-free config files. Going through
+// ../sarpras / ../sda would pull Leaflet into the globe's static import
+// graph (and Vite would then preload it on the default /), even though
+// tree-shaking drops the runtime code.
+import { SARPRAS_CFG } from '../sarprasCfg'
+import { SDA_CFG } from '../sdaCfg'
 import { expandCfgToEntries } from './bigLayers'
 import { BMKG_GEMPA_ENTRIES } from './live/bmkgGempa'
 import { SIGMET_ENTRY } from './live/sigmet'

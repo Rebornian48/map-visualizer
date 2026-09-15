@@ -134,6 +134,12 @@ export default function GlobeView({
   const [showExport, setShowExport] = useState(false)
   const [hover, setHover] = useState(null)
   const [panelOpen, setPanelOpen] = useState(() => loadPref(LS.panelOpen, '1') === '1')
+  const [layerSearch, setLayerSearch] = useState('')
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  // togglePlay closes over state that changes often; store the latest in
+  // a ref so the shortcut handler always calls the current one without
+  // re-registering the window listener.
+  const togglePlayRef = useRef(null)
 
   const registry = useMemo(() => LAYER_REGISTRY, [])
 
@@ -143,17 +149,48 @@ export default function GlobeView({
   useEffect(() => { savePref(LS.panelOpen, panelOpen ? '1' : '0') }, [panelOpen])
   useEffect(() => { saveJsonPref(LS.active, [...active]) }, [active])
 
-  // ── Escape key: close modal → close panel ─────────────────────
+  // ── Keyboard shortcuts ─────────────────────────────────────────
+  // Skip when typing in an input/textarea/select or a modal is open so
+  // we don't hijack focused-field typing.
   useEffect(() => {
+    const isTyping = (t) => {
+      const tag = (t?.tagName || '').toUpperCase()
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+          || t?.isContentEditable
+    }
+    const cycleYear = () => {
+      if (!yearData) return
+      const years = [...yearData.keys()].sort((a, b) => a - b)
+      const idx = years.indexOf(currentYear)
+      setCurrentYear(years[(idx + 1) % years.length])
+      setCurrentMonth(null)
+    }
     const onKey = (e) => {
-      if (e.key !== 'Escape') return
-      if (showExport) { setShowExport(false); return }
-      if (firstVisit) { setFirstVisit(false); savePref('globe-first-visit', '0'); return }
-      if (panelOpen)  { setPanelOpen(false) }
+      if (e.key === 'Escape') {
+        if (showShortcuts) { setShowShortcuts(false); return }
+        if (showExport) { setShowExport(false); return }
+        if (firstVisit) { setFirstVisit(false); savePref('globe-first-visit', '0'); return }
+        if (panelOpen)  { setPanelOpen(false); return }
+        return
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (isTyping(e.target)) return
+      switch (e.key) {
+        case '?':                 setShowShortcuts(s => !s); break
+        case 'l': case 'L':       setPanelOpen(o => !o); break
+        case 'g': case 'G':       setProjection(p => p === 'globe' ? 'mercator' : 'globe'); break
+        case 'p': case 'P':       if (yearData) togglePlayRef.current?.(); break
+        case 'e': case 'E':       if (yearData) setShowExport(true); break
+        case 'i': case 'I':       onOpenInfo?.(); break
+        case 'y': case 'Y':       cycleYear(); break
+        default: return
+      }
+      e.preventDefault()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [showExport, panelOpen, firstVisit])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showExport, panelOpen, firstVisit, showShortcuts, yearData, currentYear, onOpenInfo])
 
   // ── Drag-drop file overlay ────────────────────────────────────
   // Only wire when onFile is provided (parent controls timeline loading).
@@ -326,6 +363,9 @@ export default function GlobeView({
       onDone: () => { setIsPlaying(false); playbackRef.current = null },
     })
   }, [yearData, currentYear, currentMonth, isPlaying, speedIdx])
+  // Keep the ref pointing at the current callback so the keyboard
+  // shortcut handler can call the latest closure without re-registering.
+  togglePlayRef.current = togglePlay
 
   const toggle = useCallback((id) => {
     setActive(prev => {
@@ -430,47 +470,106 @@ export default function GlobeView({
           onClick={() => setPanelOpen(o => !o)}
           style={{ ...btn(panelOpen), pointerEvents: 'auto' }}
         >{panelOpen ? 'Sembunyikan Layer' : 'Tampilkan Layer'}</button>
+        <button
+          onClick={() => setShowShortcuts(true)}
+          style={{ ...btn(false), pointerEvents: 'auto', padding: '6px 8px', minWidth: 30 }}
+          title="Keyboard shortcuts (?)"
+        >?</button>
       </div>
 
       {/* Layer panel */}
-      {panelOpen && (
-        <div style={{
-          position: 'absolute', top: 60, right: 12, zIndex: 10,
-          ...panel, padding: '10px 12px', width: 240, maxHeight: 'calc(100vh - 100px)',
-          overflowY: 'auto',
-        }}>
-          {LAYER_CATEGORIES.map(cat => {
-            const items = registry.filter(l => l.category === cat)
-            if (items.length === 0) return null
-            return (
-              <div key={cat} style={{ marginBottom: 12 }}>
+      {panelOpen && (() => {
+        const q = layerSearch.trim().toLowerCase()
+        const matches = (l) => !q
+          || l.label.toLowerCase().includes(q)
+          || l.category.toLowerCase().includes(q)
+        const totalMatches = q ? registry.filter(matches).length : registry.length
+        return (
+          <div style={{
+            position: 'absolute', top: 60, right: 12, zIndex: 10,
+            ...panel, padding: '10px 12px', width: 260, maxHeight: 'calc(100vh - 100px)',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            {/* Search bar — sticky at top of the panel */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+              padding: '4px 8px', borderRadius: 6,
+              background: dark ? '#1a1a28' : '#e8e9f0',
+              border: `1px solid ${dark ? '#2a2a3a' : '#d0d1da'}`,
+            }}>
+              <span style={{ fontSize: 11, opacity: 0.6 }}>🔍</span>
+              <input
+                type="text"
+                value={layerSearch}
+                onChange={(e) => setLayerSearch(e.target.value)}
+                placeholder={`Cari ${registry.length} layer…`}
+                style={{
+                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                  color: dark ? '#e8e8f0' : '#1a1a2e',
+                  fontSize: 12, fontFamily: 'Outfit, sans-serif', padding: 2,
+                  minWidth: 0,
+                }}
+              />
+              {layerSearch && (
+                <button
+                  onClick={() => setLayerSearch('')}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: dark ? '#8888a0' : '#6b6b80', fontSize: 14, padding: 0,
+                  }}
+                  title="Clear search"
+                >×</button>
+              )}
+            </div>
+            {q && (
+              <div style={{
+                fontSize: 10, color: dark ? '#8888a0' : '#6b6b80', marginBottom: 6,
+              }}>{totalMatches} dari {registry.length} layer cocok</div>
+            )}
+            {/* Category list — scrolls */}
+            <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+              {LAYER_CATEGORIES.map(cat => {
+                const items = registry.filter(l => l.category === cat && matches(l))
+                if (items.length === 0) return null
+                return (
+                  <div key={cat} style={{ marginBottom: 12 }}>
+                    <div style={{
+                      fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em',
+                      color: dark ? '#8888a0' : '#6b6b80', marginBottom: 6, fontWeight: 600,
+                    }}>{cat}</div>
+                    {items.map(l => (
+                      <label key={l.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px',
+                        cursor: 'pointer', fontSize: 12,
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={active.has(l.id)}
+                          onChange={() => toggle(l.id)}
+                          style={{ margin: 0, cursor: 'pointer' }}
+                        />
+                        <span style={{
+                          width: 10, height: 10, borderRadius: 2, background: l.color || '#888',
+                          flexShrink: 0,
+                        }} />
+                        <span style={{ flex: 1 }}>{l.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )
+              })}
+              {q && totalMatches === 0 && (
                 <div style={{
-                  fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em',
-                  color: dark ? '#8888a0' : '#6b6b80', marginBottom: 6, fontWeight: 600,
-                }}>{cat}</div>
-                {items.map(l => (
-                  <label key={l.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px',
-                    cursor: 'pointer', fontSize: 12,
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={active.has(l.id)}
-                      onChange={() => toggle(l.id)}
-                      style={{ margin: 0, cursor: 'pointer' }}
-                    />
-                    <span style={{
-                      width: 10, height: 10, borderRadius: 2, background: l.color || '#888',
-                      flexShrink: 0,
-                    }} />
-                    <span style={{ flex: 1 }}>{l.label}</span>
-                  </label>
-                ))}
-              </div>
-            )
-          })}
-        </div>
-      )}
+                  fontSize: 12, color: dark ? '#8888a0' : '#6b6b80',
+                  textAlign: 'center', padding: '20px 0',
+                }}>
+                  Tidak ada layer yang cocok
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Export modal — lazy, mount only when the user opens it. */}
       {showExport && yearData && (
@@ -535,6 +634,35 @@ export default function GlobeView({
             background: 'none', border: 'none', color: dark ? '#8888a0' : '#6b6b80',
             cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, marginTop: -2,
           }}>×</button>
+        </div>
+      )}
+
+      {/* Shortcuts help — small overlay with the keyboard bindings. */}
+      {showShortcuts && (
+        <div
+          style={{
+            position: 'absolute', inset: 0, zIndex: 50,
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ ...panel, padding: '18px 20px', minWidth: 280 }}
+          >
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Keyboard shortcuts</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '6px 12px', fontSize: 12 }}>
+              <Kbd>L</Kbd><span>Toggle layer panel</span>
+              <Kbd>G</Kbd><span>Toggle globe / mercator</span>
+              <Kbd>Y</Kbd><span>Cycle year (jika ada timeline)</span>
+              <Kbd>P</Kbd><span>Play / pause playback</span>
+              <Kbd>E</Kbd><span>Buka export video</span>
+              <Kbd>I</Kbd><span>Buka halaman Info</span>
+              <Kbd>?</Kbd><span>Tampilkan pintasan ini</span>
+              <Kbd>Esc</Kbd><span>Tutup modal / panel</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -613,7 +741,7 @@ function TimelineControls({
           </div>
         )}
 
-        {/* Mini-stats panel */}
+        {/* Mini-stats panel + daily sparkline */}
         {stats && (
           <div style={{ ...panel, padding: '8px 10px', fontSize: 12 }}>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>{stats.label}</div>
@@ -624,6 +752,9 @@ function TimelineControls({
               <span>Trips</span><span style={{ color: dark ? '#e8e8f0' : '#1a1a2e' }}>{stats.trips}</span>
               <span>Distance</span><span style={{ color: dark ? '#e8e8f0' : '#1a1a2e' }}>{(stats.totalDist / 1000).toFixed(0)} km</span>
             </div>
+            {stats.perDay && stats.perDay.bins.length > 0 && (
+              <Sparkline bins={stats.perDay} dark={dark} />
+            )}
           </div>
         )}
 
@@ -719,6 +850,57 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setH
     loadedLayersRef.current.delete(id)
     setStatus(`Gagal muat ${def.label}: ${e.message}`)
   }
+}
+
+// CSS-only sparkline — one inline SVG per bin, normalized to the max
+// bin count in the range. Height is capped so a spiky year doesn't
+// dwarf the numeric stats above it.
+// Small styled "kbd" tag for the shortcuts overlay.
+function Kbd({ children }) {
+  return (
+    <span style={{
+      display: 'inline-block', padding: '2px 8px', minWidth: 44, textAlign: 'center',
+      border: '1px solid var(--kbd-border, #444)', borderRadius: 4,
+      background: 'rgba(255,255,255,0.06)', fontFamily: '"DM Mono", monospace',
+      fontSize: 11, letterSpacing: '0.02em',
+    }}>{children}</span>
+  )
+}
+
+function Sparkline({ bins, dark }) {
+  const width = 240
+  const height = 32
+  const max = Math.max(1, ...bins.bins)
+  const n = bins.bins.length
+  const barW = width / n
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{
+        fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em',
+        color: dark ? '#8888a0' : '#6b6b80', marginBottom: 4,
+      }}>Points per day (max {max})</div>
+      <svg
+        width="100%" height={height} viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        style={{ display: 'block', overflow: 'visible' }}
+      >
+        {bins.bins.map((v, i) => {
+          const h = v > 0 ? Math.max(1, (v / max) * (height - 2)) : 0
+          return (
+            <rect
+              key={i}
+              x={i * barW} y={height - h}
+              width={Math.max(0.5, barW - 0.3)} height={h}
+              fill={v > 0 ? '#f36' : (dark ? '#2a2a3a' : '#e0e1eb')}
+              opacity={v > 0 ? 0.85 : 0.3}
+            >
+              <title>{`Day ${i + 1}: ${v} points`}</title>
+            </rect>
+          )
+        })}
+      </svg>
+    </div>
+  )
 }
 
 function unmountLayer(map, id, registry, loadedLayersRef, customCleanupsRef) {

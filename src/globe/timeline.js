@@ -162,7 +162,34 @@ export function computeStats(points, visits, activities, year, month, monthNames
   const totalDist = activities.reduce((s, a) => s + (a.distance || 0), 0)
   const uniquePlaces = new Set(visits.map(v => v.placeId)).size
   const label = month !== null ? `${monthNames[month]} ${year}` : `${year}`
-  return { label, points: points.length, visits: visits.length, uniquePlaces, trips: activities.length, totalDist }
+  return {
+    label, points: points.length, visits: visits.length,
+    uniquePlaces, trips: activities.length, totalDist,
+    perDay: perDayBins(points, year, month),
+  }
+}
+
+// Bin points by day-of-year (or day-of-month if a month is picked) for
+// the sparkline. Returns { bins: number[], startDate: Date, days: number }
+// so the caller can render bars + know the tooltip anchor.
+function perDayBins(points, year, month) {
+  const isMonth = month !== null
+  const startDate = new Date(year, isMonth ? month : 0, 1)
+  const endDate = isMonth
+    ? new Date(year, month + 1, 1)   // first-of-next-month = day count
+    : new Date(year + 1, 0, 1)
+  const days = Math.round((endDate - startDate) / 86400000)
+  const bins = new Array(days).fill(0)
+  for (const p of points) {
+    const t = p.time
+    if (t.getFullYear() !== year) continue
+    if (isMonth && t.getMonth() !== month) continue
+    const dayIdx = isMonth
+      ? t.getDate() - 1
+      : Math.floor((t - startDate) / 86400000)
+    if (dayIdx >= 0 && dayIdx < days) bins[dayIdx] += 1
+  }
+  return { bins, startDate, days }
 }
 
 export function buildLegend(activities) {
