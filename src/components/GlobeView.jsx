@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { LAYER_REGISTRY, LAYER_CATEGORIES } from '../globe/layers'
 
 const BASE = import.meta.env.BASE_URL || '/'
 
@@ -29,8 +30,20 @@ const BASEMAPS = {
   },
 }
 
-function buildStyle(basemapKey) {
+// Raster paint tweaks for dark mode — leaves the overlay canvas alone.
+// Only applied to non-satellite basemaps in the dark theme.
+const RASTER_DARK_PAINT = {
+  'raster-hue-rotate': 180,
+  'raster-saturation': -0.5,
+  'raster-brightness-min': 0.10,
+  'raster-brightness-max': 0.55,
+  'raster-contrast': -0.05,
+}
+const DARK_TWEAKABLE = new Set(['osm', 'topo'])
+
+function buildStyle(basemapKey, theme) {
   const b = BASEMAPS[basemapKey]
+  const useDark = theme === 'dark' && DARK_TWEAKABLE.has(basemapKey)
   return {
     version: 8,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -44,7 +57,12 @@ function buildStyle(basemapKey) {
       },
     },
     layers: [
-      { id: 'basemap', type: 'raster', source: 'basemap' },
+      {
+        id: 'basemap',
+        type: 'raster',
+        source: 'basemap',
+        paint: useDark ? RASTER_DARK_PAINT : {},
+      },
     ],
   }
 }
@@ -52,18 +70,24 @@ function buildStyle(basemapKey) {
 export default function GlobeView({ onBack, theme = 'dark' }) {
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
+  const loadedLayersRef = useRef(new Set()) // layer ids currently mounted
+  const dataCacheRef = useRef(new Map())    // url -> Promise<GeoJSON>
+  const [ready, setReady] = useState(false)
   const [basemap, setBasemap] = useState('osm')
-  const [projection, setProjection] = useState('globe') // 'globe' | 'mercator'
-  const [showProvinsi, setShowProvinsi] = useState(true)
+  const [projection, setProjection] = useState('globe')
+  const [active, setActive] = useState(() => new Set(['provinsi']))
   const [status, setStatus] = useState('Menyiapkan peta…')
   const [hover, setHover] = useState(null)
+  const [panelOpen, setPanelOpen] = useState(true)
+
+  const registry = useMemo(() => LAYER_REGISTRY, [])
 
   // Init map once
   useEffect(() => {
     if (!mapRef.current) return
     const map = new maplibregl.Map({
       container: mapRef.current,
-      style: buildStyle(basemap),
+      style: buildStyle(basemap, theme),
       center: [118, -2.5],
       zoom: 3.2,
       attributionControl: false,
@@ -71,50 +95,36 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-left')
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
-    map.on('load', async () => {
+    map.on('load', () => {
       map.setProjection({ type: projection })
-      setStatus('Memuat batas provinsi…')
-      try {
-        const r = await fetch(`${BASE}boundaries/provinsi.json`)
-        const gj = await r.json()
-        if (!map.getSource('provinsi')) {
-          map.addSource('provinsi', { type: 'geojson', data: gj, promoteId: 'WADMPR' })
-        }
-        addProvinsiLayers(map)
-        wireHoverPopup(map, setHover)
-        setStatus('')
-      } catch (e) {
-        setStatus('Gagal memuat provinsi: ' + e.message)
+      setStatus('')
+      setReady(true)
+      // Mount initially-active layers
+      for (const id of active) {
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus)
       }
     })
 
     mapInstance.current = map
     if (import.meta.env.DEV) window.__mlMap = map
-    return () => { map.remove(); mapInstance.current = null }
+    return () => { map.remove(); mapInstance.current = null; loadedLayersRef.current = new Set() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // React to basemap change — swap style but preserve overlays
+  // React to basemap or theme change — swap style but re-mount active overlays
   useEffect(() => {
     const map = mapInstance.current
-    if (!map || !map.isStyleLoaded()) return
-    const newStyle = buildStyle(basemap)
-    map.setStyle(newStyle, { diff: false })
+    if (!map || !ready) return
+    map.setStyle(buildStyle(basemap, theme), { diff: false })
     map.once('styledata', () => {
       map.setProjection({ type: projection })
-      if (!map.getSource('provinsi')) {
-        fetch(`${BASE}boundaries/provinsi.json`)
-          .then(r => r.json())
-          .then(gj => {
-            map.addSource('provinsi', { type: 'geojson', data: gj, promoteId: 'WADMPR' })
-            addProvinsiLayers(map, showProvinsi)
-            wireHoverPopup(map, setHover)
-          })
-      } else {
-        addProvinsiLayers(map, showProvinsi)
+      loadedLayersRef.current = new Set()
+      for (const id of active) {
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus)
       }
     })
-  }, [basemap])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [basemap, theme, ready])
 
   // Projection toggle
   useEffect(() => {
@@ -123,22 +133,36 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
     try { map.setProjection({ type: projection }) } catch { /* pre-load */ }
   }, [projection])
 
-  // Provinsi visibility
+  // Active set change — mount/unmount deltas
   useEffect(() => {
     const map = mapInstance.current
-    if (!map) return
-    for (const id of ['provinsi-fill', 'provinsi-line']) {
-      if (map.getLayer(id)) {
-        map.setLayoutProperty(id, 'visibility', showProvinsi ? 'visible' : 'none')
+    if (!map || !ready) return
+    for (const id of active) {
+      if (!loadedLayersRef.current.has(id)) {
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus)
       }
     }
-  }, [showProvinsi])
+    for (const id of Array.from(loadedLayersRef.current)) {
+      if (!active.has(id)) {
+        unmountLayer(map, id, registry, loadedLayersRef)
+      }
+    }
+  }, [active, registry, ready])
+
+  const toggle = useCallback((id) => {
+    setActive(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }, [])
 
   const cycleProjection = useCallback(() => {
     setProjection(p => p === 'globe' ? 'mercator' : 'globe')
   }, [])
 
   const dark = theme === 'dark'
+
   const panel = {
     background: dark ? 'rgba(18,18,26,0.9)' : 'rgba(255,255,255,0.92)',
     color: dark ? '#e8e8f0' : '#1a1a2e',
@@ -151,13 +175,11 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
   }
-  const btn = (active) => ({
+  const btn = (activeBtn) => ({
     ...panel, padding: '6px 10px', cursor: 'pointer',
-    background: active
-      ? (dark ? '#f36' : '#e6204e')
-      : panel.background,
-    color: active ? '#fff' : panel.color,
-    borderColor: active ? 'transparent' : panel.border,
+    background: activeBtn ? (dark ? '#f36' : '#e6204e') : panel.background,
+    color: activeBtn ? '#fff' : panel.color,
+    borderColor: activeBtn ? 'transparent' : panel.border,
     fontSize: 12, fontWeight: 500,
   })
 
@@ -185,15 +207,55 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
           ))}
         </select>
         <button
-          onClick={() => setShowProvinsi(v => !v)}
-          style={{ ...btn(showProvinsi), pointerEvents: 'auto' }}
-        >Provinsi</button>
-        <button
           onClick={cycleProjection}
           style={{ ...btn(projection === 'globe'), pointerEvents: 'auto' }}
           title="Toggle globe/mercator"
         >{projection === 'globe' ? '🌐 Globe' : '🗺 Mercator'}</button>
+        <button
+          onClick={() => setPanelOpen(o => !o)}
+          style={{ ...btn(panelOpen), pointerEvents: 'auto' }}
+        >{panelOpen ? 'Sembunyikan Layer' : 'Tampilkan Layer'}</button>
       </div>
+
+      {/* Layer panel */}
+      {panelOpen && (
+        <div style={{
+          position: 'absolute', top: 60, right: 12, zIndex: 10,
+          ...panel, padding: '10px 12px', width: 240, maxHeight: 'calc(100vh - 100px)',
+          overflowY: 'auto',
+        }}>
+          {LAYER_CATEGORIES.map(cat => {
+            const items = registry.filter(l => l.category === cat)
+            if (items.length === 0) return null
+            return (
+              <div key={cat} style={{ marginBottom: 12 }}>
+                <div style={{
+                  fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em',
+                  color: dark ? '#8888a0' : '#6b6b80', marginBottom: 6, fontWeight: 600,
+                }}>{cat}</div>
+                {items.map(l => (
+                  <label key={l.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px',
+                    cursor: 'pointer', fontSize: 12,
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={active.has(l.id)}
+                      onChange={() => toggle(l.id)}
+                      style={{ margin: 0, cursor: 'pointer' }}
+                    />
+                    <span style={{
+                      width: 10, height: 10, borderRadius: 2, background: l.color || '#888',
+                      flexShrink: 0,
+                    }} />
+                    <span style={{ flex: 1 }}>{l.label}</span>
+                  </label>
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Status / hover readout */}
       {(status || hover) && (
@@ -209,61 +271,44 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
   )
 }
 
-function addProvinsiLayers(map, visible = true) {
-  const visibility = visible ? 'visible' : 'none'
-  if (!map.getLayer('provinsi-fill')) {
-    map.addLayer({
-      id: 'provinsi-fill',
-      type: 'fill',
-      source: 'provinsi',
-      layout: { visibility },
-      paint: {
-        'fill-color': '#f36',
-        'fill-opacity': [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false], 0.4,
-          0.12,
-        ],
-      },
-    })
-  }
-  if (!map.getLayer('provinsi-line')) {
-    map.addLayer({
-      id: 'provinsi-line',
-      type: 'line',
-      source: 'provinsi',
-      layout: { visibility, 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': '#f36',
-        'line-width': [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false], 2.5,
-          1.5,
-        ],
-      },
-    })
+// ── Layer mount/unmount plumbing ────────────────────────────────
+async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus) {
+  const def = registry.find(l => l.id === id)
+  if (!def || loadedLayersRef.current.has(id)) return
+  loadedLayersRef.current.add(id) // optimistic; prevents re-entry
+  try {
+    let data
+    if (def.url) {
+      if (!dataCacheRef.current.has(def.url)) {
+        setStatus(`Memuat ${def.label}…`)
+        dataCacheRef.current.set(def.url, fetch(def.url).then(r => r.json()))
+      }
+      data = await dataCacheRef.current.get(def.url)
+      setStatus('')
+    }
+    if (!map.getSource(def.sourceId)) {
+      map.addSource(def.sourceId, {
+        type: 'geojson',
+        data: data || { type: 'FeatureCollection', features: [] },
+        promoteId: def.promoteId,
+      })
+    }
+    for (const layer of def.layers({ theme: 'dark' })) {
+      if (!map.getLayer(layer.id)) map.addLayer(layer)
+    }
+    if (def.hover) def.hover(map, setHover)
+  } catch (e) {
+    loadedLayersRef.current.delete(id)
+    setStatus(`Gagal muat ${def.label}: ${e.message}`)
   }
 }
 
-function wireHoverPopup(map, setHover) {
-  let hoveredId = null
-  map.on('mousemove', 'provinsi-fill', (e) => {
-    const f = e.features && e.features[0]
-    if (!f) return
-    map.getCanvas().style.cursor = 'pointer'
-    if (hoveredId !== null) {
-      map.setFeatureState({ source: 'provinsi', id: hoveredId }, { hover: false })
-    }
-    hoveredId = f.id
-    map.setFeatureState({ source: 'provinsi', id: hoveredId }, { hover: true })
-    setHover(f.properties?.WADMPR || '(tanpa nama)')
-  })
-  map.on('mouseleave', 'provinsi-fill', () => {
-    map.getCanvas().style.cursor = ''
-    if (hoveredId !== null) {
-      map.setFeatureState({ source: 'provinsi', id: hoveredId }, { hover: false })
-    }
-    hoveredId = null
-    setHover(null)
-  })
+function unmountLayer(map, id, registry, loadedLayersRef) {
+  const def = registry.find(l => l.id === id)
+  if (!def) return
+  for (const layer of def.layers({ theme: 'dark' })) {
+    if (map.getLayer(layer.id)) map.removeLayer(layer.id)
+  }
+  // Keep the source for cache — cheap to leave, avoids re-fetch on re-enable
+  loadedLayersRef.current.delete(id)
 }
