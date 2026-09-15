@@ -77,7 +77,13 @@ RewriteRule ^ index.html [QSA,L]
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
   Header set Cross-Origin-Opener-Policy "same-origin"
-  Header set Permissions-Policy "geolocation=(self), microphone=(), camera=()"
+  # Upstream (cPanel/LiteSpeed) injects a default Permissions-Policy that
+  # includes deprecated Privacy Sandbox features (join-ad-interest-group,
+  # run-ad-auction) — modern browsers log a console warning for unknown
+  # tokens. Unset first so we own the header cleanly, then `always set`
+  # so it applies to error responses too.
+  Header unset Permissions-Policy
+  Header always set Permissions-Policy "geolocation=(self), microphone=(), camera=()"
 </IfModule>
 
 # Correct MIME types for GeoJSON
