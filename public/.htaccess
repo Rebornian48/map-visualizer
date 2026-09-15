@@ -1,11 +1,18 @@
 RewriteEngine On
 RewriteBase /map-visualizer/
 
-# Serve existing files/dirs directly
+# Asset requests must 404 if the file is gone. Otherwise the SPA fallback
+# below hands them index.html (HTML MIME) and browsers refuse the module
+# with "server responded with a non-JavaScript MIME type of 'text/html'".
+# Typical trigger: a stale browser tab loads after a redeploy and asks
+# for the previous build's hashed chunk name.
+RewriteCond %{REQUEST_URI} \.(js|mjs|css|map|woff2?|ttf|otf|eot|json|geojson|png|jpe?g|webp|gif|svg|ico)$
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ - [L,R=404]
+
+# SPA fallback — everything else that isn't a real file/dir goes to index.html
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-
-# SPA fallback — all routes go to index.html
 RewriteRule ^ index.html [QSA,L]
 
 # Gzip / Brotli compression
