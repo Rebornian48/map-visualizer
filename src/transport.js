@@ -1,5 +1,4 @@
 import L from "leaflet";
-import JSZip from "jszip";
 import { busIcon, trainIcon } from "./mapIcons";
 import { BMKG_SOURCES, BMKG_BUILDERS } from "./bmkg";
 import { TECTONIC_SOURCES, TECTONIC_BUILDERS } from "./tectonic";
@@ -320,6 +319,7 @@ function addGtfsStops(stopsTxt, stopsSub) {
 
 async function buildGtfs(key, url) {
   const buf = await fetchRaw(key, url, true)
+  const { default: JSZip } = await import("jszip")
   const zip = await JSZip.loadAsync(buf)
   const [routesTxt, tripsTxt, shapesTxt, stopsTxt] = await Promise.all([
     readZipEntry(zip, 'routes.txt'),

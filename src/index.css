@@ -65,7 +65,7 @@ body {
   background: var(--surface-solid) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
-  transition: all 0.3s !important;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s !important;
 }
 
 .leaflet-control-attribution { display: none !important; }

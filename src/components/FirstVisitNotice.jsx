@@ -16,7 +16,8 @@ export default function FirstVisitNotice() {
         boxShadow: "var(--shadow)",
         padding: "14px 16px",
       display: 'flex', alignItems: 'flex-start', gap: 12,
-        animation: "notice-in 0.3s ease-out",
+      willChange: 'transform, opacity',
+      animation: "notice-in 0.3s ease-out",
     }}>
       <style>{`
         @keyframes notice-in {

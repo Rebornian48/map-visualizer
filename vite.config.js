@@ -8,6 +8,24 @@ export default defineConfig({
     outDir: "dist",
     assetsDir: "assets",
     sourcemap: false,
+    target: "es2020",
+    cssMinify: true,
+    minify: "esbuild",
+    reportCompressedSize: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("react-dom")) return "react-dom";
+          if (id.includes("react")) return "react";
+          if (id.includes("react-leaflet")) return "leaflet";
+          if (id.includes("leaflet")) return "leaflet";
+          if (id.includes("jszip")) return "jszip";
+          if (id.includes("html-to-image")) return "html-to-image";
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     proxy: {

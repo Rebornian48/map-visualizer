@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rebornian48.my.id/map-visualizer/sitemap.xml

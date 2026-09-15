@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, Suspense } from 'react'
 import LoadingScreen from './components/LoadingScreen'
 import MapView from './components/MapView'
-import InfoPage from './components/InfoPage'
 import FirstVisitNotice from './components/FirstVisitNotice'
 import { parseTimeline, organizeByYear } from './parser'
 import { getInitialTheme, applyTheme } from './theme'
+
+const InfoPage = React.lazy(() => import('./components/InfoPage'))
 
 const BASE = import.meta.env.BASE_URL || '/'
 const INFO_PATH = `${BASE}info`
@@ -100,11 +101,13 @@ export default function App() {
 
   if (isInfoPath(pathname)) {
     return (
-      <InfoPage
-        onBack={() => navigate(BASE)}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+      <Suspense fallback={<LoadingScreen text="Loading…" pct={50} />}>
+        <InfoPage
+          onBack={() => navigate(BASE)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+      </Suspense>
     )
   }
 

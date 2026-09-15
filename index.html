@@ -1,14 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f0f1f5" media="(prefers-color-scheme: light)" />
+    <meta name="description" content="Map Visualizer — visualisasikan Google Location History Timeline secara interaktif dengan overlay batas administratif, sarana-prasarana, cuaca BMKG, dan lapisan geospasial Indonesia." />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="Map Visualizer" />
+    <meta property="og:description" content="Visualizer interaktif untuk Google Location History Timeline dengan overlay geospasial Indonesia." />
+    <meta property="og:type" content="website" />
+
     <title>Map Visualizer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" />
+    </noscript>
   </head>
   <body>
-    <div id="root"></div>
+    <main id="root" role="main" aria-label="Map Visualizer"></main>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

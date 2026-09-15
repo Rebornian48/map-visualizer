@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import 'leaflet/dist/leaflet.css'
-import ExportModal from './ExportModal'
+const ExportModal = React.lazy(() => import('./ExportModal'))
 import LayersControl from './LayersControl'
 import HeaderBar from './HeaderBar'
 import { StatsPanel, MonthBar, Legend, LegendStack, CoordinateReadout, PlaybackBar } from './MapPanels'
@@ -96,8 +96,10 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile, onOpen
         onToggleTheme={onToggleTheme}
       />
       {state.showExport && hasData && (
-        <ExportModal yearData={yearData} map={refs.mapInstance.current}
-                     onClose={() => setters.setShowExport(false)} />
+        <Suspense fallback={null}>
+          <ExportModal yearData={yearData} map={refs.mapInstance.current}
+                       onClose={() => setters.setShowExport(false)} />
+        </Suspense>
       )}
       <MapArea controller={controller} hasData={hasData} onOpenInfo={onOpenInfo} />
     </div>
