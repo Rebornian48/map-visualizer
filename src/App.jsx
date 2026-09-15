@@ -118,9 +118,13 @@ export default function App() {
 
   if (isGlobePath(pathname)) {
     return (
-      <Suspense fallback={<LoadingScreen text="Loading globe…" pct={50} />}>
-        <GlobeView onBack={() => navigate(BASE)} theme={theme} />
-      </Suspense>
+      <>
+        <Suspense fallback={<LoadingScreen text="Loading globe…" pct={50} />}>
+          <GlobeView onBack={() => navigate(BASE)} theme={theme}
+                     yearData={yearData} onFile={handleFile} />
+        </Suspense>
+        {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
+      </>
     )
   }
 

@@ -2,6 +2,13 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { LAYER_REGISTRY, LAYER_CATEGORIES } from '../globe/layers'
+import {
+  ensureTimelineLayers, setStaticData, clearTimelineData,
+  fitToTimeline, filterByMonth, computeStats, buildLegend, startPlayback,
+} from '../globe/timeline'
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const SPEEDS = [1, 2, 5, 10]
 
 const BASE = import.meta.env.BASE_URL || '/'
 
@@ -67,17 +74,28 @@ function buildStyle(basemapKey, theme) {
   }
 }
 
-export default function GlobeView({ onBack, theme = 'dark' }) {
+export default function GlobeView({ onBack, theme = 'dark', yearData, onFile }) {
   const mapRef = useRef(null)
+  const fileInputRef = useRef(null)
   const mapInstance = useRef(null)
   const loadedLayersRef = useRef(new Set()) // layer ids currently mounted
   const dataCacheRef = useRef(new Map())    // url -> Promise<GeoJSON>
   const customCleanupsRef = useRef(new Map()) // layer id -> cleanup fn (customMount path)
+  const playbackRef = useRef(null) // { stop } handle for the current playback
   const [ready, setReady] = useState(false)
   const [basemap, setBasemap] = useState('osm')
   const [projection, setProjection] = useState('globe')
   const [active, setActive] = useState(() => new Set(['provinsi']))
   const [status, setStatus] = useState('Menyiapkan peta…')
+  // Timeline state (mirrors the Leaflet controller so behaviour matches).
+  const [currentYear, setCurrentYear] = useState(null)
+  const [currentMonth, setCurrentMonth] = useState(null)
+  const [stats, setStats] = useState(null)
+  const [legendItems, setLegendItems] = useState([])
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [speedIdx, setSpeedIdx] = useState(0)
+  const [playPct, setPlayPct] = useState(0)
+  const [timeLabel, setTimeLabel] = useState('—')
   const [hover, setHover] = useState(null)
   const [panelOpen, setPanelOpen] = useState(true)
 
@@ -150,6 +168,61 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
     }
   }, [active, registry, ready])
 
+  // Timeline: derive current year (default = latest available) whenever data changes.
+  useEffect(() => {
+    if (!yearData) { setCurrentYear(null); setCurrentMonth(null); return }
+    const sorted = [...yearData.keys()].sort((a, b) => a - b)
+    setCurrentYear(sorted[sorted.length - 1])
+    setCurrentMonth(null)
+  }, [yearData])
+
+  // Render timeline points/visits whenever data or the year/month picker changes.
+  useEffect(() => {
+    const map = mapInstance.current
+    if (!map || !ready) return
+    // Stop any running playback — swapping the year mid-play would strand the head.
+    if (playbackRef.current) { playbackRef.current.stop(); playbackRef.current = null }
+    setIsPlaying(false); setPlayPct(0); setTimeLabel('—')
+
+    if (!yearData || currentYear === null) {
+      clearTimelineData(map)
+      setStats(null); setLegendItems([])
+      return
+    }
+    const yd = yearData.get(currentYear)
+    if (!yd) return
+    const filtered = filterByMonth(yd, currentMonth)
+    setStaticData(map, filtered)
+    setStats(computeStats(filtered.points, filtered.visits, filtered.activities,
+                          currentYear, currentMonth, MONTH_NAMES))
+    setLegendItems(buildLegend(filtered.activities))
+    fitToTimeline(map, filtered)
+  }, [yearData, currentYear, currentMonth, ready])
+
+  const togglePlay = useCallback(() => {
+    const map = mapInstance.current
+    if (!map || !yearData || currentYear === null) return
+    if (isPlaying) {
+      playbackRef.current?.stop()
+      playbackRef.current = null
+      setIsPlaying(false)
+      // Re-render the static view so points reappear.
+      const yd = yearData.get(currentYear)
+      if (yd) setStaticData(map, filterByMonth(yd, currentMonth))
+      return
+    }
+    const yd = yearData.get(currentYear)
+    if (!yd) return
+    const filtered = filterByMonth(yd, currentMonth)
+    if (filtered.points.length < 2) return
+    setIsPlaying(true)
+    playbackRef.current = startPlayback(map, filtered.points, {
+      speed: SPEEDS[speedIdx],
+      onProgress: ({ pct, timeLabel: t }) => { setPlayPct(pct); setTimeLabel(t) },
+      onDone: () => { setIsPlaying(false); playbackRef.current = null },
+    })
+  }, [yearData, currentYear, currentMonth, isPlaying, speedIdx])
+
   const toggle = useCallback((id) => {
     setActive(prev => {
       const next = new Set(prev)
@@ -197,6 +270,20 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
         <div style={{ ...panel, padding: '6px 10px', pointerEvents: 'auto' }}>
           <strong>Globe POC</strong> · MapLibre GL
         </div>
+        {onFile && (
+          <>
+            <input
+              ref={fileInputRef} type="file" accept="application/json"
+              style={{ display: 'none' }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f) }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{ ...btn(!!yearData), pointerEvents: 'auto' }}
+              title="Load Google Location History Timeline.json"
+            >{yearData ? '📂 Ganti Timeline' : '📂 Load Timeline JSON'}</button>
+          </>
+        )}
         <div style={{ flex: 1 }} />
         <select
           value={basemap}
@@ -258,10 +345,23 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
         </div>
       )}
 
-      {/* Status / hover readout */}
+      {/* Timeline controls — only visible when data is loaded. */}
+      {yearData && (
+        <TimelineControls
+          yearData={yearData} panel={panel} btn={btn} dark={dark}
+          currentYear={currentYear} setCurrentYear={setCurrentYear}
+          currentMonth={currentMonth} setCurrentMonth={setCurrentMonth}
+          isPlaying={isPlaying} onTogglePlay={togglePlay}
+          playPct={playPct} timeLabel={timeLabel}
+          speedIdx={speedIdx} setSpeedIdx={setSpeedIdx}
+          stats={stats} legendItems={legendItems}
+        />
+      )}
+
+      {/* Status / hover readout — nudge up if the playback bar is visible. */}
       {(status || hover) && (
         <div style={{
-          position: 'absolute', bottom: 12, left: 12, zIndex: 10,
+          position: 'absolute', bottom: yearData ? 70 : 12, left: 12, zIndex: 10,
           ...panel, padding: '8px 12px', maxWidth: 320,
         }}>
           {status && <div style={{ color: '#f36' }}>{status}</div>}
@@ -269,6 +369,119 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
         </div>
       )}
     </div>
+  )
+}
+
+// Compact timeline UI: year chips + month strip + playback bar +
+// mini-stats. Modeled after the Leaflet MapPanels but streamlined
+// for the single-column layout of the globe view.
+function TimelineControls({
+  yearData, panel, btn, dark,
+  currentYear, setCurrentYear, currentMonth, setCurrentMonth,
+  isPlaying, onTogglePlay, playPct, timeLabel,
+  speedIdx, setSpeedIdx, stats, legendItems,
+}) {
+  const years = useMemo(() => [...yearData.keys()].sort((a, b) => a - b), [yearData])
+  const availableMonths = useMemo(() => {
+    if (currentYear == null) return []
+    const yd = yearData.get(currentYear)
+    if (!yd) return []
+    const set = new Set([
+      ...yd.points.map(p => p.time.getMonth()),
+      ...yd.visits.map(v => v.start.getMonth()),
+    ])
+    return [...set].sort((a, b) => a - b)
+  }, [yearData, currentYear])
+
+  return (
+    <>
+      {/* Year chips — top of the panel column, top-right below toolbar */}
+      <div style={{
+        position: 'absolute', top: 60, left: 12, zIndex: 10,
+        display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 320,
+      }}>
+        <div style={{ ...panel, padding: '8px 10px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {years.map(y => (
+            <button
+              key={y}
+              onClick={() => { setCurrentYear(y); setCurrentMonth(null) }}
+              style={{ ...btn(y === currentYear), padding: '4px 10px' }}
+            >{y}</button>
+          ))}
+        </div>
+
+        {/* Month strip — only if there's more than one month with data */}
+        {availableMonths.length > 1 && (
+          <div style={{ ...panel, padding: '6px 8px', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setCurrentMonth(null)}
+              style={{ ...btn(currentMonth === null), padding: '3px 8px', fontSize: 11 }}
+            >All</button>
+            {availableMonths.map(m => (
+              <button
+                key={m}
+                onClick={() => setCurrentMonth(m)}
+                style={{ ...btn(currentMonth === m), padding: '3px 8px', fontSize: 11 }}
+              >{MONTH_NAMES[m]}</button>
+            ))}
+          </div>
+        )}
+
+        {/* Mini-stats panel */}
+        {stats && (
+          <div style={{ ...panel, padding: '8px 10px', fontSize: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{stats.label}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 8px', color: dark ? '#8888a0' : '#6b6b80' }}>
+              <span>Points</span><span style={{ color: dark ? '#e8e8f0' : '#1a1a2e' }}>{stats.points.toLocaleString('id-ID')}</span>
+              <span>Visits</span><span style={{ color: dark ? '#e8e8f0' : '#1a1a2e' }}>{stats.visits}</span>
+              <span>Places</span><span style={{ color: dark ? '#e8e8f0' : '#1a1a2e' }}>{stats.uniquePlaces}</span>
+              <span>Trips</span><span style={{ color: dark ? '#e8e8f0' : '#1a1a2e' }}>{stats.trips}</span>
+              <span>Distance</span><span style={{ color: dark ? '#e8e8f0' : '#1a1a2e' }}>{(stats.totalDist / 1000).toFixed(0)} km</span>
+            </div>
+          </div>
+        )}
+
+        {/* Legend */}
+        {legendItems.length > 0 && (
+          <div style={{ ...panel, padding: '8px 10px', fontSize: 11 }}>
+            {legendItems.map(l => (
+              <div key={l.type} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 5, background: l.color }} />
+                <span>{l.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Playback bar — bottom center */}
+      <div style={{
+        position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 10, ...panel, padding: '8px 14px',
+        display: 'flex', alignItems: 'center', gap: 12,
+        minWidth: 380,
+      }}>
+        <button
+          onClick={onTogglePlay}
+          style={{ ...btn(isPlaying), padding: '4px 12px', fontSize: 14 }}
+        >{isPlaying ? '⏸' : '▶'}</button>
+        <div style={{ flex: 1, position: 'relative', height: 4, background: dark ? '#2a2a3a' : '#e0e1eb', borderRadius: 2 }}>
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0,
+            width: `${playPct}%`, background: '#f36', borderRadius: 2,
+            transition: isPlaying ? 'none' : 'width 0.2s',
+          }} />
+        </div>
+        <div style={{ fontSize: 11, minWidth: 60, textAlign: 'right', fontFamily: '"DM Mono", monospace' }}>
+          {timeLabel}
+        </div>
+        <button
+          onClick={() => setSpeedIdx(i => (i + 1) % SPEEDS.length)}
+          style={{ ...btn(false), padding: '4px 8px', fontSize: 11, minWidth: 40 }}
+          title="Kecepatan playback"
+        >{SPEEDS[speedIdx]}×</button>
+      </div>
+    </>
   )
 }
 
