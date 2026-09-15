@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo, Suspense } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { LAYER_REGISTRY, LAYER_CATEGORIES } from '../globe/layers'
@@ -6,6 +6,9 @@ import {
   ensureTimelineLayers, setStaticData, clearTimelineData,
   fitToTimeline, filterByMonth, computeStats, buildLegend, startPlayback,
 } from '../globe/timeline'
+// Lazy — pulls in the MediaRecorder + canvas compositing code only when
+// the user actually clicks Export Video.
+const GlobeExportModal = React.lazy(() => import('../globe/ExportModal'))
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const SPEEDS = [1, 2, 5, 10]
@@ -96,6 +99,7 @@ export default function GlobeView({ onBack, theme = 'dark', yearData, onFile }) 
   const [speedIdx, setSpeedIdx] = useState(0)
   const [playPct, setPlayPct] = useState(0)
   const [timeLabel, setTimeLabel] = useState('—')
+  const [showExport, setShowExport] = useState(false)
   const [hover, setHover] = useState(null)
   const [panelOpen, setPanelOpen] = useState(true)
 
@@ -110,6 +114,8 @@ export default function GlobeView({ onBack, theme = 'dark', yearData, onFile }) 
       center: [118, -2.5],
       zoom: 3.2,
       attributionControl: false,
+      // Required so we can read the WebGL canvas back for video export.
+      preserveDrawingBuffer: true,
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-left')
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
@@ -284,6 +290,13 @@ export default function GlobeView({ onBack, theme = 'dark', yearData, onFile }) 
             >{yearData ? '📂 Ganti Timeline' : '📂 Load Timeline JSON'}</button>
           </>
         )}
+        {yearData && (
+          <button
+            onClick={() => setShowExport(true)}
+            style={{ ...btn(false), pointerEvents: 'auto' }}
+            title="Export video timeline"
+          >🎬 Export</button>
+        )}
         <div style={{ flex: 1 }} />
         <select
           value={basemap}
@@ -343,6 +356,18 @@ export default function GlobeView({ onBack, theme = 'dark', yearData, onFile }) 
             )
           })}
         </div>
+      )}
+
+      {/* Export modal — lazy, mount only when the user opens it. */}
+      {showExport && yearData && (
+        <Suspense fallback={null}>
+          <GlobeExportModal
+            yearData={yearData}
+            map={mapInstance.current}
+            panel={panel} dark={dark}
+            onClose={() => setShowExport(false)}
+          />
+        </Suspense>
       )}
 
       {/* Timeline controls — only visible when data is loaded. */}
