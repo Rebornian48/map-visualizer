@@ -19,6 +19,7 @@ export default defineConfig({
           if (id.includes("react-dom")) return "react-dom";
           if (id.includes("react")) return "react";
           if (id.includes("react-leaflet")) return "leaflet";
+          if (id.includes("maplibre-gl")) return "maplibre";
           if (id.includes("leaflet")) return "leaflet";
           if (id.includes("jszip")) return "jszip";
           if (id.includes("html-to-image")) return "html-to-image";

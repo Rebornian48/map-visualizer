@@ -6,12 +6,17 @@ import { parseTimeline, organizeByYear } from './parser'
 import { getInitialTheme, applyTheme } from './theme'
 
 const InfoPage = React.lazy(() => import('./components/InfoPage'))
+const GlobeView = React.lazy(() => import('./components/GlobeView'))
 
 const BASE = import.meta.env.BASE_URL || '/'
 const INFO_PATH = `${BASE}info`
+const GLOBE_PATH = `${BASE}globe`
 
 function isInfoPath(p) {
   return p === INFO_PATH || p === `${INFO_PATH}/`
+}
+function isGlobePath(p) {
+  return p === GLOBE_PATH || p === `${GLOBE_PATH}/`
 }
 
 export default function App() {
@@ -111,6 +116,14 @@ export default function App() {
     )
   }
 
+  if (isGlobePath(pathname)) {
+    return (
+      <Suspense fallback={<LoadingScreen text="Loading globe…" pct={50} />}>
+        <GlobeView onBack={() => navigate(BASE)} theme={theme} />
+      </Suspense>
+    )
+  }
+
   return (
     <>
       <MapView
@@ -119,6 +132,7 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onFile={handleFile}
         onOpenInfo={() => navigate(INFO_PATH)}
+        onOpenGlobe={() => navigate(GLOBE_PATH)}
       />
       <FirstVisitNotice />
       {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}

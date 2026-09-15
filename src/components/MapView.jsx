@@ -36,7 +36,22 @@ function DataInfoButton({ onClick }) {
   )
 }
 
-function MapArea({ controller, hasData, onOpenInfo }) {
+function GlobeButton({ onClick }) {
+  return (
+    <button onClick={onClick} title="Buka globe view (POC)" style={{
+      position: 'absolute', top: 100, right: 12, zIndex: 1000,
+      width: 36, height: 36, borderRadius: 8,
+      background: 'var(--surface-solid)', border: '1px solid var(--border)',
+      boxShadow: 'var(--shadow)', cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+      fontSize: 18, lineHeight: 1,
+    }}>
+      <span aria-hidden="true">🌐</span>
+    </button>
+  )
+}
+
+function MapArea({ controller, hasData, onOpenInfo, onOpenGlobe }) {
   const { refs, state, setters, actions } = controller
   return (
     <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
@@ -53,6 +68,7 @@ function MapArea({ controller, hasData, onOpenInfo }) {
         onToggleTransport={actions.onToggleTransport}
       />
       <DataInfoButton onClick={onOpenInfo} />
+      {onOpenGlobe && <GlobeButton onClick={onOpenGlobe} />}
       {hasData && state.showStats && <StatsPanel stats={state.stats} uiPanel={uiPanel} />}
       {hasData && state.currentYear && (
         <MonthBar uiPanel={uiPanel} months={state.availableMonths}
@@ -72,7 +88,7 @@ function MapArea({ controller, hasData, onOpenInfo }) {
   )
 }
 
-export default function MapView({ yearData, theme, onToggleTheme, onFile, onOpenInfo }) {
+export default function MapView({ yearData, theme, onToggleTheme, onFile, onOpenInfo, onOpenGlobe }) {
   const controller = useMapController(yearData)
   const { refs, state, setters } = controller
   const hasData = !!yearData
@@ -101,7 +117,7 @@ export default function MapView({ yearData, theme, onToggleTheme, onFile, onOpen
                        onClose={() => setters.setShowExport(false)} />
         </Suspense>
       )}
-      <MapArea controller={controller} hasData={hasData} onOpenInfo={onOpenInfo} />
+      <MapArea controller={controller} hasData={hasData} onOpenInfo={onOpenInfo} onOpenGlobe={onOpenGlobe} />
     </div>
   )
 }
