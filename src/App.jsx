@@ -1,22 +1,24 @@
 import React, { useState, useCallback, useEffect, Suspense } from 'react'
 import LoadingScreen from './components/LoadingScreen'
-import MapView from './components/MapView'
 import FirstVisitNotice from './components/FirstVisitNotice'
 import { parseTimeline, organizeByYear } from './parser'
 import { getInitialTheme, applyTheme } from './theme'
 
-const InfoPage = React.lazy(() => import('./components/InfoPage'))
+// GlobeView (MapLibre) is now the default map viewer at "/".
+// MapView (Leaflet) lives at "/legacy" for anyone bookmarked or needing
+// the older render — its layer coverage is intentionally frozen.
+const InfoPage  = React.lazy(() => import('./components/InfoPage'))
 const GlobeView = React.lazy(() => import('./components/GlobeView'))
+const MapView   = React.lazy(() => import('./components/MapView'))
 
 const BASE = import.meta.env.BASE_URL || '/'
-const INFO_PATH = `${BASE}info`
-const GLOBE_PATH = `${BASE}globe`
+const INFO_PATH   = `${BASE}info`
+const LEGACY_PATH = `${BASE}legacy`
+// "/globe" (from earlier POC period) falls through to the default
+// GlobeView render, same as "/", so no explicit constant needed.
 
-function isInfoPath(p) {
-  return p === INFO_PATH || p === `${INFO_PATH}/`
-}
-function isGlobePath(p) {
-  return p === GLOBE_PATH || p === `${GLOBE_PATH}/`
+function pathMatch(pathname, target) {
+  return pathname === target || pathname === `${target}/`
 }
 
 export default function App() {
@@ -104,7 +106,7 @@ export default function App() {
     }
   }, [])
 
-  if (isInfoPath(pathname)) {
+  if (pathMatch(pathname, INFO_PATH)) {
     return (
       <Suspense fallback={<LoadingScreen text="Loading…" pct={50} />}>
         <InfoPage
@@ -116,29 +118,39 @@ export default function App() {
     )
   }
 
-  if (isGlobePath(pathname)) {
+  // Leaflet MapView is now the fallback at /legacy. Frozen feature set —
+  // new coverage lands on the globe.
+  if (pathMatch(pathname, LEGACY_PATH)) {
     return (
       <>
-        <Suspense fallback={<LoadingScreen text="Loading globe…" pct={50} />}>
-          <GlobeView onBack={() => navigate(BASE)} theme={theme}
-                     yearData={yearData} onFile={handleFile} />
+        <Suspense fallback={<LoadingScreen text="Loading legacy map…" pct={50} />}>
+          <MapView
+            yearData={yearData}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onFile={handleFile}
+            onOpenInfo={() => navigate(INFO_PATH)}
+            onOpenGlobe={() => navigate(BASE)}
+          />
         </Suspense>
+        <FirstVisitNotice />
         {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
       </>
     )
   }
 
+  // "/" (and "/globe" for back-compat) — MapLibre GlobeView.
   return (
     <>
-      <MapView
-        yearData={yearData}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        onFile={handleFile}
-        onOpenInfo={() => navigate(INFO_PATH)}
-        onOpenGlobe={() => navigate(GLOBE_PATH)}
-      />
-      <FirstVisitNotice />
+      <Suspense fallback={<LoadingScreen text="Loading globe…" pct={50} />}>
+        <GlobeView
+          theme={theme}
+          yearData={yearData}
+          onFile={handleFile}
+          onOpenInfo={() => navigate(INFO_PATH)}
+          onOpenLegacy={() => navigate(LEGACY_PATH)}
+        />
+      </Suspense>
       {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
     </>
   )

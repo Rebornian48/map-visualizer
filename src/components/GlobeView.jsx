@@ -77,7 +77,12 @@ function buildStyle(basemapKey, theme) {
   }
 }
 
-export default function GlobeView({ onBack, theme = 'dark', yearData, onFile }) {
+export default function GlobeView({
+  theme = 'dark', yearData, onFile,
+  onOpenInfo, onOpenLegacy,
+  // `onBack` accepted for back-compat with the earlier /globe POC route.
+  onBack,
+}) {
   const mapRef = useRef(null)
   const fileInputRef = useRef(null)
   const mapInstance = useRef(null)
@@ -272,10 +277,26 @@ export default function GlobeView({ onBack, theme = 'dark', yearData, onFile }) 
         position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10,
         display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', pointerEvents: 'none',
       }}>
-        <button onClick={onBack} style={{ ...btn(false), pointerEvents: 'auto' }}>← Kembali</button>
+        {onBack && (
+          <button onClick={onBack} style={{ ...btn(false), pointerEvents: 'auto' }}>← Kembali</button>
+        )}
         <div style={{ ...panel, padding: '6px 10px', pointerEvents: 'auto' }}>
-          <strong>Globe POC</strong> · MapLibre GL
+          <strong>Map Visualizer</strong> · MapLibre GL
         </div>
+        {onOpenInfo && (
+          <button
+            onClick={onOpenInfo}
+            style={{ ...btn(false), pointerEvents: 'auto' }}
+            title="Tentang data & sumber"
+          >ℹ Info</button>
+        )}
+        {onOpenLegacy && (
+          <button
+            onClick={onOpenLegacy}
+            style={{ ...btn(false), pointerEvents: 'auto' }}
+            title="Buka viewer Leaflet lama (fitur beku)"
+          >📍 Leaflet</button>
+        )}
         {onFile && (
           <>
             <input

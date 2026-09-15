@@ -38,7 +38,7 @@ function DataInfoButton({ onClick }) {
 
 function GlobeButton({ onClick }) {
   return (
-    <button onClick={onClick} title="Buka globe view (POC)" style={{
+    <button onClick={onClick} title="Kembali ke globe (default)" style={{
       position: 'absolute', top: 100, right: 12, zIndex: 1000,
       width: 36, height: 36, borderRadius: 8,
       background: 'var(--surface-solid)', border: '1px solid var(--border)',
