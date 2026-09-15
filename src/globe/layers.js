@@ -7,6 +7,12 @@
 import { SARPRAS_CFG } from '../sarpras'
 import { SDA_CFG } from '../sda'
 import { expandCfgToEntries } from './bigLayers'
+import { BMKG_GEMPA_ENTRIES } from './live/bmkgGempa'
+import { SIGMET_ENTRY } from './live/sigmet'
+import { MBG_ENTRY } from './live/mbg'
+import { MAGMA_ENTRY } from './live/magma'
+import { CAP_ENTRY } from './live/bmkgCap'
+import { CUACA_ENTRY } from './live/bmkgCuaca'
 
 const BASE = import.meta.env.BASE_URL || '/'
 
@@ -50,6 +56,13 @@ export const LAYER_CATEGORIES = [
   'Batas Administrasi',
   'Batas Laut UNCLOS',
   'Keagamaan',
+  // Live BMKG / MAGMA / aviasi / insiden
+  'BMKG · Gempa',
+  'BMKG · Peringatan Dini',
+  'BMKG · Cuaca',
+  'Aviasi',
+  'Insiden · MBG',
+  // Statik
   'Tektonik',
   'Vulkano',
   // Sarpras BIG
@@ -407,6 +420,18 @@ export const LAYER_REGISTRY = [
     ],
     hover: hoverPropReader('vulkano-gvp', 'vulkano-gvp-circle', 'Volcano_Name'),
   },
+
+  // ── Live sources — BMKG / MAGMA / SIGMET / MBG ─────────────────
+  // No public/static — each entry defines its own dataLoader (or a
+  // customMount for the HTML-marker cuaca layer). Failure to fetch
+  // (usually a proxy hiccup) leaves the layer un-mounted; MAGMA in
+  // particular falls back to a vendored snapshot.
+  ...BMKG_GEMPA_ENTRIES,
+  CAP_ENTRY,
+  CUACA_ENTRY,
+  MAGMA_ENTRY,
+  SIGMET_ENTRY,
+  MBG_ENTRY,
 
   // ── Sarpras BIG (22 sublayer) + SDA BIG (32 sublayer) ──────────
   // Generated from the same CFG objects the Leaflet side uses so the

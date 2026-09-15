@@ -72,6 +72,7 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
   const mapInstance = useRef(null)
   const loadedLayersRef = useRef(new Set()) // layer ids currently mounted
   const dataCacheRef = useRef(new Map())    // url -> Promise<GeoJSON>
+  const customCleanupsRef = useRef(new Map()) // layer id -> cleanup fn (customMount path)
   const [ready, setReady] = useState(false)
   const [basemap, setBasemap] = useState('osm')
   const [projection, setProjection] = useState('globe')
@@ -101,7 +102,7 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
       setReady(true)
       // Mount initially-active layers
       for (const id of active) {
-        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus)
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus, customCleanupsRef)
       }
     })
 
@@ -120,7 +121,7 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
       map.setProjection({ type: projection })
       loadedLayersRef.current = new Set()
       for (const id of active) {
-        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus)
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus, customCleanupsRef)
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,12 +140,12 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
     if (!map || !ready) return
     for (const id of active) {
       if (!loadedLayersRef.current.has(id)) {
-        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus)
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus, customCleanupsRef)
       }
     }
     for (const id of Array.from(loadedLayersRef.current)) {
       if (!active.has(id)) {
-        unmountLayer(map, id, registry, loadedLayersRef)
+        unmountLayer(map, id, registry, loadedLayersRef, customCleanupsRef)
       }
     }
   }, [active, registry, ready])
@@ -272,13 +273,27 @@ export default function GlobeView({ onBack, theme = 'dark' }) {
 }
 
 // ── Layer mount/unmount plumbing ────────────────────────────────
-async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus) {
+async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus, customCleanupsRef) {
   const def = registry.find(l => l.id === id)
   if (!def || loadedLayersRef.current.has(id)) return
   loadedLayersRef.current.add(id) // optimistic; prevents re-entry
   try {
+    // Path A: custom mount — layer manages its own MapLibre + marker state
+    // and returns a cleanup function stored for unmountLayer to call.
+    if (def.customMount) {
+      setStatus(`Memuat ${def.label}…`)
+      const cleanup = await def.customMount(map, { setHover, setStatus, dataCacheRef })
+      customCleanupsRef.current.set(id, cleanup)
+      setStatus('')
+      return
+    }
+    // Path B: standard GeoJSON — fetch (or dataLoader), addSource, add layers.
     let data
-    if (def.url) {
+    if (def.dataLoader) {
+      setStatus(`Memuat ${def.label}…`)
+      data = await def.dataLoader({ dataCacheRef })
+      setStatus('')
+    } else if (def.url) {
       if (!dataCacheRef.current.has(def.url)) {
         setStatus(`Memuat ${def.label}…`)
         dataCacheRef.current.set(def.url, fetch(def.url).then(r => {
@@ -287,10 +302,9 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setH
         }))
       }
       data = await dataCacheRef.current.get(def.url)
-      // Per-entry preprocess (e.g. filter to one categorize value for split layers)
-      if (def.preprocess) data = def.preprocess(data)
       setStatus('')
     }
+    if (def.preprocess && data) data = def.preprocess(data)
     if (!map.getSource(def.sourceId)) {
       map.addSource(def.sourceId, {
         type: 'geojson',
@@ -308,11 +322,18 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setH
   }
 }
 
-function unmountLayer(map, id, registry, loadedLayersRef) {
+function unmountLayer(map, id, registry, loadedLayersRef, customCleanupsRef) {
   const def = registry.find(l => l.id === id)
   if (!def) return
-  for (const layer of def.layers({ theme: 'dark' })) {
-    if (map.getLayer(layer.id)) map.removeLayer(layer.id)
+  const cleanup = customCleanupsRef.current.get(id)
+  if (cleanup) {
+    try { cleanup() } catch (e) { console.warn('cleanup failed', id, e) }
+    customCleanupsRef.current.delete(id)
+  }
+  if (def.layers) {
+    for (const layer of def.layers({ theme: 'dark' })) {
+      if (map.getLayer(layer.id)) map.removeLayer(layer.id)
+    }
   }
   // Keep the source for cache — cheap to leave, avoids re-fetch on re-enable
   loadedLayersRef.current.delete(id)
