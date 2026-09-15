@@ -13,6 +13,28 @@ const GlobeExportModal = React.lazy(() => import('../globe/ExportModal'))
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const SPEEDS = [1, 2, 5, 10]
 
+// localStorage keys for cross-session preferences. Individual reads are
+// wrapped in try/catch so a private window / disabled storage never
+// crashes the map — the fallback is the built-in default.
+const LS = {
+  basemap:    'globe-basemap',
+  projection: 'globe-projection',
+  panelOpen:  'globe-panel-open',
+  active:     'globe-active-layers',
+}
+function loadPref(key, fallback, parse = (v) => v) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw == null ? fallback : parse(raw)
+  } catch { return fallback }
+}
+function savePref(key, value) {
+  try { localStorage.setItem(key, String(value)) } catch { /* noop */ }
+}
+function saveJsonPref(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* noop */ }
+}
+
 const BASE = import.meta.env.BASE_URL || '/'
 
 const BASEMAPS = {
@@ -91,10 +113,15 @@ export default function GlobeView({
   const customCleanupsRef = useRef(new Map()) // layer id -> cleanup fn (customMount path)
   const playbackRef = useRef(null) // { stop } handle for the current playback
   const [ready, setReady] = useState(false)
-  const [basemap, setBasemap] = useState('osm')
-  const [projection, setProjection] = useState('globe')
-  const [active, setActive] = useState(() => new Set(['provinsi']))
+  const [basemap, setBasemap] = useState(() => loadPref(LS.basemap, 'osm'))
+  const [projection, setProjection] = useState(() => loadPref(LS.projection, 'globe'))
+  const [active, setActive] = useState(() => new Set(loadPref(
+    LS.active, ['provinsi'],
+    (raw) => { try { const v = JSON.parse(raw); return Array.isArray(v) ? v : ['provinsi'] } catch { return ['provinsi'] } },
+  )))
   const [status, setStatus] = useState('Menyiapkan peta…')
+  const [dragActive, setDragActive] = useState(false)
+  const [firstVisit, setFirstVisit] = useState(() => loadPref('globe-first-visit', '1') === '1')
   // Timeline state (mirrors the Leaflet controller so behaviour matches).
   const [currentYear, setCurrentYear] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(null)
@@ -106,9 +133,75 @@ export default function GlobeView({
   const [timeLabel, setTimeLabel] = useState('—')
   const [showExport, setShowExport] = useState(false)
   const [hover, setHover] = useState(null)
-  const [panelOpen, setPanelOpen] = useState(true)
+  const [panelOpen, setPanelOpen] = useState(() => loadPref(LS.panelOpen, '1') === '1')
 
   const registry = useMemo(() => LAYER_REGISTRY, [])
+
+  // ── Preference persistence ────────────────────────────────────
+  useEffect(() => { savePref(LS.basemap, basemap) }, [basemap])
+  useEffect(() => { savePref(LS.projection, projection) }, [projection])
+  useEffect(() => { savePref(LS.panelOpen, panelOpen ? '1' : '0') }, [panelOpen])
+  useEffect(() => { saveJsonPref(LS.active, [...active]) }, [active])
+
+  // ── Escape key: close modal → close panel ─────────────────────
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      if (showExport) { setShowExport(false); return }
+      if (firstVisit) { setFirstVisit(false); savePref('globe-first-visit', '0'); return }
+      if (panelOpen)  { setPanelOpen(false) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showExport, panelOpen, firstVisit])
+
+  // ── Drag-drop file overlay ────────────────────────────────────
+  // Only wire when onFile is provided (parent controls timeline loading).
+  useEffect(() => {
+    if (!onFile) return
+    // Track a counter so nested dragenter/dragleave from child elements
+    // don't flap the overlay on and off.
+    let depth = 0
+    const isFileDrag = (e) => Array.from(e.dataTransfer?.types || []).includes('Files')
+    const onDragEnter = (e) => {
+      if (!isFileDrag(e)) return
+      depth += 1
+      setDragActive(true)
+    }
+    const onDragOver = (e) => {
+      if (!isFileDrag(e)) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+    }
+    const onDragLeave = (e) => {
+      if (!isFileDrag(e)) return
+      depth = Math.max(0, depth - 1)
+      if (depth === 0) setDragActive(false)
+    }
+    const onDrop = (e) => {
+      if (!isFileDrag(e)) return
+      e.preventDefault()
+      depth = 0
+      setDragActive(false)
+      const f = e.dataTransfer.files?.[0]
+      if (f) onFile(f)
+    }
+    window.addEventListener('dragenter', onDragEnter)
+    window.addEventListener('dragover', onDragOver)
+    window.addEventListener('dragleave', onDragLeave)
+    window.addEventListener('drop', onDrop)
+    return () => {
+      window.removeEventListener('dragenter', onDragEnter)
+      window.removeEventListener('dragover', onDragOver)
+      window.removeEventListener('dragleave', onDragLeave)
+      window.removeEventListener('drop', onDrop)
+    }
+  }, [onFile])
+
+  const dismissFirstVisit = useCallback(() => {
+    setFirstVisit(false)
+    savePref('globe-first-visit', '0')
+  }, [])
 
   // Init map once
   useEffect(() => {
@@ -412,6 +505,53 @@ export default function GlobeView({
         }}>
           {status && <div style={{ color: '#f36' }}>{status}</div>}
           {hover && <div><strong>{hover}</strong></div>}
+        </div>
+      )}
+
+      {/* First-visit notice — matches the FirstVisitNotice component from
+          the Leaflet side, but styled for the globe theme. */}
+      {firstVisit && (
+        <div style={{
+          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 30, maxWidth: 460, width: 'calc(100% - 100px)',
+          ...panel, padding: '12px 14px',
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          borderLeft: '3px solid #f36',
+          willChange: 'transform, opacity',
+          animation: 'globe-notice-in 0.3s ease-out',
+        }}>
+          <style>{`
+            @keyframes globe-notice-in {
+              from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+              to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+            }
+          `}</style>
+          <div style={{ flex: 1, fontSize: 12, lineHeight: 1.5 }}>
+            Drop <strong>Timeline.json</strong> ke mana saja, atau klik
+            <strong> 📂 Load Timeline JSON</strong>. Export video masih dalam
+            pengembangan.
+          </div>
+          <button onClick={dismissFirstVisit} aria-label="Close" style={{
+            background: 'none', border: 'none', color: dark ? '#8888a0' : '#6b6b80',
+            cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, marginTop: -2,
+          }}>×</button>
+        </div>
+      )}
+
+      {/* Drop overlay — full-viewport dashed frame that lights up during
+          a file drag. Pointer events off so we don't steal drag events. */}
+      {dragActive && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 40, pointerEvents: 'none',
+          border: '3px dashed #f36',
+          background: dark ? 'rgba(255,51,102,0.08)' : 'rgba(255,51,102,0.05)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            ...panel, padding: '16px 24px', fontSize: 14, fontWeight: 600,
+          }}>
+            📂 Drop Timeline.json di sini
+          </div>
         </div>
       )}
     </div>
