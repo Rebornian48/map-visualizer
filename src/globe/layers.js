@@ -13,6 +13,11 @@ import { MBG_ENTRY } from './live/mbg'
 import { MAGMA_ENTRY } from './live/magma'
 import { CAP_ENTRY } from './live/bmkgCap'
 import { CUACA_ENTRY } from './live/bmkgCuaca'
+import { BUS_ENTRIES } from './live/bus'
+import { KRL_LINES_ENTRY, LRT_MRT_LINES_ENTRY, RAIL_STATIONS_ENTRY } from './live/rail'
+import { GTFS_TJ_ENTRY } from './live/gtfs'
+import { OPENAIP_AIRPORTS_ENTRY, OPENAIP_AIRSPACES_ENTRY } from './live/openaipRuntime'
+import { SEARATES_ENTRY } from './live/searates'
 
 const BASE = import.meta.env.BASE_URL || '/'
 
@@ -62,6 +67,12 @@ export const LAYER_CATEGORIES = [
   'BMKG · Cuaca',
   'Aviasi',
   'Insiden · MBG',
+  // Transportasi runtime
+  'Bus (JSON)',
+  'Bus (GTFS)',
+  'Rel',
+  'Aeronautika · OpenAIP',
+  'Maritim · SeaRates',
   // Statik
   'Tektonik',
   'Vulkano',
@@ -432,6 +443,19 @@ export const LAYER_REGISTRY = [
   MAGMA_ENTRY,
   SIGMET_ENTRY,
   MBG_ENTRY,
+
+  // ── Transportasi runtime ──────────────────────────────────────
+  // 6 bus JSON networks, GTFS Transjakarta (dynamic JSZip), 3 rail
+  // sources (KRL lines / LRT-MRT lines / stations KML), OpenAIP
+  // (aerodromes + airspaces), SeaRates ports.
+  ...BUS_ENTRIES,
+  GTFS_TJ_ENTRY,
+  KRL_LINES_ENTRY,
+  LRT_MRT_LINES_ENTRY,
+  RAIL_STATIONS_ENTRY,
+  OPENAIP_AIRPORTS_ENTRY,
+  OPENAIP_AIRSPACES_ENTRY,
+  SEARATES_ENTRY,
 
   // ── Sarpras BIG (22 sublayer) + SDA BIG (32 sublayer) ──────────
   // Generated from the same CFG objects the Leaflet side uses so the
