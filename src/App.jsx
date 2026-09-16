@@ -1,24 +1,25 @@
 import React, { useState, useCallback, useEffect, Suspense } from 'react'
 import LoadingScreen from './components/LoadingScreen'
 import FirstVisitNotice from './components/FirstVisitNotice'
-import GlobeView from './components/GlobeView'
+import MapView from './components/MapView'
 import { parseTimeline, organizeByYear } from './parser'
 import { getInitialTheme, applyTheme } from './theme'
 
-// GlobeView (MapLibre) is the default map viewer at "/", so we import
-// it eagerly — Vite then emits a <link rel="modulepreload"> for the
-// maplibre chunk, letting the ~275 KB gzipped download happen in
-// parallel with react-dom instead of waiting for a Suspense round-trip.
-// MapView (Leaflet) and InfoPage stay lazy — anyone hitting /legacy or
-// /info gets a smaller entry cost and only pays for what they use.
+// MapView (Leaflet) is the default map viewer at "/" again — the
+// MapLibre GlobeView still has an outstanding init-race bug where
+// overlays don't paint reliably on cold load in production, so we
+// eagerly import Leaflet and keep the globe reachable at "/globe" for
+// users who want it. InfoPage stays lazy (only anyone hitting /info
+// pays for it).
 const InfoPage  = React.lazy(() => import('./components/InfoPage'))
-const MapView   = React.lazy(() => import('./components/MapView'))
+const GlobeView = React.lazy(() => import('./components/GlobeView'))
 
 const BASE = import.meta.env.BASE_URL || '/'
-const INFO_PATH   = `${BASE}info`
-const LEGACY_PATH = `${BASE}legacy`
-// "/globe" (from earlier POC period) falls through to the default
-// GlobeView render, same as "/", so no explicit constant needed.
+const INFO_PATH  = `${BASE}info`
+const GLOBE_PATH = `${BASE}globe`
+// "/legacy" from the previous default-globe period falls through to the
+// default MapView branch below, so existing links keep working without
+// an explicit route.
 
 function pathMatch(pathname, target) {
   return pathname === target || pathname === `${target}/`
@@ -121,39 +122,38 @@ export default function App() {
     )
   }
 
-  // Leaflet MapView is now the fallback at /legacy. Frozen feature set —
-  // new coverage lands on the globe.
-  if (pathMatch(pathname, LEGACY_PATH)) {
+  // "/globe" — MapLibre GlobeView, opt-in while the init-race repro is
+  // still being tracked down.
+  if (pathMatch(pathname, GLOBE_PATH)) {
     return (
       <>
-        <Suspense fallback={<LoadingScreen text="Loading legacy map…" pct={50} />}>
-          <MapView
-            yearData={yearData}
+        <Suspense fallback={<LoadingScreen text="Loading globe viewer…" pct={50} />}>
+          <GlobeView
             theme={theme}
-            onToggleTheme={toggleTheme}
+            yearData={yearData}
             onFile={handleFile}
             onOpenInfo={() => navigate(INFO_PATH)}
-            onOpenGlobe={() => navigate(BASE)}
+            onOpenLegacy={() => navigate(BASE)}
           />
         </Suspense>
-        <FirstVisitNotice />
         {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
       </>
     )
   }
 
-  // "/" (and "/globe" for back-compat) — MapLibre GlobeView. Eager
-  // import above means no Suspense boundary is needed here; the map
-  // chunk is preloaded alongside the entry bundle.
+  // Default "/" (plus back-compat alias "/legacy") — Leaflet MapView.
+  // Eager import above means no Suspense boundary is needed.
   return (
     <>
-      <GlobeView
-        theme={theme}
+      <MapView
         yearData={yearData}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onFile={handleFile}
         onOpenInfo={() => navigate(INFO_PATH)}
-        onOpenLegacy={() => navigate(LEGACY_PATH)}
+        onOpenGlobe={() => navigate(GLOBE_PATH)}
       />
+      <FirstVisitNotice />
       {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}
     </>
   )

@@ -458,7 +458,7 @@ export default function GlobeView({
           <button
             onClick={onOpenLegacy}
             style={{ ...btn(false), pointerEvents: 'auto' }}
-            title="Buka viewer Leaflet lama (fitur beku)"
+            title="Kembali ke viewer Leaflet (default)"
           >📍 Leaflet</button>
         )}
         {onFile && (

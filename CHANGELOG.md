@@ -6,6 +6,17 @@ at the top.
 
 ## Unreleased
 
+### Changed
+
+- **Leaflet MapView balik jadi default viewer di `/`.** MapLibre
+  GlobeView masih punya bug yang bikin overlay tidak konsisten muncul
+  di production walau perbaikan init-race sudah landing — dari `/`
+  akhirnya di-hidden kembali sampai repro-nya ketemu. GlobeView tetap
+  bisa diakses opt-in di `/globe` (dan `/legacy` di-alias ke `/` untuk
+  link lama). Header di MapView masih punya tombol 🌐 untuk masuk ke
+  globe. Bundle: chunk MapLibre di-lazy-load lagi jadi tidak
+  ke-preload saat pertama kali buka `/`.
+
 ### Fixed
 
 - **GlobeView init race — layer overlay tidak muncul walau checkbox
@@ -24,7 +35,9 @@ at the top.
   Fix — track `styleAppliedRef` (basemap/theme yang lagi aktif di WebGL
   style) dan skip `setStyle` kalau nilainya sama. Init cukup ngeset ref
   sekali, effect belakangan hanya berjalan saat user beneran ganti
-  basemap atau theme.
+  basemap atau theme. Ini mengurangi frekuensi masalah tapi belum
+  cukup untuk mempromosikan globe balik ke default — di production
+  masih ada repro yang belum ketangkap.
 - **Fetch gagal ter-cache selamanya.** `dataCacheRef.set(url, promise)`
   menyimpan promise `fetch()`. Kalau reject (network flap, HTTP 5xx,
   CORS), toggle ulang layer meng-await promise reject yang sama — user
