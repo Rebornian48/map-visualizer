@@ -487,7 +487,12 @@ Upload the contents of `dist/` to Hostinger's target folder via:
 - **Vite 6** — build tool
 - **Leaflet** — default map viewer di `/`
 - **MapLibre GL JS 5** — experimental globe viewer opt-in di `/globe`
-  (init-race bug — overlay tidak konsisten muncul di production, WIP)
+  (init-race + line-width expression bug sudah diperbaiki; performa
+  layer padat dioptimalkan dengan `data:url` off-thread parse +
+  minzoom gate; PMTiles vector-tile support siap tapi belum
+  di-generate — lihat [scripts/build-pmtiles.sh](scripts/build-pmtiles.sh))
+- **pmtiles 4** — client-side vector-tile reader (protocol handler
+  untuk `pmtiles://…`)
 - **html-to-image** — DOM → PNG snapshot for the video background
 - **MediaRecorder + canvas.captureStream** — MP4/WebM encoding
 - **JSZip** — client-side GTFS zip extraction (Transjakarta overlay)

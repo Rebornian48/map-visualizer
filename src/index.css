@@ -83,3 +83,8 @@ body {
   white-space: nowrap;
 }
 .leaflet-tooltip.boundary-tooltip::before { display: none; }
+
+@keyframes globe-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

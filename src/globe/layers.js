@@ -126,10 +126,18 @@ function hoverPropReader(sourceId, layerId, propName) {
 // lineWidth is the base width at low zoom; we ramp it to ~3× at zoom 12
 // so dense layers (kecamatan/desa) stay visible when the user zooms in
 // but don't smear into a solid blob at region-level zoom.
-function boundaryLayers({ sourceId, prefix, color, fillOpacity = 0.10, hoverOpacity = 0.35, lineWidth = 1.2 }) {
+//
+// `minzoom` gates BOTH paint layers so MapLibre skips the tile-split +
+// triangulate work entirely below that zoom — critical for the 84k-feature
+// desa layer (a full pass at zoom 3 stalls the worker for ~10 s and paints
+// a solid green blob nobody can read anyway).
+function boundaryLayers({ sourceId, prefix, color,
+                          fillOpacity = 0.10, hoverOpacity = 0.35,
+                          lineWidth = 1.2, minzoom }) {
   const widthHi = lineWidth * 3
+  const gate = (layer) => (minzoom != null ? { ...layer, minzoom } : layer)
   return () => [
-    {
+    gate({
       id: `${prefix}-fill`,
       type: 'fill',
       source: sourceId,
@@ -141,8 +149,8 @@ function boundaryLayers({ sourceId, prefix, color, fillOpacity = 0.10, hoverOpac
           fillOpacity,
         ],
       },
-    },
-    {
+    }),
+    gate({
       id: `${prefix}-line`,
       type: 'line',
       source: sourceId,
@@ -160,7 +168,7 @@ function boundaryLayers({ sourceId, prefix, color, fillOpacity = 0.10, hoverOpac
           12, ['case', ['boolean', ['feature-state', 'hover'], false], widthHi + 1,     widthHi],
         ],
       },
-    },
+    }),
   ]
 }
 
@@ -228,6 +236,7 @@ export const LAYER_REGISTRY = [
     layers: boundaryLayers({
       sourceId: 'kecamatan', prefix: 'kecamatan',
       color: C.purple, fillOpacity: 0.06, hoverOpacity: 0.25, lineWidth: 0.7,
+      minzoom: 5,
     }),
     hover: hoverPropReader('kecamatan', 'kecamatan-fill', 'WADMKC'),
   },
@@ -242,6 +251,7 @@ export const LAYER_REGISTRY = [
     layers: boundaryLayers({
       sourceId: 'desa', prefix: 'desa',
       color: C.green, fillOpacity: 0.06, hoverOpacity: 0.2, lineWidth: 0.5,
+      minzoom: 7,
     }),
     hover: hoverPropReader('desa', 'desa-fill', 'WADMKD'),
   },

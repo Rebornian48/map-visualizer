@@ -866,11 +866,17 @@ export default function InfoPage({ onBack, theme, onToggleTheme }) {
             <strong>Viewer.</strong> Halaman utama (<code>/</code>) memakai{' '}
             <strong>Leaflet</strong> — layer overlay kompatibel penuh dengan
             semua sumber di bawah. Viewer <strong>MapLibre GL</strong>{' '}
-            (globe + Mercator) bisa dicoba opt-in di <code>/globe</code>,
-            tapi masih ada bug init-race yang bikin overlay tidak selalu
-            muncul di production. Kalau lagi bereksperimen dan overlay
-            tidak keluar walau checkbox aktif, refresh halaman biasanya
-            memperbaikinya sementara — atau balik ke <code>/</code>.
+            (globe + Mercator) opt-in di <code>/globe</code>: sekarang
+            pakai worker off-thread untuk fetch + parse GeoJSON besar
+            (mis. desa 30 MB) supaya main thread tidak freeze, plus
+            spinner per-row di layer panel sewaktu mount pending. Layer
+            padat seperti Kecamatan dan Kelurahan/Desa di-gate ke zoom
+            minimum (5 dan 7) supaya rendering tidak stall di zoom
+            regional. PMTiles vector-tile pipeline juga sudah siap
+            ({' '}<code>scripts/build-pmtiles.sh</code>) — belum
+            di-generate, tapi begitu tippecanoe run, layer registry
+            tinggal ganti ke <code>pmtilesUrl</code> untuk lazy-load
+            tile individual.
           </p>
         </section>
         <OverlaySummary />

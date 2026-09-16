@@ -6,6 +6,49 @@ at the top.
 
 ## Unreleased
 
+### Added
+
+- **PMTiles vector-tile support di GlobeView.** Registrasi handler
+  `pmtiles://` protocol satu kali per page (client hanya, tanpa server
+  tile). Layer registry entry sekarang bisa nge-set `pmtilesUrl` +
+  `sourceLayer` alih-alih `url` — `mountLayer` menjadikannya `vector`
+  source, MapLibre worker fetch tile-per-tile via HTTP range request.
+  Untuk file yang di-tile (`desa` = 30 MB GeoJSON), tile individual
+  hanya ~50–200 KB per zoom, dan yang di-render cuma yang visible.
+  Skrip konversi tippecanoe → PMTiles ada di
+  [scripts/build-pmtiles.sh](scripts/build-pmtiles.sh) beserta config
+  per-layer (min/max zoom, promote fields, drop-densest untuk desa).
+  Butuh tippecanoe di CI/local (Linux/macOS) — belum di-run di sesi
+  ini karena tippecanoe tidak ada di Windows dev host, jadi field
+  `pmtilesUrl` masih dormant di registry. Setelah `.pmtiles` di-generate
+  dan di-vendor ke `public/boundaries/pmtiles/`, switch entry
+  `desa/kecamatan` di [src/globe/layers.js](src/globe/layers.js) dari
+  `url:` ke `pmtilesUrl:` + `sourceLayer:`.
+- **Per-layer loading spinner di layer panel.** State `loadingIds`
+  di GlobeView, `mountLayer` add/remove ID ke Set saat begin/end.
+  Checkbox row menampilkan spinner kecil warna accent di kanan label
+  selama mount pending. User tidak lagi bingung apakah checkbox
+  aktif tapi data belum sampai, atau memang gagal — visual feedback
+  langsung.
+
+### Changed
+
+- **`mountLayer` path B: `data:url` alih-alih `data:object`.** Untuk
+  layer GeoJSON tanpa `preprocess` / `dataLoader` (mis. semua batas
+  administrasi, keuskupan, UNCLOS), URL sekarang langsung di-hand ke
+  MapLibre `addSource({type:'geojson', data: url})`. Worker MapLibre
+  yang fetch + `JSON.parse` + tile-split — main thread nggak
+  freeze lagi. Untuk `desa.json` (30 MB), sebelumnya `JSON.parse`
+  di main thread bikin UI freeze 1–2 detik; sekarang smooth spinner
+  aja. Layer yang butuh preprocess (bigLayers split filter,
+  dataLoader BMKG/live/dsb.) tetap lewat main-thread fetch+parse.
+- **Boundary `minzoom` untuk layer padat.** `kecamatan` minzoom 5,
+  `desa` minzoom 7 — di zoom lebih rendah paint/tile-split di-skip
+  total. Sebelumnya di zoom regional (2–4), rendering 7k/84k polygon
+  membuat WebGL stall walau visually cuma jadi mesh solid tak
+  terbaca. `provinsi/kabkota` tetap tanpa minzoom (visible sejak
+  zoom awal).
+
 ### Fixed
 
 - **GlobeView production repro — SEMUA layer batas administrasi gagal

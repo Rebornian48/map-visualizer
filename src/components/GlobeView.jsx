@@ -1,7 +1,21 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, Suspense } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { Protocol as PMTilesProtocol } from 'pmtiles'
 import { LAYER_REGISTRY, LAYER_CATEGORIES } from '../globe/layers'
+
+// One PMTiles protocol per page — MapLibre's addProtocol table is process-
+// global, so registering per-mount would leak handlers on hot reload. The
+// handler serves range-requests out of the pmtiles:// URL scheme; a layer
+// with `pmtilesUrl: 'https://…/desa.pmtiles'` in the registry becomes a
+// vector source without any tippecanoe server.
+let pmtilesRegistered = false
+function ensurePMTilesProtocol() {
+  if (pmtilesRegistered) return
+  const p = new PMTilesProtocol()
+  maplibregl.addProtocol('pmtiles', p.tile)
+  pmtilesRegistered = true
+}
 import {
   ensureTimelineLayers, setStaticData, clearTimelineData,
   fitToTimeline, filterByMonth, computeStats, buildLegend, startPlayback,
@@ -144,6 +158,9 @@ export default function GlobeView({
   const [panelOpen, setPanelOpen] = useState(() => loadPref(LS.panelOpen, '1') === '1')
   const [layerSearch, setLayerSearch] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
+  // IDs currently mid-mount — used to render a per-row spinner in the layer
+  // panel so users know why an active checkbox hasn't rendered anything yet.
+  const [loadingIds, setLoadingIds] = useState(() => new Set())
   // togglePlay closes over state that changes often; store the latest in
   // a ref so the shortcut handler always calls the current one without
   // re-registering the window listener.
@@ -251,6 +268,7 @@ export default function GlobeView({
   // Init map once
   useEffect(() => {
     if (!mapRef.current) return
+    ensurePMTilesProtocol()
     const map = new maplibregl.Map({
       container: mapRef.current,
       style: buildStyle(basemap, theme),
@@ -275,7 +293,7 @@ export default function GlobeView({
       for (const id of active) {
         mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
                    setHover, setStatus, customCleanupsRef,
-                   hoverAttachedRef, pendingLabelsRef)
+                   hoverAttachedRef, pendingLabelsRef, setLoadingIds)
       }
     })
 
@@ -309,7 +327,7 @@ export default function GlobeView({
       for (const id of active) {
         mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
                    setHover, setStatus, customCleanupsRef,
-                   hoverAttachedRef, pendingLabelsRef)
+                   hoverAttachedRef, pendingLabelsRef, setLoadingIds)
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,7 +348,7 @@ export default function GlobeView({
       if (!loadedLayersRef.current.has(id)) {
         mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
                    setHover, setStatus, customCleanupsRef,
-                   hoverAttachedRef, pendingLabelsRef)
+                   hoverAttachedRef, pendingLabelsRef, setLoadingIds)
       }
     }
     for (const id of Array.from(loadedLayersRef.current)) {
@@ -568,24 +586,40 @@ export default function GlobeView({
                       fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em',
                       color: dark ? '#8888a0' : '#6b6b80', marginBottom: 6, fontWeight: 600,
                     }}>{cat}</div>
-                    {items.map(l => (
-                      <label key={l.id} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px',
-                        cursor: 'pointer', fontSize: 12,
-                      }}>
-                        <input
-                          type="checkbox"
-                          checked={active.has(l.id)}
-                          onChange={() => toggle(l.id)}
-                          style={{ margin: 0, cursor: 'pointer' }}
-                        />
-                        <span style={{
-                          width: 10, height: 10, borderRadius: 2, background: l.color || '#888',
-                          flexShrink: 0,
-                        }} />
-                        <span style={{ flex: 1 }}>{l.label}</span>
-                      </label>
-                    ))}
+                    {items.map(l => {
+                      const isLoading = loadingIds.has(l.id)
+                      return (
+                        <label key={l.id} style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '4px 2px',
+                          cursor: 'pointer', fontSize: 12,
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={active.has(l.id)}
+                            onChange={() => toggle(l.id)}
+                            style={{ margin: 0, cursor: 'pointer' }}
+                          />
+                          <span style={{
+                            width: 10, height: 10, borderRadius: 2, background: l.color || '#888',
+                            flexShrink: 0,
+                          }} />
+                          <span style={{ flex: 1 }}>{l.label}</span>
+                          {isLoading && (
+                            <span
+                              title="Sedang memuat"
+                              aria-label="Sedang memuat"
+                              style={{
+                                width: 12, height: 12, borderRadius: '50%',
+                                border: `2px solid ${dark ? '#4a4a5a' : '#c8c9d0'}`,
+                                borderTopColor: '#f36',
+                                flexShrink: 0,
+                                animation: 'globe-spin 0.8s linear infinite',
+                              }}
+                            />
+                          )}
+                        </label>
+                      )
+                    })}
                   </div>
                 )
               })}
@@ -836,7 +870,7 @@ function TimelineControls({
 // ── Layer mount/unmount plumbing ────────────────────────────────
 async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
                           setHover, setStatus, customCleanupsRef,
-                          hoverAttachedRef, pendingLabelsRef) {
+                          hoverAttachedRef, pendingLabelsRef, setLoadingIds) {
   const def = registry.find(l => l.id === id)
   if (!def || loadedLayersRef.current.has(id)) return
   loadedLayersRef.current.add(id) // optimistic; prevents re-entry
@@ -845,6 +879,7 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
   const beginStatus = () => {
     pendingLabelsRef?.current?.add(def.label)
     setStatus(`Memuat ${def.label}…`)
+    setLoadingIds?.(prev => { const s = new Set(prev); s.add(id); return s })
   }
   const endStatus = () => {
     pendingLabelsRef?.current?.delete(def.label)
@@ -855,7 +890,31 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
       const next = remaining.values().next().value
       setStatus(next ? `Memuat ${next}…` : '')
     }
+    setLoadingIds?.(prev => { const s = new Set(prev); s.delete(id); return s })
   }
+  // Waits for MapLibre to finish loading the given GeoJSON source in its
+  // worker (fetch + parse + tile-split all happen there when `data` is
+  // passed as a URL). Resolves once `isSourceLoaded` is true or the source
+  // reports an error.
+  const waitForSourceLoad = (sourceId) => new Promise((resolve, reject) => {
+    if (map.isSourceLoaded(sourceId)) { resolve(); return }
+    const onData = (e) => {
+      if (e.sourceId !== sourceId) return
+      if (e.isSourceLoaded) {
+        map.off('sourcedata', onData)
+        map.off('error', onErr)
+        resolve()
+      }
+    }
+    const onErr = (e) => {
+      if (e.sourceId !== sourceId) return
+      map.off('sourcedata', onData)
+      map.off('error', onErr)
+      reject(e.error || new Error('sourcedata error'))
+    }
+    map.on('sourcedata', onData)
+    map.on('error', onErr)
+  })
   try {
     // Path A: custom mount — layer manages its own MapLibre + marker state
     // and returns a cleanup function stored for unmountLayer to call.
@@ -866,7 +925,58 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
       endStatus()
       return
     }
-    // Path B: standard GeoJSON — fetch (or dataLoader), addSource, add layers.
+    // Path B: PMTiles vector source — set at addSource time; MapLibre reads
+    // only visible tiles via the pmtiles:// protocol handler registered at
+    // map init. Layers must set `source-layer` matching the archive.
+    if (def.pmtilesUrl) {
+      beginStatus()
+      if (!map.getSource(def.sourceId)) {
+        map.addSource(def.sourceId, {
+          type: 'vector',
+          url: `pmtiles://${def.pmtilesUrl}`,
+          promoteId: def.promoteId,
+        })
+      }
+      for (const layer of def.layers({ theme: 'dark' })) {
+        if (!map.getLayer(layer.id)) map.addLayer(layer)
+      }
+      if (def.hover && !hoverAttachedRef?.current?.has(id)) {
+        def.hover(map, setHover)
+        hoverAttachedRef?.current?.add(id)
+      }
+      try { await waitForSourceLoad(def.sourceId) } catch { /* surface via status */ }
+      endStatus()
+      return
+    }
+    // Path C: plain GeoJSON URL with NO preprocess/dataLoader — hand the
+    // URL directly to MapLibre so its worker fetches AND parses off the
+    // main thread. Turns a 1–2 s freeze on a 30 MB file into a smooth
+    // spinner. Preprocess/dataLoader paths fall through to the main-thread
+    // fetch+parse below.
+    if (def.url && !def.preprocess && !def.dataLoader) {
+      beginStatus()
+      if (!map.getSource(def.sourceId)) {
+        map.addSource(def.sourceId, {
+          type: 'geojson',
+          data: def.url,
+          promoteId: def.promoteId,
+        })
+      }
+      for (const layer of def.layers({ theme: 'dark' })) {
+        if (!map.getLayer(layer.id)) map.addLayer(layer)
+      }
+      if (def.hover && !hoverAttachedRef?.current?.has(id)) {
+        def.hover(map, setHover)
+        hoverAttachedRef?.current?.add(id)
+      }
+      try { await waitForSourceLoad(def.sourceId) } catch { /* surface via status */ }
+      endStatus()
+      return
+    }
+    // Path D: legacy fetch+parse+preprocess. Still needed for any layer
+    // that transforms features client-side (e.g. bigLayers.expandCfgToEntries
+    // filter, live entries with dataLoader) — MapLibre's worker path can't
+    // run arbitrary JS on the payload.
     let data
     if (def.dataLoader) {
       beginStatus()
