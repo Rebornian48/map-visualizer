@@ -149,13 +149,15 @@ function boundaryLayers({ sourceId, prefix, color, fillOpacity = 0.10, hoverOpac
       layout: { 'line-join': 'round', 'line-cap': 'round' },
       paint: {
         'line-color': color,
-        // MapLibre forbids two zoom-based interpolate subexpressions in
-        // one property, so hover-thickening is added on top of the zoom
-        // ramp instead of nested inside a case.
+        // MapLibre requires the "zoom" interpolate to be at the top level
+        // of the property value — wrapping it inside `+` or `case` throws
+        // _"zoom expression may only be used as input to a top-level
+        // step/interpolate"_ and drops the whole layer. Put interpolate
+        // outside, and evaluate the hover-thickening case at each stop.
         'line-width': [
-          '+',
-          ['interpolate', ['linear'], ['zoom'], 3, lineWidth, 12, widthHi],
-          ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0],
+          'interpolate', ['linear'], ['zoom'],
+          3,  ['case', ['boolean', ['feature-state', 'hover'], false], lineWidth + 0.5, lineWidth],
+          12, ['case', ['boolean', ['feature-state', 'hover'], false], widthHi + 1,     widthHi],
         ],
       },
     },

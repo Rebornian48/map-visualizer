@@ -6,6 +6,27 @@ at the top.
 
 ## Unreleased
 
+### Fixed
+
+- **GlobeView production repro — SEMUA layer batas administrasi gagal
+  ditambahkan karena style expression invalid.** Setelah reverting
+  default viewer ke Leaflet, investigasi ke `/globe` production
+  menangkap error MapLibre yang sebelumnya tidak muncul di local sandbox:
+  ```
+  layers.provinsi-line.paint.line-width: "zoom" expression may only be
+  used as input to a top-level "step" or "interpolate" expression.
+  ```
+  Fix visibility sebelumnya bikin `boundaryLayers` menghasilkan
+  `line-width` berbentuk `['+', ['interpolate', ..., ['zoom'], ...],
+  ['case', ...hover..., 1, 0]]`. `interpolate(zoom)` terkubur di
+  dalam `+`, jadi bukan lagi top-level — MapLibre menolak layer-nya
+  sekaligus. Efek user-visible: `provinsi/kabkota/kecamatan/desa` semua
+  gagal mount di production, tinggal basemap. Restrukturisasi jadi
+  `interpolate(zoom)` di top level dengan `case(hover)` di dalam tiap
+  stop di [src/globe/layers.js](src/globe/layers.js). Ini adalah root
+  cause utama "layer tidak muncul walau checkbox aktif" — bukan
+  init-race saja.
+
 ### Changed
 
 - **Leaflet MapView balik jadi default viewer di `/`.** MapLibre
