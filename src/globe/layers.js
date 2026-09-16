@@ -123,7 +123,11 @@ function hoverPropReader(sourceId, layerId, propName) {
 }
 
 // ── Boundary-style helper (fill + line) ──────────────────────────
+// lineWidth is the base width at low zoom; we ramp it to ~3× at zoom 12
+// so dense layers (kecamatan/desa) stay visible when the user zooms in
+// but don't smear into a solid blob at region-level zoom.
 function boundaryLayers({ sourceId, prefix, color, fillOpacity = 0.10, hoverOpacity = 0.35, lineWidth = 1.2 }) {
+  const widthHi = lineWidth * 3
   return () => [
     {
       id: `${prefix}-fill`,
@@ -147,8 +151,9 @@ function boundaryLayers({ sourceId, prefix, color, fillOpacity = 0.10, hoverOpac
         'line-color': color,
         'line-width': [
           'case',
-          ['boolean', ['feature-state', 'hover'], false], lineWidth + 1,
-          lineWidth,
+          ['boolean', ['feature-state', 'hover'], false],
+          ['interpolate', ['linear'], ['zoom'], 3, lineWidth + 0.5, 12, widthHi + 1],
+          ['interpolate', ['linear'], ['zoom'], 3, lineWidth,       12, widthHi],
         ],
       },
     },
@@ -164,7 +169,13 @@ function linestringLayer({ sourceId, id, color, width = 1.5, dash = null }) {
       layout: { 'line-join': 'round', 'line-cap': 'round' },
       paint: {
         'line-color': color,
-        'line-width': width,
+        // Ramp width slightly with zoom so UNCLOS boundaries stand out
+        // against the ocean-blue basemap even at low regional zooms.
+        'line-width': [
+          'interpolate', ['linear'], ['zoom'],
+          2, width,
+          8, width * 1.6,
+        ],
         ...(dash ? { 'line-dasharray': dash } : {}),
       },
     },
@@ -212,7 +223,7 @@ export const LAYER_REGISTRY = [
     promoteId: 'WADMKC',
     layers: boundaryLayers({
       sourceId: 'kecamatan', prefix: 'kecamatan',
-      color: C.purple, fillOpacity: 0.04, hoverOpacity: 0.25, lineWidth: 0.5,
+      color: C.purple, fillOpacity: 0.06, hoverOpacity: 0.25, lineWidth: 0.7,
     }),
     hover: hoverPropReader('kecamatan', 'kecamatan-fill', 'WADMKC'),
   },
@@ -226,7 +237,7 @@ export const LAYER_REGISTRY = [
     promoteId: 'WADMKD',
     layers: boundaryLayers({
       sourceId: 'desa', prefix: 'desa',
-      color: C.green, fillOpacity: 0.03, hoverOpacity: 0.2, lineWidth: 0.3,
+      color: C.green, fillOpacity: 0.06, hoverOpacity: 0.2, lineWidth: 0.5,
     }),
     hover: hoverPropReader('desa', 'desa-fill', 'WADMKD'),
   },
@@ -241,7 +252,7 @@ export const LAYER_REGISTRY = [
     sourceId: 'laut-teritorial',
     layers: linestringLayer({
       sourceId: 'laut-teritorial', id: 'laut-teritorial-line',
-      color: C.teritorial, width: 1.4,
+      color: C.teritorial, width: 2.0,
     }),
   },
   {
@@ -253,7 +264,7 @@ export const LAYER_REGISTRY = [
     sourceId: 'laut-zona-tambahan',
     layers: linestringLayer({
       sourceId: 'laut-zona-tambahan', id: 'laut-zona-tambahan-line',
-      color: C.zonaTambahan, width: 1.4, dash: [3, 2],
+      color: C.zonaTambahan, width: 2.0, dash: [3, 2],
     }),
   },
   {
@@ -265,7 +276,7 @@ export const LAYER_REGISTRY = [
     sourceId: 'laut-landas-kontinen',
     layers: linestringLayer({
       sourceId: 'laut-landas-kontinen', id: 'laut-landas-kontinen-line',
-      color: C.landasKontinen, width: 1.6,
+      color: C.landasKontinen, width: 2.4,
     }),
   },
   {
@@ -277,7 +288,7 @@ export const LAYER_REGISTRY = [
     sourceId: 'laut-zee',
     layers: linestringLayer({
       sourceId: 'laut-zee', id: 'laut-zee-line',
-      color: C.zee, width: 1.8,
+      color: C.zee, width: 2.8,
     }),
   },
 
