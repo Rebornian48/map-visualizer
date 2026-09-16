@@ -111,7 +111,15 @@ export default function GlobeView({
   const loadedLayersRef = useRef(new Set()) // layer ids currently mounted
   const dataCacheRef = useRef(new Map())    // url -> Promise<GeoJSON>
   const customCleanupsRef = useRef(new Map()) // layer id -> cleanup fn (customMount path)
+  const hoverAttachedRef = useRef(new Set()) // layer ids whose hover handler is already wired
   const playbackRef = useRef(null) // { stop } handle for the current playback
+  // Tracks the basemap/theme the map's WebGL style is currently rendering.
+  // Used to skip a redundant setStyle() on the initial `ready` flip, which
+  // would wipe layers the `load` handler is still mid-mount on.
+  const styleAppliedRef = useRef({ basemap: null, theme: null })
+  // In-flight mount labels — the last one to finish clears the status.
+  // Keeps a fast-loading layer from wiping the "Memuat X…" of a slow one.
+  const pendingLabelsRef = useRef(new Set())
   const [ready, setReady] = useState(false)
   const [basemap, setBasemap] = useState(() => loadPref(LS.basemap, 'osm'))
   const [projection, setProjection] = useState(() => loadPref(LS.projection, 'globe'))
@@ -252,6 +260,10 @@ export default function GlobeView({
       // Required so we can read the WebGL canvas back for video export.
       preserveDrawingBuffer: true,
     })
+    // Remember which style is currently on the map so the
+    // [basemap, theme, ready] effect below doesn't setStyle() again on the
+    // initial ready-flip and wipe layers the load handler just mounted.
+    styleAppliedRef.current = { basemap, theme }
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-left')
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
@@ -261,26 +273,43 @@ export default function GlobeView({
       setReady(true)
       // Mount initially-active layers
       for (const id of active) {
-        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus, customCleanupsRef)
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
+                   setHover, setStatus, customCleanupsRef,
+                   hoverAttachedRef, pendingLabelsRef)
       }
     })
 
     mapInstance.current = map
     window.__mlMap = map // POC: exposed for debug in dev & prod
-    return () => { map.remove(); mapInstance.current = null; loadedLayersRef.current = new Set() }
+    return () => {
+      map.remove()
+      mapInstance.current = null
+      loadedLayersRef.current = new Set()
+      hoverAttachedRef.current = new Set()
+      pendingLabelsRef.current = new Set()
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // React to basemap or theme change — swap style but re-mount active overlays
+  // React to basemap or theme change — swap style but re-mount active overlays.
+  // Guarded by styleAppliedRef so the initial ready-flip is a no-op: the map
+  // was constructed with the correct style already, and re-setStyle here
+  // would wipe the layers the load handler is still mounting.
   useEffect(() => {
     const map = mapInstance.current
     if (!map || !ready) return
+    const applied = styleAppliedRef.current
+    if (applied.basemap === basemap && applied.theme === theme) return
+    styleAppliedRef.current = { basemap, theme }
     map.setStyle(buildStyle(basemap, theme), { diff: false })
     map.once('styledata', () => {
       map.setProjection({ type: projection })
       loadedLayersRef.current = new Set()
+      hoverAttachedRef.current = new Set()
       for (const id of active) {
-        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus, customCleanupsRef)
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
+                   setHover, setStatus, customCleanupsRef,
+                   hoverAttachedRef, pendingLabelsRef)
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -299,12 +328,14 @@ export default function GlobeView({
     if (!map || !ready) return
     for (const id of active) {
       if (!loadedLayersRef.current.has(id)) {
-        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus, customCleanupsRef)
+        mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
+                   setHover, setStatus, customCleanupsRef,
+                   hoverAttachedRef, pendingLabelsRef)
       }
     }
     for (const id of Array.from(loadedLayersRef.current)) {
       if (!active.has(id)) {
-        unmountLayer(map, id, registry, loadedLayersRef, customCleanupsRef)
+        unmountLayer(map, id, registry, loadedLayersRef, customCleanupsRef, hoverAttachedRef)
       }
     }
   }, [active, registry, ready])
@@ -803,36 +834,60 @@ function TimelineControls({
 }
 
 // ── Layer mount/unmount plumbing ────────────────────────────────
-async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setHover, setStatus, customCleanupsRef) {
+async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
+                          setHover, setStatus, customCleanupsRef,
+                          hoverAttachedRef, pendingLabelsRef) {
   const def = registry.find(l => l.id === id)
   if (!def || loadedLayersRef.current.has(id)) return
   loadedLayersRef.current.add(id) // optimistic; prevents re-entry
+  // Track pending labels as a set so parallel mounts don't clobber each
+  // other's status — a fast layer finishing shouldn't clear a slow one.
+  const beginStatus = () => {
+    pendingLabelsRef?.current?.add(def.label)
+    setStatus(`Memuat ${def.label}…`)
+  }
+  const endStatus = () => {
+    pendingLabelsRef?.current?.delete(def.label)
+    const remaining = pendingLabelsRef?.current
+    if (!remaining || remaining.size === 0) setStatus('')
+    else {
+      // Surface the next in-flight label; iteration order is insertion order.
+      const next = remaining.values().next().value
+      setStatus(next ? `Memuat ${next}…` : '')
+    }
+  }
   try {
     // Path A: custom mount — layer manages its own MapLibre + marker state
     // and returns a cleanup function stored for unmountLayer to call.
     if (def.customMount) {
-      setStatus(`Memuat ${def.label}…`)
+      beginStatus()
       const cleanup = await def.customMount(map, { setHover, setStatus, dataCacheRef })
       customCleanupsRef.current.set(id, cleanup)
-      setStatus('')
+      endStatus()
       return
     }
     // Path B: standard GeoJSON — fetch (or dataLoader), addSource, add layers.
     let data
     if (def.dataLoader) {
-      setStatus(`Memuat ${def.label}…`)
-      data = await def.dataLoader({ dataCacheRef })
-      setStatus('')
+      beginStatus()
+      try { data = await def.dataLoader({ dataCacheRef }) }
+      finally { endStatus() }
     } else if (def.url) {
       if (!dataCacheRef.current.has(def.url)) {
-        setStatus(`Memuat ${def.label}…`)
-        dataCacheRef.current.set(def.url, fetch(def.url).then(r => {
+        beginStatus()
+        // Cache only successful fetches — a rejected promise stuck in the
+        // cache would make every subsequent re-toggle fail without retry.
+        const promise = fetch(def.url).then(r => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`)
           return r.json()
-        }))
+        })
+        promise.catch(() => dataCacheRef.current.delete(def.url))
+        dataCacheRef.current.set(def.url, promise)
+        try { data = await promise }
+        finally { endStatus() }
+      } else {
+        data = await dataCacheRef.current.get(def.url)
       }
-      data = await dataCacheRef.current.get(def.url)
-      setStatus('')
     }
     if (def.preprocess && data) data = def.preprocess(data)
     if (!map.getSource(def.sourceId)) {
@@ -845,9 +900,15 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef, setH
     for (const layer of def.layers({ theme: 'dark' })) {
       if (!map.getLayer(layer.id)) map.addLayer(layer)
     }
-    if (def.hover) def.hover(map, setHover)
+    // Only attach hover handlers once per layer id — otherwise a re-mount
+    // during a style swap doubles up the mousemove listeners for good.
+    if (def.hover && !hoverAttachedRef?.current?.has(id)) {
+      def.hover(map, setHover)
+      hoverAttachedRef?.current?.add(id)
+    }
   } catch (e) {
     loadedLayersRef.current.delete(id)
+    endStatus()
     setStatus(`Gagal muat ${def.label}: ${e.message}`)
   }
 }
@@ -903,7 +964,7 @@ function Sparkline({ bins, dark }) {
   )
 }
 
-function unmountLayer(map, id, registry, loadedLayersRef, customCleanupsRef) {
+function unmountLayer(map, id, registry, loadedLayersRef, customCleanupsRef, hoverAttachedRef) {
   const def = registry.find(l => l.id === id)
   if (!def) return
   const cleanup = customCleanupsRef.current.get(id)
@@ -916,6 +977,11 @@ function unmountLayer(map, id, registry, loadedLayersRef, customCleanupsRef) {
       if (map.getLayer(layer.id)) map.removeLayer(layer.id)
     }
   }
-  // Keep the source for cache — cheap to leave, avoids re-fetch on re-enable
+  // Keep the source for cache — cheap to leave, avoids re-fetch on re-enable.
+  // Deliberately KEEP the hover-attached flag: MapLibre binds mousemove
+  // listeners by layer-id string and doesn't drop them when the layer is
+  // removed. Re-mounting with a fresh attach would then double-fire; the
+  // existing listener will resume when the layer id comes back.
+  void hoverAttachedRef // signal we intentionally don't clear this
   loadedLayersRef.current.delete(id)
 }

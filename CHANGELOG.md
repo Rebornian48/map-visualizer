@@ -6,6 +6,49 @@ at the top.
 
 ## Unreleased
 
+### Fixed
+
+- **GlobeView init race — layer overlay tidak muncul walau checkbox
+  aktif.** Effect `[basemap, theme, ready]` di
+  [src/components/GlobeView.jsx](src/components/GlobeView.jsx) memanggil
+  `map.setStyle(..., { diff: false })` setiap kali dep berubah — termasuk
+  saat `ready` pertama kali flip ke `true`. Padahal map baru saja
+  dikonstruksi dengan style yang benar, dan `load` handler sedang
+  mengeksekusi `mountLayer` yang menjalankan fetch GeoJSON secara async.
+  `setStyle` sinkron itu meng-wipe semua source/layer, kemudian
+  `styledata` re-mount lagi — tapi promise fetch yang masih in-flight
+  dari mount pertama nyampe di style yang sudah di-swap dan silently
+  gagal `addSource`. Efek user-visible: setelah checkbox dicentang,
+  request GeoJSON 200 OK tapi layer tidak pernah muncul.
+
+  Fix — track `styleAppliedRef` (basemap/theme yang lagi aktif di WebGL
+  style) dan skip `setStyle` kalau nilainya sama. Init cukup ngeset ref
+  sekali, effect belakangan hanya berjalan saat user beneran ganti
+  basemap atau theme.
+- **Fetch gagal ter-cache selamanya.** `dataCacheRef.set(url, promise)`
+  menyimpan promise `fetch()`. Kalau reject (network flap, HTTP 5xx,
+  CORS), toggle ulang layer meng-await promise reject yang sama — user
+  dapat "Gagal muat" tanpa retry. Sekarang cache di-purge otomatis
+  begitu promise reject, jadi toggle berikutnya memulai fetch fresh.
+- **Hover handler kembar setelah style swap.** Ganti basemap/theme
+  meng-wipe style + re-mount layer, tapi `def.hover(map, setHover)`
+  dipanggil lagi tanpa cek — MapLibre menyimpan listener per layer-id,
+  jadi tiap mousemove memicu `setHover` dua kali (kadang tiga kali
+  kalau init race juga jadi). Track via `hoverAttachedRef` dan reset
+  bareng loadedLayersRef pas beneran setStyle.
+- **Status "Memuat…" ke-clobber antar-layer.** `mountLayer` sukses
+  memanggil `setStatus('')` — kalau desa (32 MB) masih fetch bareng
+  layer kecil yang selesai duluan, statusnya hilang meski desa masih
+  loading. Pending labels sekarang dilacak lewat `pendingLabelsRef`;
+  status baru clear kalau semua sudah selesai, dan surface label lain
+  yang masih pending kalau ada.
+- **Style expression invalid — dua zoom interpolate dalam satu
+  property.** Zoom-based line-width fix (`case` untuk hover + dua
+  `interpolate` di dalamnya) di-reject MapLibre dengan _"Only one
+  zoom-based interpolate subexpression may be used"_ — mengakibatkan
+  `desa-line` gagal ditambahkan. Restrukturisasi jadi
+  `interpolate(zoom) + case(hover)` di [src/globe/layers.js](src/globe/layers.js).
+
 ### Added
 
 - **Warna per-kategori + legenda untuk 34 sublayer BIG.** Field

@@ -862,6 +862,19 @@ export default function InfoPage({ onBack, theme, onToggleTheme }) {
             di bawah. Halaman ini dokumentasi lengkapnya — endpoint, atribusi,
             lisensi, dan penyangkalan per sumber.
           </p>
+          <p style={{ ...pMuted, fontSize: '0.82rem', marginTop: 8 }}>
+            <strong>Viewer.</strong> Halaman utama (<code>/</code>) sekarang
+            memakai <strong>MapLibre GL JS</strong> — bisa toggle antara
+            globe dan Mercator, style raster dark-tweak, dan render layer
+            batas administrasi sampai 84.503 kelurahan/desa sekaligus.
+            Viewer Leaflet lama tetap tersedia di <code>/legacy</code>{' '}
+            dengan feature-set yang di-freeze. Kalau layer di-centang tapi
+            tidak muncul walau checkbox sudah nyala, kemungkinan besar
+            data-nya sedang di-fetch — status <em>"Memuat X…"</em> di
+            kiri-bawah menunjukkan yang lagi jalan; layer besar seperti
+            Kelurahan/Desa (~30 MB) butuh beberapa detik parse setelah
+            download.
+          </p>
         </section>
         <OverlaySummary />
         <SimbologiSection />

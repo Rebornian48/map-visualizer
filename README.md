@@ -3,7 +3,9 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/rebornian48/map-visualizer/badge)](https://www.codefactor.io/repository/github/rebornian48/map-visualizer) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/6a8bf2aeed6340b3a53bce1babf30296)](https://app.codacy.com/gh/Rebornian48/map-visualizer/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 Interactive web visualizer for Google Location History `Timeline.json` files.
-Built with **React + Vite + Leaflet** — auto-deploys to **Hostinger** via GitHub Actions.
+Built with **React + Vite + MapLibre GL** — Leaflet viewer masih dibawa
+sebagai `/legacy` fallback. Auto-deploys to **Hostinger** via GitHub
+Actions.
 
 Live: <https://rebornian48.my.id/map-visualizer/>
 
@@ -482,7 +484,8 @@ Upload the contents of `dist/` to Hostinger's target folder via:
 
 - **React 18** — UI framework
 - **Vite 6** — build tool
-- **Leaflet** — interactive maps
+- **MapLibre GL JS 5** — WebGL globe + Mercator (default viewer di `/`)
+- **Leaflet** — legacy viewer di `/legacy` (frozen feature set)
 - **html-to-image** — DOM → PNG snapshot for the video background
 - **MediaRecorder + canvas.captureStream** — MP4/WebM encoding
 - **JSZip** — client-side GTFS zip extraction (Transjakarta overlay)

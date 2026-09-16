@@ -149,11 +149,13 @@ function boundaryLayers({ sourceId, prefix, color, fillOpacity = 0.10, hoverOpac
       layout: { 'line-join': 'round', 'line-cap': 'round' },
       paint: {
         'line-color': color,
+        // MapLibre forbids two zoom-based interpolate subexpressions in
+        // one property, so hover-thickening is added on top of the zoom
+        // ramp instead of nested inside a case.
         'line-width': [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false],
-          ['interpolate', ['linear'], ['zoom'], 3, lineWidth + 0.5, 12, widthHi + 1],
-          ['interpolate', ['linear'], ['zoom'], 3, lineWidth,       12, widthHi],
+          '+',
+          ['interpolate', ['linear'], ['zoom'], 3, lineWidth, 12, widthHi],
+          ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0],
         ],
       },
     },
