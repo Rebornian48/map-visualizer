@@ -11,12 +11,14 @@ import { getInitialTheme, applyTheme } from './theme'
 // eagerly import Leaflet and keep the globe reachable at "/globe" for
 // users who want it. InfoPage stays lazy (only anyone hitting /info
 // pays for it).
-const InfoPage  = React.lazy(() => import('./components/InfoPage'))
-const GlobeView = React.lazy(() => import('./components/GlobeView'))
+const InfoPage     = React.lazy(() => import('./components/InfoPage'))
+const GlobeView    = React.lazy(() => import('./components/GlobeView'))
+const DigitasiView = React.lazy(() => import('./components/DigitasiView'))
 
 const BASE = import.meta.env.BASE_URL || '/'
-const INFO_PATH  = `${BASE}info`
-const GLOBE_PATH = `${BASE}globe`
+const INFO_PATH     = `${BASE}info`
+const GLOBE_PATH    = `${BASE}globe`
+const DIGITASI_PATH = `${BASE}digitasi`
 // "/legacy" from the previous default-globe period falls through to the
 // default MapView branch below, so existing links keep working without
 // an explicit route.
@@ -122,8 +124,18 @@ export default function App() {
     )
   }
 
-  // "/globe" — MapLibre GlobeView, opt-in while the init-race repro is
-  // still being tracked down.
+  if (pathMatch(pathname, DIGITASI_PATH)) {
+    return (
+      <Suspense fallback={<LoadingScreen text="Loading digitasi…" pct={50} />}>
+        <DigitasiView
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onBack={() => navigate(BASE)}
+        />
+      </Suspense>
+    )
+  }
+
   if (pathMatch(pathname, GLOBE_PATH)) {
     return (
       <>
@@ -152,6 +164,7 @@ export default function App() {
         onFile={handleFile}
         onOpenInfo={() => navigate(INFO_PATH)}
         onOpenGlobe={() => navigate(GLOBE_PATH)}
+        onOpenDigitasi={() => navigate(DIGITASI_PATH)}
       />
       <FirstVisitNotice />
       {loading && <LoadingScreen text={loadingText} pct={loadingPct} />}

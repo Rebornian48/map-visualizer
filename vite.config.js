@@ -23,6 +23,9 @@ export default defineConfig({
           if (id.includes("leaflet")) return "leaflet";
           if (id.includes("jszip")) return "jszip";
           if (id.includes("html-to-image")) return "html-to-image";
+          if (id.includes("@turf") || id.includes("turf")) return "turf";
+          if (id.includes("shpjs") || id.includes("shp-write")) return "shp";
+          if (id.includes("leaflet-geoman")) return "geoman";
           return "vendor";
         },
       },
