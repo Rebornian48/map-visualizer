@@ -927,7 +927,9 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
     }
     // Path B: PMTiles vector source — set at addSource time; MapLibre reads
     // only visible tiles via the pmtiles:// protocol handler registered at
-    // map init. Layers must set `source-layer` matching the archive.
+    // map init. Layers must set `source-layer` matching the archive. The
+    // registry names it via `def.tilesLayer` (falls back to sourceId when
+    // the two happen to match, e.g. plain boundary layers).
     if (def.pmtilesUrl) {
       beginStatus()
       if (!map.getSource(def.sourceId)) {
@@ -937,8 +939,11 @@ async function mountLayer(map, id, registry, dataCacheRef, loadedLayersRef,
           promoteId: def.promoteId,
         })
       }
+      const sourceLayer = def.tilesLayer || def.sourceId
       for (const layer of def.layers({ theme: 'dark' })) {
-        if (!map.getLayer(layer.id)) map.addLayer(layer)
+        if (!map.getLayer(layer.id)) {
+          map.addLayer({ ...layer, 'source-layer': sourceLayer })
+        }
       }
       if (def.hover && !hoverAttachedRef?.current?.has(id)) {
         def.hover(map, setHover)

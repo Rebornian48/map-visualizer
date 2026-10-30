@@ -489,10 +489,43 @@ Upload the contents of `dist/` to Hostinger's target folder via:
 - **MapLibre GL JS 5** — experimental globe viewer opt-in di `/globe`
   (init-race + line-width expression bug sudah diperbaiki; performa
   layer padat dioptimalkan dengan `data:url` off-thread parse +
-  minzoom gate; PMTiles vector-tile support siap tapi belum
-  di-generate — lihat [scripts/build-pmtiles.sh](scripts/build-pmtiles.sh))
+  minzoom gate; PMTiles vector-tile support siap — lihat
+  [Vector tile pipeline](#vector-tile-pipeline-pmtiles) di bawah)
 - **pmtiles 4** — client-side vector-tile reader (protocol handler
   untuk `pmtiles://…`)
+
+### Vector tile pipeline (PMTiles)
+
+Data berat (boundary desa 31 MB, mangrove 76 MB, dst.) di-pre-tile
+sekali dengan **tippecanoe** → `.pmtiles`, lalu MapLibre cuma
+memuat tile yang terlihat di viewport. Ini memangkas parse-time
+dari detik ke instan.
+
+**Prasyarat** (pilih salah satu):
+
+- **Linux/macOS** — `brew install tippecanoe` atau `sudo apt install tippecanoe`
+- **Windows** — jalankan via **WSL** (`sudo apt install tippecanoe`
+  di dalam WSL) atau **Docker Desktop** (auto-pull
+  `ghcr.io/felt/tippecanoe:latest`)
+
+**Build**:
+
+```bash
+npm run tiles:list                 # lihat rencana build + status
+npm run tiles:build                # build semua yang belum ada
+npm run tiles:build:boundaries     # atau per-group
+npm run tiles:build:sda
+npm run tiles:build:sarpras
+node scripts/build-pmtiles.mjs --only desa,mangrove --force  # spesifik
+```
+
+Runner auto-detect (native → WSL → Docker). Paksa dengan
+`--runner docker`. Output di `public/tiles/<group>/<slug>.pmtiles` —
+jangan di-commit (regenerate on demand). Setelah tile terbangun,
+switch entry di [src/globe/layers.js](src/globe/layers.js) dari
+`url: …` ke `pmtilesUrl: \`${BASE}tiles/<group>/<slug>.pmtiles\``;
+GlobeView Path B ([src/components/GlobeView.jsx:931](src/components/GlobeView.jsx:931))
+otomatis akan pakai vector source.
 - **html-to-image** — DOM → PNG snapshot for the video background
 - **MediaRecorder + canvas.captureStream** — MP4/WebM encoding
 - **JSZip** — client-side GTFS zip extraction (Transjakarta overlay)

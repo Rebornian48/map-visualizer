@@ -25,6 +25,17 @@ import { SEARATES_ENTRY } from './live/searates'
 
 const BASE = import.meta.env.BASE_URL || '/'
 
+// Opt-in switch to PMTiles vector sources for the heavy overlays. When
+// `VITE_USE_PMTILES=true` and `npm run tiles:build` has been run, MapLibre
+// serves only the visible tiles via the pmtiles:// protocol (registered in
+// GlobeView.jsx) — parsing the 31 MB desa boundary drops from ~10 s to
+// instant. Default = false so a fresh clone still renders overlays before
+// anyone builds tiles; GlobeView Path B ignores an entry whose `pmtilesUrl`
+// is undefined and falls through to Path C (raw GeoJSON URL).
+const USE_TILES = import.meta.env.VITE_USE_PMTILES === 'true'
+const tilesUrl = (group, slug) =>
+  USE_TILES ? `${BASE}tiles/${group}/${slug}.pmtiles` : undefined
+
 // ── Palette (aligned with the Leaflet-side theme accents) ─────────
 const C = {
   accent: '#f36',
@@ -203,6 +214,7 @@ export const LAYER_REGISTRY = [
     category: 'Batas Administrasi',
     color: C.accent,
     url: `${BASE}boundaries/provinsi.json`,
+    pmtilesUrl: tilesUrl('boundaries', 'provinsi'),
     sourceId: 'provinsi',
     promoteId: 'WADMPR',
     layers: boundaryLayers({
@@ -217,6 +229,7 @@ export const LAYER_REGISTRY = [
     category: 'Batas Administrasi',
     color: C.gold,
     url: `${BASE}boundaries/kabkota.json`,
+    pmtilesUrl: tilesUrl('boundaries', 'kabkota'),
     sourceId: 'kabkota',
     promoteId: 'WADMKK',
     layers: boundaryLayers({
@@ -231,6 +244,7 @@ export const LAYER_REGISTRY = [
     category: 'Batas Administrasi',
     color: C.purple,
     url: `${BASE}boundaries/kecamatan.json`,
+    pmtilesUrl: tilesUrl('boundaries', 'kecamatan'),
     sourceId: 'kecamatan',
     promoteId: 'WADMKC',
     layers: boundaryLayers({
@@ -246,6 +260,7 @@ export const LAYER_REGISTRY = [
     category: 'Batas Administrasi',
     color: C.green,
     url: `${BASE}boundaries/desa.json`,
+    pmtilesUrl: tilesUrl('boundaries', 'desa'),
     sourceId: 'desa',
     promoteId: 'WADMKD',
     layers: boundaryLayers({
@@ -263,6 +278,8 @@ export const LAYER_REGISTRY = [
     category: 'Batas Laut UNCLOS',
     color: C.teritorial,
     url: `${BASE}boundaries/laut/teritorial.json`,
+    pmtilesUrl: tilesUrl('laut', 'teritorial'),
+    tilesLayer: 'teritorial',
     sourceId: 'laut-teritorial',
     layers: linestringLayer({
       sourceId: 'laut-teritorial', id: 'laut-teritorial-line',
@@ -275,6 +292,8 @@ export const LAYER_REGISTRY = [
     category: 'Batas Laut UNCLOS',
     color: C.zonaTambahan,
     url: `${BASE}boundaries/laut/zona-tambahan.json`,
+    pmtilesUrl: tilesUrl('laut', 'zona-tambahan'),
+    tilesLayer: 'zona-tambahan',
     sourceId: 'laut-zona-tambahan',
     layers: linestringLayer({
       sourceId: 'laut-zona-tambahan', id: 'laut-zona-tambahan-line',
@@ -287,6 +306,8 @@ export const LAYER_REGISTRY = [
     category: 'Batas Laut UNCLOS',
     color: C.landasKontinen,
     url: `${BASE}boundaries/laut/landas-kontinen.json`,
+    pmtilesUrl: tilesUrl('laut', 'landas-kontinen'),
+    tilesLayer: 'landas-kontinen',
     sourceId: 'laut-landas-kontinen',
     layers: linestringLayer({
       sourceId: 'laut-landas-kontinen', id: 'laut-landas-kontinen-line',
@@ -299,6 +320,8 @@ export const LAYER_REGISTRY = [
     category: 'Batas Laut UNCLOS',
     color: C.zee,
     url: `${BASE}boundaries/laut/zee.json`,
+    pmtilesUrl: tilesUrl('laut', 'zee'),
+    tilesLayer: 'zee',
     sourceId: 'laut-zee',
     layers: linestringLayer({
       sourceId: 'laut-zee', id: 'laut-zee-line',
@@ -313,6 +336,7 @@ export const LAYER_REGISTRY = [
     category: 'Keagamaan',
     color: C.purple,
     url: `${BASE}keuskupan/keuskupan.geojson`,
+    pmtilesUrl: tilesUrl('keuskupan', 'keuskupan'),
     sourceId: 'keuskupan',
     layers: () => [
       {
@@ -357,6 +381,8 @@ export const LAYER_REGISTRY = [
     category: 'Tektonik',
     color: C.plateFill,
     url: `${BASE}tectonicplates/plates.json`,
+    pmtilesUrl: tilesUrl('tektonik', 'plates'),
+    tilesLayer: 'plates',
     sourceId: 'tektonik-plates',
     promoteId: 'Code',
     layers: () => [
@@ -388,6 +414,8 @@ export const LAYER_REGISTRY = [
     category: 'Tektonik',
     color: C.boundary,
     url: `${BASE}tectonicplates/boundaries.json`,
+    pmtilesUrl: tilesUrl('tektonik', 'boundaries'),
+    tilesLayer: 'boundaries',
     sourceId: 'tektonik-boundaries',
     layers: linestringLayer({
       sourceId: 'tektonik-boundaries', id: 'tektonik-boundaries-line',
@@ -400,6 +428,8 @@ export const LAYER_REGISTRY = [
     category: 'Tektonik',
     color: C.orogen,
     url: `${BASE}tectonicplates/orogens.json`,
+    pmtilesUrl: tilesUrl('tektonik', 'orogens'),
+    tilesLayer: 'orogens',
     sourceId: 'tektonik-orogens',
     promoteId: 'Name',
     layers: () => [
@@ -433,6 +463,8 @@ export const LAYER_REGISTRY = [
     category: 'Vulkano',
     color: C.red,
     url: `${BASE}veins/volcanoes.json`,
+    pmtilesUrl: tilesUrl('veins', 'volcanoes'),
+    tilesLayer: 'volcanoes',
     sourceId: 'vulkano-gvp',
     layers: () => [
       {

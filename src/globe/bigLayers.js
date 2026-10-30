@@ -9,6 +9,14 @@
 
 const BASE = import.meta.env.BASE_URL || '/'
 
+// Mirror layers.js opt-in: `VITE_USE_PMTILES=true` switches these entries
+// to PMTiles vector sources (built by `npm run tiles:build`). Split entries
+// (currently only SARPRAS.ruang-udara) keep the raw URL because they run a
+// client-side preprocess that MapLibre's tile pipeline can't reproduce.
+const USE_TILES = import.meta.env.VITE_USE_PMTILES === 'true'
+const tilesUrl = (group, slug) =>
+  USE_TILES ? `${BASE}tiles/${group}/${slug}.pmtiles` : undefined
+
 // Build a MapLibre paint-color expression from a CFG.categorize block.
 // - Simple case (no `combined`): a plain `match` on the field value.
 // - `combined` case: features whose field value contains 2+ keywords
@@ -64,7 +72,7 @@ function makeHoverWiring(sourceId, layerIds, propName) {
 }
 
 // Turn one CFG entry into a globe layer registry entry.
-export function bigLayerEntry({ prefix, slug, cfg, dataDir }) {
+export function bigLayerEntry({ prefix, slug, cfg, dataDir, allowTiles = true }) {
   const id = `${prefix}-${slug}`
   const sourceId = id
   const url = `${BASE}${dataDir}/${slug}.json`
@@ -76,6 +84,11 @@ export function bigLayerEntry({ prefix, slug, cfg, dataDir }) {
     category: cfg.group,
     color: cfg.color,
     url,
+    // Only non-split entries opt into tiles — split ones need preprocess.
+    pmtilesUrl: allowTiles ? tilesUrl(dataDir, slug) : undefined,
+    // Layer name inside the archive (build script uses `-l <slug>`); differs
+    // from sourceId which is prefixed to keep the source table unique.
+    tilesLayer: slug,
     sourceId,
     layers: () => [
       {
@@ -148,6 +161,7 @@ export function expandCfgToEntries({ prefix, cfg, dataDir }) {
       }
       const entry = bigLayerEntry({
         prefix, slug: `${slug}--${val}`, cfg: subCfg, dataDir,
+        allowTiles: false,  // split path filters features client-side
       })
       // The URL still points at the parent GeoJSON; but each entry
       // needs a filter to keep only features with categorize.field === val.
